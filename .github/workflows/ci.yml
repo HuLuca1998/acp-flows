@@ -5,6 +5,10 @@ name: ci
 #   ② 分支保护只认最后的 ci 汇总门禁，不认单个 job
 #      —— 否则被跳过的 required check 会让 PR 永远 pending
 #   ③ 便宜的先跑，让违规尽早暴露
+#
+# changes 除了探测「改了什么」，还探测「有没有脚手架」：
+# 子项目尚未创建时（M0 之前）相关 job 直接跳过，而不是在 setup-go 上硬失败。
+# 这样 CI 从第一天起就能跑通——一个跑不动的检查等于没有检查。
 
 on:
   pull_request:
@@ -25,10 +29,12 @@ jobs:
     name: changes
     runs-on: ubuntu-latest
     outputs:
-      backend:  ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      shell:    ${{ steps.filter.outputs.shell }}
+      backend:  ${{ steps.filter.outputs.backend == 'true'  && steps.scaffold.outputs.backend == 'true' }}
+      frontend: ${{ steps.filter.outputs.frontend == 'true' && steps.scaffold.outputs.frontend == 'true' }}
+      shell:    ${{ steps.filter.outputs.shell == 'true'    && steps.scaffold.outputs.shell == 'true' }}
       contract: ${{ steps.filter.outputs.contract }}
+      has_backend:  ${{ steps.scaffold.outputs.backend }}
+      has_frontend: ${{ steps.scaffold.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -50,6 +56,17 @@ jobs:
             contract:
               - 'api/**'
               - 'scripts/gen-api.sh'
+
+      - id: scaffold
+        name: 探测子项目是否已脚手架
+        run: |
+          for pair in "backend:backend/go.mod" \
+                      "frontend:frontend/package.json" \
+                      "shell:shell/src-tauri/Cargo.toml"; do
+            key=${pair%%:*}; file=${pair#*:}
+            if [ -f "$file" ]; then echo "$key=true" >> "$GITHUB_OUTPUT"
+            else echo "$key=false" >> "$GITHUB_OUTPUT"; echo "· $key 尚未脚手架（缺 $file）"; fi
+          done
 
   # ── 全局规范：~30s，永远跑（便宜且覆盖整个仓库）────────────────
   guard:
@@ -81,18 +98,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: spec 自身规范性
+        run: npx --yes @redocly/cli@latest lint api/openapi.yaml
+
       - uses: actions/setup-go@v5
+        if: needs.changes.outputs.has_backend == 'true'
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+
       - uses: pnpm/action-setup@v4
+        if: needs.changes.outputs.has_frontend == 'true'
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.has_frontend == 'true'
         with: { node-version: 22, cache: pnpm }
 
-      - name: spec 自身规范性
-        run: npx --yes @redocly/cli lint api/openapi.yaml
-
       - name: 生成物与 spec 一致
+        if: needs.changes.outputs.has_backend == 'true' || needs.changes.outputs.has_frontend == 'true'
         run: make check-gen
 
   # ── 后端：只在 backend/ 或契约变动时跑 ────────────────────────
@@ -180,7 +203,11 @@ jobs:
   # ── E2E：只在 main 上跑，不阻塞 PR（慢，且依赖构建产物）────────
   e2e:
     name: e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: changes
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.changes.outputs.has_backend == 'true'
+      && needs.changes.outputs.has_frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
