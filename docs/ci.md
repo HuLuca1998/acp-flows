@@ -91,6 +91,25 @@ frontend:
 
 `guard` 不加过滤——它检查的是全仓库的文档、索引、命名，改哪都可能影响。
 
+### 脚手架探测
+
+`changes` 除了探测「改了什么」，还探测「有没有脚手架」：
+
+```yaml
+- id: scaffold
+  run: |
+    # backend/go.mod · frontend/package.json · shell/src-tauri/Cargo.toml
+```
+
+子项目尚未创建时（M0 之前），相关 job **直接跳过**，
+而不是在 `actions/setup-go` 上硬失败（它找不到 `go.mod` 会直接报错，
+`setup-node` 的 pnpm 缓存找不到 lockfile 也一样）。
+
+**理由：CI 必须从第一天起就能跑通。** 一个跑不动的检查等于没有检查——
+一旦 CI 长期是红的，所有人都会开始忽略它。
+
+脚手架建好后这些守卫自动失效，不需要回来改。
+
 ---
 
 ## 3. 什么放 PR，什么放 main
