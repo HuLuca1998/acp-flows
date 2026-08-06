@@ -32,13 +32,34 @@
 
 | # | 冲突 | 影响 |
 |---|---|---|
-| Q4a | **设计稿的 `mem-188` 是错的**：「codex 默认权限档 `agent`（不询问）」——源码里 `AgentMode.Agent` 的 `approvalPolicy` 是 `on-request`（会询问），真正不询问的是 `agent-full-access`。收权方向应是 `agent → read-only` | 角色配置与权限裁决策略要改 |
+| ~~Q4a~~ | ~~设计稿的 `mem-188` 是错的~~ **← 已撤回，判定过重** | 见下 |
 | Q4b | **角色表把 codex 实现工程师绑到 `auto` 模式**，但 codex-acp 只有 `read-only` / `agent` / `agent-full-access`，`auto` 是 claude 侧的 id | 绑不上，设计稿的角色表需修正 |
 | Q4c | **`session/set_mode` 官方已挂废弃告示**，将被 Session Config Options 取代（codex-acp 已同时暴露两套） | 影响 `AGENTS.md` §8 术语表「会话模式 = `session/set_mode`」的表述 |
 | Q4d | **客户端 MUST 用 `cancelled` 应答所有 pending 的 `session/request_permission`** —— 设计稿完全没提。漏了会导致每次取消都超时、`prepare` 永远返回 `blocked` | 直接影响 M1 的自动更新能否工作 |
 
 > ⚠️ 还有一个高危同名陷阱：**ACP 的 `plan` 更新是 Agent 的 TODO 清单，不是 Duet 的 `PlanVersion`。**
 > 误映射会污染只增不改的计划版本链。`acp-integration.md` 里单列了一条测试防这个。
+
+#### Q4a 的撤回说明（文档演进的一次实例）
+
+原判定：「设计稿的 `mem-188` 说 codex 默认档不询问是**错的**」，依据是源码里
+`AgentMode.Agent` 的 `approvalPolicy` 是 `on-request`。
+
+**这个判定过重，已撤回。** 拿到本机实测记录后（[`acp-field-notes.md`](acp-field-notes.md) §2），
+两者其实一致：
+
+| 档位 | `request_permission` 次数 | 文件建了吗 |
+|---|---|---|
+| `agent`（codex 默认）+ 客户端**全拒** | **0** | ✅ **建了** |
+| `read-only` + 客户端全拒 | 2 | ❌ 没建 |
+
+`agent` 档 = `workspace-write` 沙箱 + `on-request` 审批。**沙箱内的写操作根本不需要审批**，
+所以观测到 0 次是正确行为；`on-request` 只对越出沙箱的操作生效。
+**`mem-188` 的实用结论（默认档不问、必须收权）是对的。**
+
+> **教训**：源码阅读（C 级）不能直接推翻实测（B 级）。
+> 两者冲突时，多半是**语义层次不同**，不是谁错了。
+> 权威性分级见 [`acp-field-notes.md`](acp-field-notes.md) 开头。
 
 ---
 

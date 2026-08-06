@@ -64,7 +64,35 @@ cd backend && go test -tags=integration ./tests/integration/... -run ACP
 
 ## 本域特有的坑
 
-> 以下每条都是对着真实 ACP 规范与两个 adapter 源码核实过的。
+> 前一半对着官方规范与 adapter 源码核实；后一半（★）来自
+> [`../../../docs/acp-field-notes.md`](../../../docs/acp-field-notes.md) 的**本机实测**，
+> 每一条前一个项目都真实踩过。
+
+### ★ 实测踩过的（优先看这些）
+
+- **嵌套会话环境变量 —— 对本项目必踩。** Claude Code 给子进程注入 `CLAUDECODE` 等变量，
+  继承下去传给 `claude-agent-acp` 会让它**拒绝服务**。spawn 前必须 `envRemove`。
+  Duet 本身就在 Claude Code 里开发，自己手跑没问题，一从会话里启动就炸。
+  → **测试与试验一律用 codex**，避免与开发环境撞车。
+- **`configOptions` 按 `category` 取，不按 `id` 取。** 推理强度在 claude 是 `effort`、
+  codex 是 `reasoning_effort`，但两端 `category` 都是 `thought_level`。
+  这是「差异内化」最漂亮的实证——协议本身给了稳定键，不需要维护映射表。
+- **`session/set_config_option` 的参数名是 `configId`，不是 `optionId`。**
+  `session/new` 的 params 里带 `model` **两端都静默忽略**。
+- **codex 完全不走 fs 代理**（用自带 shell），所以 **path guard 对 codex 没有落点**。
+  这条推翻了「所有文件操作都过我的 guard」这个看起来很合理的架构假设。
+- **cwd 目录名会导致会话历史串味。** claude 按 cwd 路径在 `~/.claude/projects/<编码>`
+  存历史，同前缀的临时目录可能读到旧历史 —— 对 Duet 是**数据串扰**，不只是体验问题。
+- **stderr 必须收集。** agent 崩溃、认证失败、版本错配的信息**只在 stderr 里**。
+- **超时后只 reject 不够**，必须同时 `session/cancel` + 杀进程，否则 agent 还在烧钱改文件。
+- **`totalTokens` 会严重高估成本**（缓存读远大于新增 token）。用 `cost.amount`，但**只有 claude 有**。
+- **隔离与注入方案已跑通**，直接对应设计稿设置页的三个开关：
+  claude 走 `_meta.claudeCode.options`（`settingSources` / `plugins` / `strictMcpConfig`），
+  codex 走 `additionalDirectories` + `CODEX_CONFIG` 环境变量。
+  **codex 的 `session/new.mcpServers` 必须传空数组** —— 非空会整体覆盖 thread config
+  的 `mcp_servers` 键，禁用条目全部丢失。细节见 field-notes §4。
+
+### 对着规范核实的
 
 - **`session/cancel` 是 notification，不是请求。** 取消完成的唯一同步点是
   `session/prompt` 的响应带回 `stopReason: "cancelled"`。这就是「两段式」的由来。
