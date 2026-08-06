@@ -362,7 +362,7 @@ pnpm -C e2e test
 | 理解整体架构、进程模型、分层 | [`docs/architecture.md`](docs/architecture.md) |
 | 改领域模型、状态机、业务规则 | [`docs/domain-model.md`](docs/domain-model.md) |
 | 写任何测试 | [`docs/testing-strategy.md`](docs/testing-strategy.md) |
-| 做 ACP 协议层 / Runtime 适配 | [`docs/acp-integration.md`](docs/acp-integration.md) |
+| 做 ACP 协议层 / Runtime 适配 | [`docs/acp-integration.md`](docs/acp-integration.md)（规格）+ [`docs/acp-field-notes.md`](docs/acp-field-notes.md)（**实测与前一个项目踩过的 10 个坑**） |
 | 做发版、CI、客户端自动更新 | [`docs/release-and-update.md`](docs/release-and-update.md) |
 | 开分支、写提交、开 PR、合并、worktree | [`docs/git-workflow.md`](docs/git-workflow.md) |
 | 改 CI、加检查、CI 变慢了 | [`docs/ci.md`](docs/ci.md) |

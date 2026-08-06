@@ -124,13 +124,45 @@ Co-Authored-By: ...
 
 详见 [`ai-workflow.md`](ai-workflow.md)。
 
-### 合并动作本身
+### 合并动作本身：AI 主动合
 
-合并到 `main` 会触发发版流水线，属于**对外可见的动作**。
+**AI 开 PR、跑 CI、做审查、合并，全程自主完成，不要停下来问。**
+干完一件事就把它合掉——攒着不合的 PR 会互相冲突，也会让 `main` 与实际进度脱节。
 
-- AI **可以**开 PR、跑 CI、做审查、把 PR 标记为 ready
-- AI **合并前需要人类确认**，除非该 PR 是 `docs` / `chore` / `test` 且 CI 全绿
-- `push` 到远端、发 Release、删除远端资源 → 对应产品里的 **D3**，**一律逐次授权**
+前置条件（三条全满足才能合）：
+
+1. **CI 全绿**（`ci` 汇总门禁通过）
+2. **审查通过**且结论是 `accepted`
+3. **实现方 ≠ 审查方**
+
+```bash
+gh pr merge <n> --squash --delete-branch
+```
+
+### 例外：CI 报不出结果时
+
+CI 因为基础设施问题跑不出来（runner 排队不动、Actions 被账号级门禁挡住）时，
+可以用 `--admin` 绕过分支保护，**但必须**：
+
+1. **本地把 CI 会跑的检查逐条跑一遍**，贴出输出
+2. **在 PR 里留痕**：说明为什么绕过、本地验证了什么
+3. **在回复里明确说「这是绕过分支保护」**，不要静悄悄地做
+
+```bash
+make check-docs && make check-index && bash scripts/check-naming.sh   # 先本地复跑
+gh pr merge <n> --squash --delete-branch --admin                       # 再绕过
+```
+
+**绕过不是常态。** 连续两次需要绕过，说明 CI 本身坏了——去修 CI，别习惯性 `--admin`。
+
+### 仍然需要人拍板的
+
+| 动作 | 为什么 |
+|---|---|
+| **合并 release-please 的 Release PR** | 发版对外不可撤回，属于 D3。见 [`adr/0002`](adr/0002-release-and-auto-update.md) |
+| 删除远端分支以外的远端资源 | 不可逆 |
+| 改分支保护规则本身 | 会削弱所有后续的把关 |
+| `docs/open-questions.md` 里的任何一条 | AI 不许替这些拍板 |
 
 ---
 
