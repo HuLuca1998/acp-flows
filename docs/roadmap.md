@@ -1,7 +1,10 @@
 # 里程碑
 
-> 判断「某功能现在该不该做」看这份。
-> **当前状态：M0 与 M1 均未开始，代码尚未编写。**
+> 判断「某功能现在该不该做」看这份。**分章在 [`milestones/`](milestones/)**，
+> 拆到可执行的单元与可断言的验收标准。
+>
+> **当前状态（2026-08-07）**：M0 完成 6/18 个单元，脚手架四件套已跑通。
+> 剩余关键路径是 **Fake ACP Runtime**（S0.4）—— 整套测试策略的支点，未开工。
 
 ---
 
@@ -17,21 +20,25 @@
 
 **目标：`duetd` 能起来，能和一个 Fake ACP Runtime 完整跑一轮会话。**
 
-| # | 交付物 | 验收 |
+| 状态 | 子计划 | 交付物 |
 |---|---|---|
-| 0.1 | **Fake ACP Runtime** | 能按脚本回放事件、可配置延迟/乱序/断流/不回 `stopReason`、能记录收到的全部请求 |
-| 0.2 | JSON-RPC over stdio 传输层 | 双向请求与通知、超时、子进程优雅关闭与僵尸清理 |
-| 0.3 | 会话生命周期 | `initialize` → `session/new` → `set_mode` → `prompt` → `stopReason` 全流程对着 Fake 跑通 |
-| 0.4 | **两段式取消 + 幂等** | 连续取消只发一次协议请求；不回 `stopReason` 时超时并可诊断 |
-| 0.5 | 能力探针与 Runtime 注册表 | 12 项探针、能力矩阵、多版本并存 |
-| 0.6 | claude / codex adapter | 用嵌入复用共同实现，codex 建会话后自动 `set_mode` 收权 |
-| 0.7 | 领域模型骨架 | `Work` 状态机、`PlanVersion` append-only、`UnitContract` 冻结，纯单测覆盖 ≥ 90% |
-| 0.8 | OpenAPI 骨架 + `duetd serve` | `make dev-web` 能起来，`/v1/system/version` 有响应 |
+| ✓ | S0.1 | 工程地基：module 与分层目录、注入式 Clock/IDGen/Paths、**隔离守卫**（守卫两个方向都有测试） |
+| ◐ | S0.2 | JSON-RPC over stdio：**U0.2.1 已完成**（ndjson 分帧 / 乱序归位 / 反向请求 / 超时 / 坏帧不致命，8 条测试）；U0.2.2 子进程生命周期未做 |
+| ◐ | S0.3 | **真机探针**：U0.3.1 已完成，两个 runtime 报告已归档；U0.3.2 裁定了 4/6 条 |
+| ○ | S0.4 | **Fake ACP Runtime** ★ ——**剩余关键路径**，整套测试策略的支点 |
+| ○ | S0.5 | 会话生命周期：`initialize` → `session/new` → `prompt` → `stopReason` 全流程 |
+| ○ | S0.6 | **两段式取消 + 幂等**（M1 的 `prepare` 直接依赖它） |
+| ○ | S0.7 | 12 项能力探针与 Runtime 注册表、多版本并存 |
+| ○ | S0.8 | claude / codex adapter 差异内化 + 跨实现一致性契约测试 |
+| ◐ | S0.9 | 领域模型：**Work 九态状态机已完成**（25 条迁移）；PlanVersion / UnitContract 未做 |
+| ◐ | S0.10 | **`duetd serve` 已完成**（回环鉴权 + SQLite + 迁移）；OpenAPI 代码生成未接入、SSE 未做 |
+
+单元级的五段契约与可断言验收标准见 [`milestones/M0-acp-foundation.md`](milestones/M0-acp-foundation.md)。
 
 **为什么 Fake Runtime 排第一**：它是所有上层测试的地基。地基歪了上面全歪。
 
-> ⚠️ ACP 协议的具体消息结构需要用真实 Runtime 验证。
-> `docs/acp-integration.md` 里标注为「待验证」的假设，在 0.3 完成前必须逐条核实。
+> ✅ **已用真机探针验证过一轮**（2026-08-07，codex-acp 1.1.7 / claude-agent-acp 0.63.0）。
+> 结论见 `docs/acp-field-notes.md` §7.1。剩余待验证项在 U0.3.2 的清单里。
 
 ---
 

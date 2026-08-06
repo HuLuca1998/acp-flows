@@ -1,5 +1,9 @@
 # M0 · 地基：ACP 协议层
 
+> **当前进度**：S0.1 完成 · S0.2 完成 U0.2.1 · S0.3 完成 U0.3.1、U0.3.2 部分 ·
+> S0.9 完成 U0.9.1 · S0.10 完成 U0.10.1。
+> 剩余关键路径：**U0.4.1/U0.4.2 Fake Runtime**（整套测试策略的支点，未开工）。
+>
 > 体系与编号规则见 [`README.md`](README.md)。写代码前必读
 > [`../acp-integration.md`](../acp-integration.md)（规格）与
 > [`../acp-field-notes.md`](../acp-field-notes.md)（实测与已踩过的坑）。
@@ -14,7 +18,7 @@
 make dev-web            # duetd 起来，浏览器打开有响应
 make check              # 全绿，覆盖率门槛达标
 go test ./internal/acp/... -race   # 对着 Fake Runtime 的全流程集成测试通过
-scripts/probe.sh codex --list-only # 真机探针跑通，产出可对账的能力报告
+make probe                         # 真机探针跑通，产出可对账的能力报告
 ```
 
 ## 为什么 M0 是这个顺序
@@ -73,7 +77,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 **阶段交付物**：`make check` 在有真实 Go 代码的情况下全绿，CI 接通。
 
-### ○ U0.1.1 · Go module 与分层目录骨架
+### ✓ U0.1.1 · Go module 与分层目录骨架  ·  `1da80e9`
 
 | | |
 |---|---|
@@ -94,7 +98,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 **测试**：R2–R4 都是「**故意制造违规，确认检查会红**」——
 `scripts/AGENTS.md` 要求的「检查脚本自己要能被测」。
 
-### ○ U0.1.2 · 注入式 Clock / IDGen / Paths
+### ✓ U0.1.2 · 注入式 Clock / IDGen / Paths  ·  `1da80e9`
 
 | | |
 |---|---|
@@ -120,7 +124,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 **阶段交付物**：能对任意 ACP 进程收发消息，进程生命周期可控、可诊断。
 
-### ○ U0.2.1 · ndjson 编解码与双向路由
+### ✓ U0.2.1 · ndjson 编解码与双向路由  ·  `29a45c1`
 
 | | |
 |---|---|
@@ -174,12 +178,12 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 > **这个子计划的产物不是代码，是事实。** 它决定后面 Fake Runtime 该模仿什么。
 
-### ○ U0.3.1 · 零模型开销的 list-only 探针
+### ✓ U0.3.1 · 零模型开销的 list-only 探针  ·  `29a45c1`
 
 | | |
 |---|---|
 | `goal` | 只做 `initialize` + `session/new`，收集响应结构，**不发 prompt、不产生模型费用** |
-| `allowed_changes` | `backend/cmd/acpprobe/**` · `scripts/probe.sh` · `backend/tests/fixtures/probe/**` |
+| `allowed_changes` | `backend/cmd/acpprobe/**` · `Makefile` 的 probe 目标 · `backend/tests/fixtures/probe/**` |
 | `forbidden_changes` | 探针**只读**：不写目标目录、不改 `~/.claude` 与 `~/.codex` 一个字节 |
 | `stop_conditions` | 本机未登录任一 runtime（应给出清晰提示而不是报晦涩错误） |
 
@@ -192,10 +196,10 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | R3 | 报告可 diff | 同一 runtime 连跑两次，除时间戳外逐字节相同 |
 | R4 | runtime 未安装/未登录时给出**可执行的**提示 | 断言错误信息里含具体命令（`codex login`） |
 
-**测试**：报告落 `testdata/` 做 golden；CI 上不跑（依赖真机登录态），
+**测试**：报告落 `backend/tests/fixtures/probe/` 做 golden；CI 上不跑（依赖真机登录态），
 本地 `make probe` 手动跑。
 
-### ○ U0.3.2 · 用探针结果裁定待验证假设
+### ◐ U0.3.2 · 用探针结果裁定待验证假设  ·  `29a45c1`（R1/R2/R4/R5 已裁定，R3/R6 待补）
 
 | | |
 |---|---|
@@ -436,7 +440,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 > 规格在 [`../domain-model.md`](../domain-model.md)，115 条不变量。
 > 本子计划只做**骨架 + 状态机**，完整聚合在 M2。
 
-### ○ U0.9.1 · Work 状态机
+### ✓ U0.9.1 · Work 状态机  ·  `1da80e9`
 
 | | |
 |---|---|
@@ -481,7 +485,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 ## S0.10 · HTTP API 骨架 + `duetd serve`
 
-### ○ U0.10.1 · duetd serve + 本地回环鉴权
+### ✓ U0.10.1 · duetd serve + 本地回环鉴权  ·  `8cf900f`
 
 | | |
 |---|---|

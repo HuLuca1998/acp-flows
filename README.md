@@ -8,7 +8,9 @@
 
 macOS 桌面应用（Tauri 壳 + Go sidecar），同一份代码可作为纯 Web 运行。
 
-> **状态：设计与规范阶段，代码尚未开始编写。** 进度见 [`docs/roadmap.md`](docs/roadmap.md)。
+> **状态：M0 进行中**，脚手架四件套（backend / frontend / shell / e2e）已跑通，
+> `make check` 全绿。剩余关键路径是 Fake ACP Runtime。
+> 进度见 [`docs/roadmap.md`](docs/roadmap.md)，分章见 [`docs/milestones/`](docs/milestones/)。
 
 ---
 
@@ -81,7 +83,8 @@ make help
 | [`docs/ci.md`](docs/ci.md) | CI 设计：只跑受影响的部分、汇总门禁、时长预算 |
 | [`docs/release-and-update.md`](docs/release-and-update.md) | 发版流水线、签名、客户端自动更新 |
 | [`docs/ai-workflow.md`](docs/ai-workflow.md) | Claude × Codex 分工与交接 |
-| [`docs/roadmap.md`](docs/roadmap.md) | 里程碑 |
+| [`docs/roadmap.md`](docs/roadmap.md) | 里程碑总览 |
+| [`docs/milestones/`](docs/milestones/) | ★ 里程碑分章：子计划 → 单元 → 五段契约 → 可断言的验收标准 |
 | [`docs/open-questions.md`](docs/open-questions.md) | ★ 待人拍板的问题（AI 不许替这些拍板） |
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
 | [`.skills/`](.skills/) | 项目级 skill（Claude 与 Codex 共用） |

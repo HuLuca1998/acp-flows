@@ -86,6 +86,9 @@ jobs:
       - name: 命名与文件组织规范
         run: bash scripts/check-naming.sh
 
+      - name: 文档里的命令与脚本真实存在
+        run: bash scripts/check-doc-commands.sh
+
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
         run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
