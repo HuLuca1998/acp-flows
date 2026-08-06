@@ -117,6 +117,12 @@ else
 endif
 
 # ══ 开发 ═══════════════════════════════════════════════════════
+.PHONY: probe
+probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
+	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/codex.json  codex
+	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/claude.json claude
+	@echo "报告已更新。对照 docs/acp-field-notes.md §7.1 核对差异。"
+
 .PHONY: dev-web
 dev-web: ## ★ 默认开发形态：duetd + vite，浏览器打开 http://localhost:5173
 	@bash scripts/dev-web.sh

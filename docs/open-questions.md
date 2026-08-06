@@ -33,7 +33,7 @@
 | # | 冲突 | 影响 |
 |---|---|---|
 | ~~Q4a~~ | ~~设计稿的 `mem-188` 是错的~~ **← 已撤回，判定过重** | 见下 |
-| Q4b | **角色表把 codex 实现工程师绑到 `auto` 模式**，但 codex-acp 只有 `read-only` / `agent` / `agent-full-access`，`auto` 是 claude 侧的 id | 绑不上，设计稿的角色表需修正 |
+| Q4b | ✅ **已真机证实**：`auto` 只存在于 claude 的 6 个档里，codex 只有 `read-only`/`agent`/`agent-full-access`。设计稿角色表把 codex 绑到 `auto` 是错的，需设计侧修正 | 见 `acp-field-notes.md` §7.1 |
 | Q4c | **`session/set_mode` 官方已挂废弃告示**，将被 Session Config Options 取代（codex-acp 已同时暴露两套） | 影响 `AGENTS.md` §8 术语表「会话模式 = `session/set_mode`」的表述 |
 | Q4d | **客户端 MUST 用 `cancelled` 应答所有 pending 的 `session/request_permission`** —— 设计稿完全没提。漏了会导致每次取消都超时、`prepare` 永远返回 `blocked` | 直接影响 M1 的自动更新能否工作 |
 

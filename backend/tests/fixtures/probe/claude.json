@@ -1,0 +1,305 @@
+{
+  "runtime": "claude",
+  "command": "/Users/luca/.nvm/versions/node/v25.6.1/bin/claude-agent-acp",
+  "probed_at": "2026-08-06T18:52:45Z",
+  "protocol_version": 1,
+  "agent_info": {
+    "name": "@agentclientprotocol/claude-agent-acp",
+    "title": "Claude Agent",
+    "version": "0.63.0"
+  },
+  "agent_capabilities": {
+    "_meta": {
+      "claudeCode": {
+        "promptQueueing": true
+      }
+    },
+    "auth": {
+      "logout": {}
+    },
+    "loadSession": true,
+    "mcpCapabilities": {
+      "http": true,
+      "sse": true
+    },
+    "promptCapabilities": {
+      "embeddedContext": true,
+      "image": true
+    },
+    "providers": {},
+    "sessionCapabilities": {
+      "additionalDirectories": {},
+      "close": {},
+      "delete": {},
+      "fork": {},
+      "list": {},
+      "resume": {}
+    }
+  },
+  "auth_methods": [],
+  "session_new": {
+    "configOptions": [
+      {
+        "category": "mode",
+        "currentValue": "default",
+        "description": "Session permission mode",
+        "id": "mode",
+        "name": "Mode",
+        "options": [
+          {
+            "description": "Use a model classifier to approve/deny permission prompts",
+            "name": "Auto",
+            "value": "auto"
+          },
+          {
+            "description": "Standard behavior, prompts for dangerous operations",
+            "name": "Manual",
+            "value": "default"
+          },
+          {
+            "description": "Auto-accept file edit operations",
+            "name": "Accept Edits",
+            "value": "acceptEdits"
+          },
+          {
+            "description": "Planning mode, no actual tool execution",
+            "name": "Plan Mode",
+            "value": "plan"
+          },
+          {
+            "description": "Don't prompt for permissions, deny if not pre-approved",
+            "name": "Don't Ask",
+            "value": "dontAsk"
+          },
+          {
+            "description": "Bypass all permission checks",
+            "name": "Bypass Permissions",
+            "value": "bypassPermissions"
+          }
+        ],
+        "type": "select"
+      },
+      {
+        "category": "model",
+        "currentValue": "default",
+        "description": "AI model to use",
+        "id": "model",
+        "name": "Model",
+        "options": [
+          {
+            "description": "Opus 5 with 1M context · Best for everyday, complex tasks",
+            "name": "Default (recommended)",
+            "value": "default"
+          },
+          {
+            "description": "Opus 5 with 1M context · Best for everyday, complex tasks",
+            "name": "Opus (1M context)",
+            "value": "opus[1m]"
+          },
+          {
+            "description": "Fable 5 · Most capable for your hardest and longest-running tasks",
+            "name": "Fable",
+            "value": "claude-fable-5[1m]"
+          },
+          {
+            "description": "Sonnet 5 · Efficient for routine tasks",
+            "name": "Sonnet",
+            "value": "sonnet"
+          },
+          {
+            "description": "Haiku 4.5 · Fastest for quick answers",
+            "name": "Haiku",
+            "value": "haiku"
+          }
+        ],
+        "type": "select"
+      },
+      {
+        "category": "thought_level",
+        "currentValue": "xhigh",
+        "description": "Available effort levels for this model",
+        "id": "effort",
+        "name": "Effort",
+        "options": [
+          {
+            "name": "Default",
+            "value": "default"
+          },
+          {
+            "name": "Low",
+            "value": "low"
+          },
+          {
+            "name": "Medium",
+            "value": "medium"
+          },
+          {
+            "name": "High",
+            "value": "high"
+          },
+          {
+            "name": "Xhigh",
+            "value": "xhigh"
+          },
+          {
+            "name": "Max",
+            "value": "max"
+          }
+        ],
+        "type": "select"
+      },
+      {
+        "category": "model_config",
+        "currentValue": "off",
+        "description": "Faster responses on supported models",
+        "id": "fast",
+        "name": "Fast mode",
+        "options": [
+          {
+            "name": "On",
+            "value": "on"
+          },
+          {
+            "name": "Off",
+            "value": "off"
+          }
+        ],
+        "type": "select"
+      },
+      {
+        "currentValue": "default",
+        "description": "Main-thread agent persona",
+        "id": "agent",
+        "name": "Agent",
+        "options": [
+          {
+            "description": "Standard Claude Code agent",
+            "name": "Default",
+            "value": "default"
+          },
+          {
+            "description": "后端开发 — 按技术方案实现 API、数据库、业务逻辑和数据同步。",
+            "name": "hz-backend",
+            "value": "hz-backend"
+          },
+          {
+            "description": "前端开发 — 按设计稿和技术方案实现页面、组件、交互逻辑和状态管理。",
+            "name": "hz-frontend",
+            "value": "hz-frontend"
+          },
+          {
+            "description": "产品经理 — 初始化项目文档、创建需求、拆解业务任务、定义验收标准，只关注业务层面不涉及技术实现。",
+            "name": "hz-pm",
+            "value": "hz-pm"
+          },
+          {
+            "description": "QA 测试 — 设计测试策略、执行 API 和 E2E 测试、记录 Bug、验证验收标准。",
+            "name": "hz-qa",
+            "value": "hz-qa"
+          },
+          {
+            "description": "开发总管 — 技术架构设计、创建角色目录、拆解前后端技术任务、协调 API 契约、管理 AutoCode 生成。",
+            "name": "hz-tech-lead",
+            "value": "hz-tech-lead"
+          },
+          {
+            "description": "UI 设计师 — 用 HTML+Tailwind 制作可预览设计稿、建立设计系统、产出设计资源、审查前端视觉还原度。",
+            "name": "hz-ui",
+            "value": "hz-ui"
+          },
+          {
+            "description": "Analyzes a codebase's file structure, summaries, and import relationships to identify\nlogical architectural layers and assign every file to exactly one layer.",
+            "name": "understand-anything:architecture-analyzer",
+            "value": "understand-anything:architecture-analyzer"
+          },
+          {
+            "description": "Analyzes markdown files using pre-parsed structural data and LLM inference to extract knowledge graph nodes and edges (entities, claims, implicit relationships, topic clustering).",
+            "name": "understand-anything:article-analyzer",
+            "value": "understand-anything:article-analyzer"
+          },
+          {
+            "description": "Reviews the output of merge-batch-graphs.py for semantic issues the script\ncannot catch. Recovers dropped nodes/edges and fills cross-batch gaps.",
+            "name": "understand-anything:assemble-reviewer",
+            "value": "understand-anything:assemble-reviewer"
+          },
+          {
+            "description": "Analyzes codebases to extract business domain knowledge — domains, business flows, and process steps. Produces a domain-graph.json that maps how business logic flows through the code.",
+            "name": "understand-anything:domain-analyzer",
+            "value": "understand-anything:domain-analyzer"
+          },
+          {
+            "description": "Analyzes batches of source files to produce knowledge graph nodes and edges.\nExtracts file structure, functions, classes, and relationships using a two-phase\napproach: structural extraction script followed by LLM semantic analysis.",
+            "name": "understand-anything:file-analyzer",
+            "value": "understand-anything:file-analyzer"
+          },
+          {
+            "description": "Validates knowledge graphs for correctness, completeness, and quality.\nRuns systematic checks and renders approval or rejection decisions.",
+            "name": "understand-anything:graph-reviewer",
+            "value": "understand-anything:graph-reviewer"
+          },
+          {
+            "description": "Use this agent when users need help understanding, querying, or working\nwith an Understand-Anything knowledge graph. Guides users through graph\nstructure, node/edge relationships, layer architecture, tours, and\ndashboard usage.",
+            "name": "understand-anything:knowledge-graph-guide",
+            "value": "understand-anything:knowledge-graph-guide"
+          },
+          {
+            "description": "Scans a codebase directory to produce a structured inventory of all project files,\ndetected languages, frameworks, import maps, and estimated complexity.",
+            "name": "understand-anything:project-scanner",
+            "value": "understand-anything:project-scanner"
+          },
+          {
+            "description": "Designs guided learning tours through codebases, creating 5-15 pedagogical steps\nthat teach project architecture and key concepts in logical order.",
+            "name": "understand-anything:tour-builder",
+            "value": "understand-anything:tour-builder"
+          }
+        ],
+        "type": "select"
+      }
+    ],
+    "modes": {
+      "availableModes": [
+        {
+          "description": "Use a model classifier to approve/deny permission prompts",
+          "id": "auto",
+          "name": "Auto"
+        },
+        {
+          "description": "Standard behavior, prompts for dangerous operations",
+          "id": "default",
+          "name": "Manual"
+        },
+        {
+          "description": "Auto-accept file edit operations",
+          "id": "acceptEdits",
+          "name": "Accept Edits"
+        },
+        {
+          "description": "Planning mode, no actual tool execution",
+          "id": "plan",
+          "name": "Plan Mode"
+        },
+        {
+          "description": "Don't prompt for permissions, deny if not pre-approved",
+          "id": "dontAsk",
+          "name": "Don't Ask"
+        },
+        {
+          "description": "Bypass all permission checks",
+          "id": "bypassPermissions",
+          "name": "Bypass Permissions"
+        }
+      ],
+      "currentModeId": "default"
+    },
+    "sessionId": "\u003credacted\u003e"
+  },
+  "findings": [
+    "modes = [auto default acceptEdits plan dontAsk bypassPermissions]，默认 = \"default\"",
+    "✓ 推理强度的 id=\"effort\"，category=thought_level（按 category 取可跨端）",
+    "  configOption id=\"mode\" category=\"mode\"",
+    "  configOption id=\"model\" category=\"model\"",
+    "  configOption id=\"effort\" category=\"thought_level\"",
+    "  configOption id=\"fast\" category=\"model_config\"",
+    "  configOption id=\"agent\" category=\"\""
+  ]
+}
