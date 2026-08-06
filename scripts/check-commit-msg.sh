@@ -29,7 +29,10 @@ while read -r sha; do
   # release-please 生成的提交豁免
   [[ $subject =~ ^chore\(release\) ]] && continue
 
-  if [[ ! $subject =~ ^($TYPES)(\(($SCOPES)\))?!?:\ .+ ]]; then
+  # scope 允许逗号分隔的多个（feat(domain,store)）：
+  # 一个真跨两个域的改动，强迫它选一个会选出误导性的那个。
+  # 但每一段都必须来自固定取值表，不许自创。
+  if [[ ! $subject =~ ^($TYPES)(\((($SCOPES)(,($SCOPES))*)\))?!?:\ .+ ]]; then
     fail=1
     echo "✗ $short 标题不符合 Conventional Commits:"
     echo "    $subject"

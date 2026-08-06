@@ -72,6 +72,13 @@ Co-Authored-By: ...
 
 `acp` `domain` `app` `api` `store` `fsstore` `git` `gh` `event` `ui` `shell` `e2e` `ci` `docs` `deps`
 
+**允许逗号分隔的多个 scope**：`feat(domain,store): …`
+
+一个真跨两个域的改动，强迫它选一个会选出误导性的那个。
+但每一段都必须来自上面的表——多 scope 不是自创 scope 的借口。
+
+> 超过两个 scope 通常说明这个提交该拆了。
+
 ### 「先红的测试」是必填项
 
 铁律 1 要求测试先行。提交信息里必须写出**哪个测试先失败了**。
