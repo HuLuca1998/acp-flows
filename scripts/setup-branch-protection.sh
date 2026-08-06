@@ -8,8 +8,11 @@ set -euo pipefail
 REPO="${1:-HuLuca1998/acp-flows}"
 echo "配置 $REPO 的 main 分支保护…"
 
-gh api -X PUT "repos/$REPO/branches/main/protection" \
-  --input - <<'JSON'
+# 注意：gh api --input - 从 stdin 读会在某些 shell 下拿到空 body（报 EOF），
+# 用临时文件更可靠。
+payload=$(mktemp)
+trap 'rm -f "$payload"' EXIT
+cat > "$payload" <<'JSON'
 {
   "required_status_checks": { "strict": true, "contexts": ["ci"] },
   "enforce_admins": false,
@@ -24,6 +27,8 @@ gh api -X PUT "repos/$REPO/branches/main/protection" \
   "required_conversation_resolution": true
 }
 JSON
+
+gh api -X PUT "repos/$REPO/branches/main/protection" --input "$payload" --silent
 
 gh api -X PATCH "repos/$REPO" \
   -f allow_squash_merge=true \
