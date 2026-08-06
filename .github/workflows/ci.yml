@@ -1,0 +1,204 @@
+name: ci
+
+# 设计规范见 docs/ci.md。三条核心规则：
+#   ① 只跑受影响的部分（changes 探测 → 各 job if 守卫）
+#   ② 分支保护只认最后的 ci 汇总门禁，不认单个 job
+#      —— 否则被跳过的 required check 会让 PR 永远 pending
+#   ③ 便宜的先跑，让违规尽早暴露
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 变更探测：~10s，决定后面跑什么 ────────────────────────────
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend:  ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      shell:    ${{ steps.filter.outputs.shell }}
+      contract: ${{ steps.filter.outputs.contract }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'api/openapi.yaml'
+              - 'scripts/gen-api.sh'
+              - 'scripts/check-coverage.sh'
+            frontend:
+              - 'frontend/**'
+              - 'api/openapi.yaml'
+              - 'scripts/gen-api.sh'
+              - 'scripts/check-i18n.sh'
+            shell:
+              - 'shell/**'
+            contract:
+              - 'api/**'
+              - 'scripts/gen-api.sh'
+
+  # ── 全局规范：~30s，永远跑（便宜且覆盖整个仓库）────────────────
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 关键目录都有填实的 AGENTS.md + CLAUDE.md
+        run: make check-docs
+
+      - name: 工具库索引 / 测试索引 / i18n 词条一致
+        run: make check-index
+
+      - name: 命名与文件组织规范
+        run: bash scripts/check-naming.sh
+
+      - name: 提交信息格式（含「先红的测试」）
+        if: github.event_name == 'pull_request'
+        run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+
+  # ── 契约：只在 api/ 变动时跑 ─────────────────────────────────
+  contract:
+    name: contract
+    needs: changes
+    if: needs.changes.outputs.contract == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - name: spec 自身规范性
+        run: npx --yes @redocly/cli lint api/openapi.yaml
+
+      - name: 生成物与 spec 一致
+        run: make check-gen
+
+  # ── 后端：只在 backend/ 或契约变动时跑 ────────────────────────
+  backend:
+    name: backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: golangci/golangci-lint-action@v6
+        with: { working-directory: backend }
+
+      - name: 单元测试（-race）
+        run: make test-backend
+
+      - name: 集成测试
+        run: cd backend && go test -tags=integration ./tests/... -count=1
+
+      - name: 覆盖率门槛
+        run: make cover
+
+  # ── 前端：只在 frontend/ 或契约变动时跑 ───────────────────────
+  frontend:
+    name: frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: cd frontend && pnpm install --frozen-lockfile
+
+      - name: typecheck + lint（含设计合规规则）
+        run: make lint-frontend
+
+      - name: Vitest
+        run: make test-frontend
+
+  # ── 外壳：只在 shell/ 变动时跑（macOS runner 贵，能不跑就不跑）──
+  shell:
+    name: shell
+    needs: changes
+    if: needs.changes.outputs.shell == 'true'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: clippy }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: shell/src-tauri }
+
+      - run: cd shell/src-tauri && cargo clippy --all-targets -- -D warnings
+      - run: cd shell/src-tauri && cargo test
+
+  # ── 汇总门禁 ★ 分支保护只 required 这一个 ─────────────────────
+  # 被跳过的 job 算通过；失败或被取消才算不通过。
+  # 这样跳过 job 不会让 PR 永远 pending，但也不会放过真失败。
+  ci:
+    name: ci
+    if: always()
+    needs: [changes, guard, contract, backend, frontend, shell]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检查所有 job 结果
+        run: |
+          results='${{ join(needs.*.result, ' ') }}'
+          echo "各 job 结果: $results"
+          for r in $results; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "✗ 有 job 未通过（$r）"; exit 1 ;;
+            esac
+          done
+          echo "✓ CI 通过"
+
+  # ── E2E：只在 main 上跑，不阻塞 PR（慢，且依赖构建产物）────────
+  e2e:
+    name: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: make build
+      - run: cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium
+      - run: make test-e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

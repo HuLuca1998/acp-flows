@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="_ds/nocturne-eeb4fef9-0b23-4b92-9bdd-c65d2266beb0/styles.css">
+<script src="_ds/nocturne-eeb4fef9-0b23-4b92-9bdd-c65d2266beb0/_ds_bundle.js"></script>
+<style>
+:root{--s-canvas:#0e0f18;--s-raised:#1b1d2b;--s-rail:#12141f;--s-inset:#191b28;--s-claude-edge:#2f2b47;--color-pass:var(--color-accent-300);--color-fail:oklch(0.66 0.125 25)}
+body{margin:0;background:var(--s-canvas);font-family:var(--font-body);color:var(--color-text)}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#3f424d;border-radius:99px;border:3px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:#595d6c;background-clip:content-box;border:3px solid transparent}
+*{scrollbar-width:thin;scrollbar-color:#3f424d transparent}
+[data-tt]{position:relative}
+[data-tt]:hover::after{content:attr(data-tt);position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);white-space:nowrap;padding:4px 9px;border-radius:6px;background:#232532;box-shadow:0 0 0 1px #3f424d,0 8px 20px rgba(0,0,0,.55);color:#e9e9ed;font:400 11px/1.2 Inter,system-ui,sans-serif;pointer-events:none;z-index:60}
+a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-accent-300)}
+</style></helmet>
+
+<div style="min-height:100vh;background:var(--s-canvas);display:flex;align-items:flex-start;justify-content:flex-start;padding:40px 40px 80px">
+<div style="width:1120px;flex:none;display:flex;flex-direction:column;gap:36px">
+
+  <div style="display:flex;flex-direction:column;gap:10px;padding-bottom:6px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(140deg,var(--color-accent),var(--color-accent-700))"></span>
+      <span style="font-size:13px;color:var(--color-neutral-500);font-family:ui-monospace,Menlo,monospace">duet · design spec v1</span>
+    </div>
+    <h1 style="margin:0;font-size:38px;color:var(--color-text);letter-spacing:-.02em">Duet 前端设计规范</h1>
+    <p style="margin:0;max-width:760px;font-size:14px;line-height:1.75;color:var(--color-neutral-400)">ACP 多智能体协作编程 App 的界面规范。基于 Nocturne 设计系统的令牌，补齐本产品特有的层级、组件与事件展示规则。<b style="color:var(--color-text);font-weight:500">所有新组件必须能在本文中找到对应条目</b>；找不到时先在此新增条目再实现，不要临时发明样式。</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+      <a href="#color" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">01 色彩</a>
+      <a href="#type" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">02 字体</a>
+      <a href="#space" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">03 间距与层级</a>
+      <a href="#icon" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">04 图标</a>
+      <a href="#comp" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">05 组件</a>
+      <a href="#layout" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">06 布局</a>
+      <a href="#event" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">07 事件展示</a>
+      <a href="#state" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">08 交互状态</a>
+      <a href="#copy" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">09 文案与术语</a>
+      <a href="#dont" style="font-size:11.5px;padding:4px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-800)">10 反例</a>
+    </div>
+  </div>
+
+  <div id="color" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">01</span><h3 style="margin:0;color:var(--color-text)">色彩</h3><span style="font-size:12px;color:var(--color-neutral-600)">一律使用 var()，禁止写死 hex</span></div>
+
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">四层底色 · 由深到浅决定层级</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-neutral-900)"><div style="height:56px;background:var(--s-canvas)"></div><div style="padding:9px 11px;background:var(--s-inset)"><div style="font-size:12px;color:var(--color-text)">--s-canvas</div><div style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">#0e0f18 · 窗口外画布</div></div></div>
+        <div style="border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-neutral-900)"><div style="height:56px;background:var(--color-bg)"></div><div style="padding:9px 11px;background:var(--s-inset)"><div style="font-size:12px;color:var(--color-text)">--color-bg</div><div style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">#161826 · 主内容区</div></div></div>
+        <div style="border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-neutral-900)"><div style="height:56px;background:var(--s-rail)"></div><div style="padding:9px 11px;background:var(--s-inset)"><div style="font-size:12px;color:var(--color-text)">--s-rail</div><div style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">#12141f · 侧栏 / 抽屉</div></div></div>
+        <div style="border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-neutral-900)"><div style="height:56px;background:var(--s-raised)"></div><div style="padding:9px 11px;background:var(--s-inset)"><div style="font-size:12px;color:var(--color-text)">--s-raised</div><div style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">#1b1d2b · 窗口栏 / 浮层</div></div></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.6">
+        <span style="width:96px;flex:none;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">--s-inset</span>#191b28 · 卡片与列表项的内嵌底；卡片一律 <span style="font-family:ui-monospace,Menlo,monospace">background:var(--s-inset) + inset 0 0 0 1px var(--color-neutral-900)</span>，不用阴影堆叠。
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">中性阶 · 文字与描边</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-300)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">300 代码/强调</span></div>
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-400)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">400 正文</span></div>
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-500)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">500 次要</span></div>
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-600)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#e9e9ed">600 弱化</span></div>
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-700)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#e9e9ed">700 标签</span></div>
+        <div style="border-radius:6px;padding:10px;background:var(--color-neutral-800)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#e9e9ed">800 描边</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--color-neutral-500);line-height:1.7">正文 400、次要说明 500/600、分组标题 700、描边 800、分隔线 900。<b style="color:var(--color-text);font-weight:500">禁止</b>用 --color-text 作描边（会出现刺眼白边），也禁止纯白与纯黑。</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">强调色 · 只做线与光，不做大面积填充</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+        <div style="border-radius:6px;padding:12px 10px;background:var(--color-accent-900)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">900 选中底</span></div>
+        <div style="border-radius:6px;padding:12px 10px;background:var(--color-accent-700)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#e9e9ed">700 描边</span></div>
+        <div style="border-radius:6px;padding:12px 10px;background:var(--color-accent-600)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">600 进度条</span></div>
+        <div style="border-radius:6px;padding:12px 10px;background:var(--color-accent-400)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">400 图标/激活</span></div>
+        <div style="border-radius:6px;padding:12px 10px;background:var(--color-accent-300)"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#161826">300 正文强调</span></div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--color-neutral-500);line-height:1.7">
+        <div style="flex:1;padding:10px 12px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">语义色只有两个：<span style="color:var(--color-pass);font-family:ui-monospace,Menlo,monospace">--color-pass</span>（= accent-300，通过 / 新增行 / 有效）与 <span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">--color-fail</span>（accent 同亮度的暖红，失败 / 删除行 / 失效）。不得引入第三种语义色。</div>
+        <div style="flex:1;padding:10px 12px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">角色标识：Claude = <span style="color:var(--color-accent-400)">accent-400</span>（徽标底 accent-900 + accent-700 描边），Codex = <span style="color:var(--color-neutral-300)">neutral-300</span>（徽标底 neutral-900 + neutral-700 描边）。不要给 Agent 分配新颜色。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="type" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">02</span><h3 style="margin:0;color:var(--color-text)">字体</h3><span style="font-size:12px;color:var(--color-neutral-600)">Inter 叙述 · 等宽承载标识符</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:9px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">Inter · 界面与叙述</div>
+        <div style="font-size:20px;color:var(--color-text);font-weight:500">20 / 500　页面主标题（h4）</div>
+        <div style="font-size:15px;color:var(--color-text);font-weight:500">15 / 500　区块标题、渲染后的 md 二级标题</div>
+        <div style="font-size:13.5px;color:var(--color-neutral-400);line-height:1.7">13.5 / 400　对话正文，行高 1.7</div>
+        <div style="font-size:12.5px;color:var(--color-neutral-400)">12.5 / 400　列表项主文本、表格单元</div>
+        <div style="font-size:11.5px;color:var(--color-neutral-500)">11.5 / 400　按钮、芯片、说明文字</div>
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">10 / uppercase / letter-spacing .09em　分组标题</div>
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:9px;font-family:ui-monospace,Menlo,monospace">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);font-family:var(--font-body)">ui-monospace · 标识符与数据</div>
+        <div style="font-size:12.5px;color:var(--color-neutral-300)">12.5　unit-012 · mem-203 · plan v5</div>
+        <div style="font-size:11.5px;color:var(--color-neutral-400)">11.5　路径、分支、命令、commit hash</div>
+        <div style="font-size:11px;color:var(--color-neutral-500)">11　行内状态：executing · waiting_user</div>
+        <div style="font-size:10.5px;color:var(--color-neutral-600)">10.5　角标、时间、计数</div>
+        <div style="font-size:12px;color:var(--color-neutral-500);font-family:var(--font-body);line-height:1.7">规则：<b style="color:var(--color-text);font-weight:500">凡是能被复制粘贴到终端或代码里的字符串一律等宽</b>；中文叙述一律 Inter。中英混排时英文与数字两侧不加额外空格，由字体处理。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="space" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">03</span><h3 style="margin:0;color:var(--color-text)">间距 · 圆角 · 层级</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">间距（密集为默认）</div>
+        <div style="font-size:12px;color:var(--color-neutral-400);line-height:1.9">列表项内 <span style="font-family:ui-monospace,Menlo,monospace">gap 7–9</span><br>卡片内 <span style="font-family:ui-monospace,Menlo,monospace">padding 9–14</span><br>区块之间 <span style="font-family:ui-monospace,Menlo,monospace">gap 14</span><br>页面留白 <span style="font-family:ui-monospace,Menlo,monospace">padding 22 28</span><br>对话消息间 <span style="font-family:ui-monospace,Menlo,monospace">gap 24</span></div>
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">圆角</div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:26px;border-radius:var(--radius-sm);background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span><span style="font-size:11.5px;color:var(--color-neutral-500)">sm 4px · 图标按钮、角标</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:26px;border-radius:var(--radius-md);background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span><span style="font-size:11.5px;color:var(--color-neutral-500)">md 8px · 卡片、列表项、按钮</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:26px;border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span><span style="font-size:11.5px;color:var(--color-neutral-500)">lg 14px · 输入框、浮层、窗口</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:26px;border-radius:999px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span><span style="font-size:11.5px;color:var(--color-neutral-500)">999 · 筛选胶囊、开关</span></div>
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">z-index 约定</div>
+        <div style="font-size:12px;color:var(--color-neutral-400);line-height:1.9;font-family:ui-monospace,Menlo,monospace">4–5　拖拽手柄 / 悬浮胶囊<br>6　窗口栏<br>9　可拖动的计划面板<br>13–16　页内下拉<br>20–26　抽屉 / 对话框<br>60　tooltip 与输入框浮层</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="icon" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">04</span><h3 style="margin:0;color:var(--color-text)">图标</h3><span style="font-size:12px;color:var(--color-neutral-600)">Phosphor regular · 单一线重</span></div>
+    <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:12px">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-sidebar-simple" style="font-size:16px;color:var(--color-neutral-300)"></i>折叠侧栏</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-note-pencil" style="font-size:16px;color:var(--color-neutral-300)"></i>新建工作</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-magnifying-glass" style="font-size:16px;color:var(--color-neutral-300)"></i>搜索</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-list-checks" style="font-size:16px;color:var(--color-neutral-300)"></i>计划</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-chart-bar" style="font-size:16px;color:var(--color-neutral-300)"></i>报表</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-brain" style="font-size:16px;color:var(--color-neutral-300)"></i>记忆</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-book-open-text" style="font-size:16px;color:var(--color-neutral-300)"></i>Skill</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-users-three" style="font-size:16px;color:var(--color-neutral-300)"></i>角色</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-gear" style="font-size:16px;color:var(--color-neutral-300)"></i>设置</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-git-branch" style="font-size:16px;color:var(--color-neutral-300)"></i>分支</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-file-diff" style="font-size:16px;color:var(--color-neutral-300)"></i>改动</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-shield-check" style="font-size:16px;color:var(--color-neutral-300)"></i>权限</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-funnel" style="font-size:16px;color:var(--color-neutral-300)"></i>过滤</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-paperclip" style="font-size:16px;color:var(--color-neutral-300)"></i>附加</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-flag" style="font-size:16px;color:var(--color-neutral-300)"></i>检查点</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-file-lock" style="font-size:16px;color:var(--color-neutral-300)"></i>契约</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-check-circle" style="font-size:16px;color:var(--color-neutral-300)"></i>证据</div>
+        <div style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--color-neutral-500)"><i class="ph ph-github-logo" style="font-size:16px;color:var(--color-neutral-300)"></i>GitHub</div>
+      </div>
+      <div style="height:1px;background:linear-gradient(to right,transparent,var(--color-divider) 48px,var(--color-divider) calc(100% - 48px),transparent)"></div>
+      <div style="font-size:12px;color:var(--color-neutral-500);line-height:1.8">尺寸只有四档：<span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">16</span> 主导航与窗口栏 · <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">15</span> 按钮内 · <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">13</span> 行内动作 · <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">12</span> 芯片内。<b style="color:var(--color-text);font-weight:500">禁止 emoji、自绘 SVG 图标，以及用 Unicode 几何符号（◧ ⧉ ⚑ ◑ ◔）代替图标</b>。唯一例外是这五个文本符号——它们是控件的组成部分而非独立图标：<span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">⌄</span> 下拉指示、<span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">✕</span> 关闭、<span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">⠿</span> 拖动手柄、<span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">✓ ✗</span> 正反例标记；其余一律从 Phosphor 里挑，挑不到再在本文登记新条目。每个图标按钮必须带 <span style="font-family:ui-monospace,Menlo,monospace">title + data-tt</span> 中文名。</div>
+    </div>
+  </div>
+
+  <div id="comp" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">05</span><h3 style="margin:0;color:var(--color-text)">组件</h3><span style="font-size:12px;color:var(--color-neutral-600)">左为示例，右为用法与约束</span></div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+          <span style="font-size:11.5px;padding:4px 11px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--color-accent-700);color:var(--color-accent-300);cursor:pointer">主操作</span>
+          <span style="font-size:11.5px;padding:4px 11px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400);cursor:pointer">次操作</span>
+          <span style="font-size:11.5px;padding:4px 11px;border-radius:8px;color:var(--color-neutral-500);cursor:pointer">幽灵</span>
+          <span style="font-size:11.5px;padding:4px 11px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-fail);cursor:pointer">危险</span>
+          <span style="width:28px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--color-neutral-500);background:transparent"><i class="ph ph-funnel" style="font-size:15px"></i></span>
+          <span style="width:28px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--color-accent-300);background:var(--color-accent-900)"><i class="ph ph-sidebar" style="font-size:15px"></i></span>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">按钮</b>　高 24–26，圆角 sm/md，字号 11.5–12。主操作＝accent-700 描边 + accent-300 字，<b style="color:var(--color-text);font-weight:500">永不填充实心</b>。次操作＝neutral-800 描边。幽灵＝无描边，仅 hover 出底。危险动作用 --color-fail 文字色而不是红底。图标按钮默认透明底，hover 才出 surface 底；激活态用 accent-900 底 + accent-300 字。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+          <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;padding:1px 6px;border-radius:4px;background:var(--color-accent-900);color:var(--color-accent-300)">constraint</span>
+          <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;padding:1px 6px;border-radius:4px;background:var(--color-surface);color:var(--color-neutral-400)">experience</span>
+          <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;padding:2px 6px;border-radius:4px;background:var(--color-accent-400);color:var(--color-bg)">D2</span>
+          <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">verified · active</span>
+          <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-fail)">已失效</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:ui-monospace,Menlo,monospace;padding:3px 9px;border-radius:8px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)"><i class="ph ph-file-text" style="font-size:12px"></i>acp-protocol.md<span style="color:var(--color-neutral-700);cursor:pointer">✕</span></span>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">标签与芯片</b>　类型标签 10px 等宽 + accent-900/surface 底；决策等级 D0–D3 用 accent-400 实底 + bg 字（<b style="color:var(--color-text);font-weight:500">全站唯一允许的实底</b>）；状态文字不加底色，只用 pass/fail/neutral-600 着色。可移除的引用芯片带 ✕，禁止用彩色圆点表示文件类型。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+          <div style="padding:10px 12px;border-radius:8px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">mem-188</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">active</span></div>
+            <div style="font-size:12px;color:var(--color-neutral-400)">选中态：raised 底 + accent-700 描边</div>
+          </div>
+          <div style="padding:10px 12px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-500)">默认态：inset 底 + neutral-900 描边</div>
+          <div style="padding:10px 12px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-500);opacity:.6">失效态：opacity .6，状态文字用 fail</div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">卡片与列表项</b>　三态固定：默认 / 选中 / 失效。卡片头一律「等宽 ID → 类型标签 → 弹性空隙 → 右侧状态」；正文 12–12.5；底部 meta 10.5 等宽 neutral-600。<b style="color:var(--color-text);font-weight:500">列表项左侧 2px accent 竖条</b>仅用于「当前工作 / 当前单元」，不要滥用。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;gap:3px">
+            <span style="flex:1;height:3px;border-radius:2px;background:var(--color-accent-400)"></span><span style="flex:1;height:3px;border-radius:2px;background:var(--color-accent-400)"></span><span style="flex:1.3;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--color-accent-600) 40%,var(--color-neutral-800) 40%)"></span><span style="flex:1;height:3px;border-radius:2px;background:var(--color-neutral-800)"></span><span style="flex:1;height:3px;border-radius:2px;background:var(--color-neutral-800)"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="flex:1;height:4px;border-radius:2px;background:var(--color-neutral-800);position:relative"><span style="position:absolute;inset:0 42% 0 0;background:var(--color-accent-600);border-radius:2px"></span></span><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">命中 27</span></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:26px;height:15px;border-radius:999px;background:var(--color-accent-700);position:relative;flex:none"><span style="position:absolute;top:2px;right:2px;width:11px;height:11px;border-radius:50%;background:var(--color-accent-200)"></span></span>
+            <span style="width:26px;height:15px;border-radius:999px;background:var(--color-neutral-800);position:relative;flex:none"><span style="position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--color-neutral-500)"></span></span>
+            <span style="width:13px;height:13px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--color-accent-400);background:var(--color-accent-400)"></span>
+            <span style="width:13px;height:13px;border-radius:4px;box-shadow:inset 0 0 0 1.5px var(--color-neutral-700)"></span>
+            <span style="width:13px;height:13px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-accent-400);background:var(--color-accent-400)"></span>
+            <span style="width:13px;height:13px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-neutral-600)"></span>
+          </div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">进度与选择控件</b>　分段进度用于「计划 N 个单元」，每段一 flex 单位，进行中的一段用渐变；条形进度高 4，轨道 neutral-800、填充 accent-600。开关 26×15、圆点 11；复选方形 13、单选圆形 13，选中＝accent-400 实心，未选＝neutral-700 描边。<b style="color:var(--color-text);font-weight:500">不要使用原生 checkbox/radio/select 外观</b>。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:10px">
+          <span style="display:inline-flex;align-self:flex-start;align-items:center;gap:7px;padding:5px 11px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-accent-700)"><span style="font-size:10px;color:var(--color-neutral-600)">项目</span><span style="font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">acp-engine</span><span style="font-size:10px;color:var(--color-neutral-600)">⌄</span></span>
+          <div style="width:250px;border-radius:8px;background:var(--s-rail);box-shadow:var(--shadow-lg);padding:7px;display:flex;flex-direction:column;gap:1px">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:var(--color-accent-900)"><span style="font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">acp-engine</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">12 条</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px"><span style="font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-400)">acp-sidecar</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">5 条</span></div>
+            <div style="height:1px;background:var(--color-neutral-900);margin:4px 0"></div>
+            <div style="padding:7px 9px;border-radius:8px;font-size:11.5px;color:var(--color-neutral-500)">管理项目…</div>
+          </div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">下拉与浮层</b>　触发器＝「小标签 + 当前值（等宽）+ ⌄」，accent-700 描边表示可切换。面板：rail 底 + shadow-lg + padding 7 + 项高 7/9，选中项 accent-900 底；末尾分隔线后放「管理…」类跳转。<b style="color:var(--color-text);font-weight:500">同类选择器在不同页面必须放同一位置</b>（页头标题行下方第一行）。超过 8 项时面板设 max-height 并内部滚动。浮层父级不得 overflow:hidden。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+          <div style="border-radius:14px;background:var(--s-raised);box-shadow:var(--shadow-sm);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 11px;background:var(--color-surface);border-bottom:1px solid var(--color-neutral-900)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span><span style="font-size:11px;color:var(--color-neutral-400)">① 消息队列</span></div>
+            <div style="padding:10px 12px;font-size:12.5px;color:var(--color-neutral-500)">② 多行输入（默认一行）</div>
+            <div style="display:flex;align-items:center;gap:6px;padding:0 8px 8px"><span style="font-size:11px;color:var(--color-neutral-500);padding:3px 8px;border-radius:4px"><i class="ph ph-paperclip" style="font-size:13px"></i></span><span style="font-size:11px;color:var(--color-neutral-500);padding:3px 8px;border-radius:4px"><i class="ph ph-funnel" style="font-size:13px"></i></span><span style="font-size:11px;color:var(--color-neutral-500)">③ 功能按钮</span><div style="flex:1"></div><span style="width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;color:var(--color-accent-400)"><i class="ph ph-arrow-up" style="font-size:12px"></i></span></div>
+            <div style="padding:6px 11px;border-top:1px solid var(--color-neutral-900);background:var(--s-rail);font-size:10.5px;color:var(--color-neutral-600)">④ 文件引用区 · 仅本轮有效</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600);padding:0 2px">⑤ 框外信息行：项目 · worktree · 分支 · 改动</div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">输入区（固定五段）</b>　顺序不可调换：① 队列状态条（无队列时整条隐藏）→ ② 输入区 → ③ 功能按钮行（左：附加 / 过滤 / 权限；右：发送）→ ④ 引用区（无引用时隐藏）→ ⑤ 卡片外的工作区信息行。卡片本身 <span style="font-family:ui-monospace,Menlo,monospace">position:relative</span>，首尾行各自补圆角，<b style="color:var(--color-text);font-weight:500">不得 overflow:hidden</b>，否则会裁掉向上展开的浮层。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-800)"><span style="font-size:11.5px;color:var(--color-text)">抽屉标题</span><div style="flex:1"></div><span style="font-size:11px;color:var(--color-neutral-600)">✕</span></div>
+          <div style="font-size:11.5px;color:var(--color-neutral-500);line-height:1.7">抽屉：右侧滑入，遮罩 rgba(14,15,24,.72)，宽度按内容 560 / 720 / 980；对话框：居中，宽 560–620。两者头部结构一致：kicker 标签 + 标题 + 弹性 + 关闭。</div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">抽屉 / 对话框</b>　抽屉用于「查看」（契约、证据、审查），对话框用于「决定」（创建项目、新建工作、D2/D3 授权）。二者都从窗口栏下沿开始（<span style="font-family:ui-monospace,Menlo,monospace">inset:42px 0 0</span>），不遮挡窗口栏。<b style="color:var(--color-text);font-weight:500">遮罩点击＝关闭，但 D3 授权对话框不可点遮罩关闭</b>。底部动作区右对齐：次要在左、主要在右。
+        </div>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:stretch">
+        <div style="width:420px;flex:none;padding:14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:9px">
+          <div style="padding:12px 14px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.8">
+            <div><span style="color:var(--color-accent-300)">set</span> <span style="color:var(--color-neutral-400)">-euo pipefail</span></div>
+            <div><span style="color:var(--color-accent-400)">cargo</span> <span style="color:var(--color-neutral-300)">test</span> <span style="color:var(--color-neutral-500)">--workspace</span></div>
+            <div><span style="color:var(--color-pass)">+ pub async fn cancel()</span></div>
+            <div><span style="color:var(--color-fail)">- self.session.abort();</span></div>
+            <div><span style="color:var(--color-neutral-700)"># 注释</span></div>
+          </div>
+        </div>
+        <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.8">
+          <b style="color:var(--color-text);font-weight:500">代码与 Markdown</b>　代码高亮只用五色：关键字 accent-300、命令/函数 accent-400、字符串 pass、标识符 neutral-300、参数 neutral-500、注释 neutral-700；diff 新增 pass、删除 fail。Markdown 默认<b style="color:var(--color-text);font-weight:500">渲染显示</b>（标题 15/500、正文 13/1.7、行内 code 为 raised 底芯片、引用为左侧 2px 竖条），并提供「查看源码」切换。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="layout" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">06</span><h3 style="margin:0;color:var(--color-text)">布局骨架</h3></div>
+    <div style="display:flex;gap:14px">
+      <div style="width:420px;flex:none;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+        <div style="height:26px;background:var(--s-raised);display:flex;align-items:center;padding:0 8px;gap:6px;border-bottom:1px solid var(--color-neutral-900)"><span style="width:6px;height:6px;border-radius:50%;background:#ff5f57"></span><span style="width:6px;height:6px;border-radius:50%;background:#febc2e"></span><span style="width:6px;height:6px;border-radius:50%;background:#28c840"></span><span style="font-size:9px;color:var(--color-neutral-600);margin-left:6px">窗口栏 42px · 折叠开关在此</span></div>
+        <div style="display:flex;height:150px">
+          <div style="width:96px;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);padding:8px;font-size:9px;color:var(--color-neutral-600)">左栏 252<br>可拖 180–420<br>折叠 48</div>
+          <div style="flex:1;background:var(--color-bg);padding:8px;font-size:9px;color:var(--color-neutral-600);position:relative">主区（对话 800 居中）<span style="position:absolute;top:8px;right:8px;padding:4px 6px;border-radius:6px;background:var(--s-raised);box-shadow:0 0 0 1px var(--color-neutral-800);font-size:8px;color:var(--color-neutral-500)">悬浮计划</span></div>
+          <div style="width:88px;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);padding:8px;font-size:9px;color:var(--color-neutral-600)">右栏 300<br>仅对话页<br>可拖 220–460</div>
+        </div>
+      </div>
+      <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.85">
+        <b style="color:var(--color-text);font-weight:500">规则</b>　① 所有折叠开关集中在窗口栏，页面内不再放第二处；窗口栏左段宽度＝左栏宽度，随拖动同步。② 左右栏可拖拽改宽，范围写死在上图；折叠后左栏保留 48px 图标条，右栏完全收起。③ <b style="color:var(--color-text);font-weight:500">悬浮面板（计划）必须是纯 overlay</b>：显示与否不得改变对话布局，对话列顶部留白恒定。④ 右栏只在对话页启用，其他页面隐藏且窗口栏图标置灰。⑤ 二级页面用「面包屑 + 返回上一处」，不放「回到对话」按钮。⑥ 长列表容器一律 <span style="font-family:ui-monospace,Menlo,monospace">min-height:0 + overflow-y:auto</span>，禁止用 overflow:hidden 裁内容。
+      </div>
+    </div>
+  </div>
+
+  <div id="event" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">07</span><h3 style="margin:0;color:var(--color-text)">对话事件展示</h3><span style="font-size:12px;color:var(--color-neutral-600)">13 类 · 分 ACP 与应用两源</span></div>
+    <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)"><span style="width:150px;flex:none">事件</span><span style="width:190px;flex:none">来源</span><span style="flex:1">展示形态</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">Agent 消息流</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">ACP message_chunk</span><span style="flex:1">徽标 + 角色名 + 正文，左侧 2px 角色色竖条</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">思考摘要</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">ACP thought_chunk</span><span style="flex:1">斜体 neutral-600 单行 + neutral-800 竖条，可折叠</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">工具调用</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">ACP tool_call</span><span style="flex:1">inset 表格：类型 · 目标 · 右侧 +/− 或运行中圆环</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">权限请求</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">ACP request_permission</span><span style="flex:1">accent-700 描边卡 + 允许一次 / 拒绝，阻塞当前轮</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">轮次结束</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">ACP stopReason</span><span style="flex:1">居中细线 + 等宽小字，默认折叠</span></div>
+      <div style="height:1px;background:var(--color-neutral-900)"></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">计划变动</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App PlanVersion</span><span style="flex:1">accent-700 竖条单行 + 「查看差异」</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">契约冻结 / 修订</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App UnitContract</span><span style="flex:1">同上 + 「查看契约」打开抽屉</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">状态变动</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App 状态机</span><span style="flex:1">居中分隔线上的等宽小字，默认隐藏</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">记忆 / Skill 注入</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App 注入清单</span><span style="flex:1">灰色单行 + ID 芯片，点击跳记忆页</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">记忆写入候选</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App candidate</span><span style="flex:1">inset 卡 + 「审核」，绝不自动写入</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">决策 D1–D3</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App Decision</span><span style="flex:1">accent-700 描边卡：等级角标 + 选项 + 推荐标记</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">证据与验收</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App Evidence</span><span style="flex:1">单行 ✓ 计数 + 「打开证据」抽屉</span></div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--color-neutral-400)"><span style="width:150px;flex:none">检查点</span><span style="width:190px;flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-600)">App checkpoint</span><span style="flex:1">居中 flag 图标 + ck 编号 + commit hash</span></div>
+      <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.7;padding-top:2px">通用约束：任何事件行都必须能被过滤器开关；<b style="color:var(--color-text);font-weight:500">应用事件永远可点开到对应的结构化产物</b>（计划 / 契约 / 证据 / 记忆），ACP 事件只做展示与折叠。不展示模型私有思维链原文，只展示摘要。</div>
+    </div>
+  </div>
+
+  <div id="state" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">08</span><h3 style="margin:0;color:var(--color-text)">交互状态</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.85">
+        <b style="color:var(--color-text);font-weight:500">状态五件套</b>　hover：出 <span style="font-family:ui-monospace,Menlo,monospace">--color-surface</span> 底或描边升到 accent-700，文字升到 accent-300。active/选中：accent-900 底 + accent-300 字。focus-visible：2px accent 外轮廓 + 2px offset（继承设计系统，不要覆盖）。disabled：opacity .45 且移除 cursor。加载中：1.5px accent-400 圆环，不用旋转图标。
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.85">
+        <b style="color:var(--color-text);font-weight:500">Tooltip</b>　所有<b style="color:var(--color-text);font-weight:500">纯图标</b>控件必须有中文 tooltip：<span style="font-family:ui-monospace,Menlo,monospace">title="折叠侧栏" data-tt="折叠侧栏"</span>。样式由全局 <span style="font-family:ui-monospace,Menlo,monospace">[data-tt]:hover::after</span> 提供（surface 底、1px neutral-800、11px），带快捷键时写成「折叠侧栏 ⌘B」。带文字的按钮不加 tooltip，除非需要补充说明。
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.85">
+        <b style="color:var(--color-text);font-weight:500">滚动条</b>　统一 10px 宽、拇指 neutral-800（hover neutral-700）、轨道透明、3px 透明留边；Firefox 用 <span style="font-family:ui-monospace,Menlo,monospace">scrollbar-width:thin</span>。不允许出现系统默认浅色滚动条。
+      </div>
+      <div style="padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.85">
+        <b style="color:var(--color-text);font-weight:500">拖拽</b>　分栏手柄 5px 宽、neutral-900 底、hover accent-700、<span style="font-family:ui-monospace,Menlo,monospace">cursor:col-resize</span>；可移动浮层用 ⠿ 手柄区域并 <span style="font-family:ui-monospace,Menlo,monospace">cursor:grab</span>，拖动范围限制在主区内、上边界 8px。
+      </div>
+    </div>
+  </div>
+
+  <div id="copy" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">09</span><h3 style="margin:0;color:var(--color-text)">文案与术语</h3></div>
+    <div style="display:flex;gap:14px">
+      <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">固定术语（中文界面，标识符保留英文）</div>
+        <div style="font-size:12px;color:var(--color-neutral-400);line-height:1.9">工作 Work · 计划 Plan · 子计划 Subplan · 单元 Unit · 契约 UnitContract · 尝试 Attempt · 证据 Evidence · 检查点 Checkpoint · 决策等级 D0–D3 · 主工作树 worktree · 会话模式 set_mode · 权限裁决 request_permission</div>
+        <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.7">状态词一律用英文原值并等宽显示：<span style="font-family:ui-monospace,Menlo,monospace">clarifying · planning · ready · executing · reviewing_unit · waiting_user · paused · completed · failed</span>，不翻译、不改写。</div>
+      </div>
+      <div style="flex:1;padding:14px 16px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">语气</div>
+        <div style="font-size:12px;color:var(--color-neutral-400);line-height:1.8">工程化、精准、可核对。<br><span style="color:var(--color-pass)">✓</span> 「单元 unit-012 契约 v3 已冻结」<br><span style="color:var(--color-fail)">✗</span> 「我已经准备好开始写这块了 🎉」</div>
+        <div style="font-size:12px;color:var(--color-neutral-400);line-height:1.8">按钮用动词短语（创建 worktree 并开始 / 请求 push 授权），不用「确定」「提交」这类空动词；破坏性动作在按钮上写清后果（丢弃 2:14 工作）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dont" style="display:flex;flex-direction:column;gap:14px;scroll-margin-top:20px">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">10</span><h3 style="margin:0;color:var(--color-text)">反例清单</h3><span style="font-size:12px;color:var(--color-neutral-600)">出现即视为不合规</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 写死 hex 或新造颜色（含语义色）</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> emoji、Unicode 符号当图标，或自绘 SVG 图标</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 实心填充的主按钮、彩色渐变按钮</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 悬浮层影响正文布局 / 被父级 overflow 裁切</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 同类选择器在不同页面位置不一致</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 纯图标按钮没有中文 tooltip</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 设计 ACP 不支持的设置项（如按角色设模型）</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 用弹窗打断执行中的单元来展示非阻塞信息</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 结论不带证据入口（diff / 测试输出 / 命令记录）</div>
+      <div style="padding:11px 13px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.7"><span style="color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">✗</span> 自动把聊天原文或一次成功经验写成长期记忆</div>
+    </div>
+  </div>
+
+</div>
+</div>
+</x-dc>
+</body>
+</html>

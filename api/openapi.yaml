@@ -1,0 +1,320 @@
+openapi: 3.1.0
+
+# ══════════════════════════════════════════════════════════════════════════
+# 前后端接口的唯一真源。改接口的顺序永远是：
+#   ① 改本文件  →  ② make gen  →  ③ 改 Go 实现 / TS 调用
+# 反过来做即视为不合规（铁律 2）。CI 的 contract job 会重新生成并比对 diff。
+#
+# 约定见 api/AGENTS.md。当前只覆盖 M0/M1 的端点，M2+ 随里程碑增补。
+# ══════════════════════════════════════════════════════════════════════════
+
+info:
+  title: Duet API
+  version: 0.1.0
+  description: |
+    duetd 对外暴露的全部接口。Tauri 壳与浏览器走的是同一套 —— 壳不得通过 IPC 绕过 HTTP。
+
+    **错误文案**：`Problem.type` 是机器可读错误码，前端据此查 i18n 词条；
+    `detail` 只给开发者看，界面不展示。后端绝不返回用户可见的中文文案（见 docs/i18n.md §3）。
+
+servers:
+  - url: http://127.0.0.1:{port}/v1
+    variables:
+      port:
+        default: '7777'
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: system
+    description: 版本、更新、恢复
+  - name: runtime
+    description: ACP Runtime 探测与管理
+
+paths:
+  # ── 系统 ────────────────────────────────────────────────────
+  /system/version:
+    get:
+      tags: [system]
+      operationId: getVersion
+      summary: 当前版本与构建信息
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VersionInfo' }
+
+  /system/update/check:
+    post:
+      tags: [system]
+      operationId: checkUpdate
+      summary: 主动检查应用更新
+      description: |
+        对应设置页的「检查更新」按钮。**只检查，绝不下载、绝不安装**（见 docs/adr/0002）。
+        下载与安装由 Tauri updater 完成，duetd 不碰安装包。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdateStatus' }
+
+  /system/update/prepare:
+    post:
+      tags: [system]
+      operationId: prepareUpdate
+      summary: 更新前暂停所有工作并保存检查点
+      description: |
+        ★ 这不是形式步骤，是一次跨聚合的领域操作。用户点「一键更新并重启」后
+        **先调本接口，再下载**。
+
+        对每个非终态的 Work：两段式取消 → 采集证据与事件游标 → 落检查点 → `paused`。
+
+        返回 `blocked` 时前端**不得继续安装**，要把卡住的工作显示给用户。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UpdatePrepareResult' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /system/resume:
+    get:
+      tags: [system]
+      operationId: listResumable
+      summary: 列出可从检查点恢复的工作
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [resumable]
+                properties:
+                  resumable:
+                    type: array
+                    items: { $ref: '#/components/schemas/ResumableWork' }
+
+  # ── Runtime ─────────────────────────────────────────────────
+  /runtimes:
+    get:
+      tags: [runtime]
+      operationId: listRuntimes
+      summary: Runtime 列表、版本、探针结果
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runtimes]
+                properties:
+                  runtimes:
+                    type: array
+                    items: { $ref: '#/components/schemas/Runtime' }
+
+  /runtimes/{name}/probe:
+    post:
+      tags: [runtime]
+      operationId: probeRuntime
+      summary: 重新探测能力矩阵
+      parameters:
+        - $ref: '#/components/parameters/RuntimeName'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CapabilityMatrix' }
+        default: { $ref: '#/components/responses/Problem' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        duetd 启动时生成一次性 token，写入 `~/.acpflows/runtime/session.json`（0600）。
+        无 token 一律 401 —— 防止本机其他程序静默驱动 Agent 写用户的代码。
+
+  parameters:
+    RuntimeName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [claude, codex]
+
+  responses:
+    Problem:
+      description: 错误（RFC 9457）
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
+    # ── 错误 ──────────────────────────────────────────────────
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          description: |
+            ★ 机器可读错误码（snake_case），**前端据此查 i18n 词条**。
+            新增取值时必须同步加进 zh-CN.json 与 en-US.json，make check-i18n 会校验。
+          examples: [contract_frozen, runtime_not_installed, cancel_timeout]
+        title: { type: string, description: 简短英文标题，仅供开发者 }
+        status: { type: integer }
+        detail:
+          type: string
+          description: 英文调试信息。**界面不直接展示**，见 docs/i18n.md §3。
+        params:
+          type: object
+          additionalProperties: true
+          description: 结构化参数，供前端词条插值。
+        instance: { type: string }
+
+    # ── 系统 ──────────────────────────────────────────────────
+    VersionInfo:
+      type: object
+      required: [version, platform, arch]
+      properties:
+        version: { type: string, examples: ['1.4.2'] }
+        platform: { type: string, examples: ['macOS 15.3'] }
+        arch: { type: string, examples: ['arm64'] }
+        commit: { type: string }
+        built_at: { type: string, format: date-time }
+
+    UpdateStatus:
+      type: object
+      required: [state, current_version]
+      properties:
+        state:
+          type: string
+          enum: [idle, available, unsupported]
+          description: unsupported = Web 版，无法自动更新
+        current_version: { type: string }
+        latest_version: { type: string }
+        notes: { type: string, description: 取自 CHANGELOG，更新卡片原样显示 }
+        size_bytes: { type: integer, format: int64 }
+        published_at: { type: string, format: date-time }
+
+    UpdatePrepareResult:
+      type: object
+      required: [status, prepared, blocked]
+      properties:
+        status:
+          type: string
+          enum: [ready, blocked]
+          description: blocked 时前端不得继续安装
+        prepared:
+          type: array
+          items:
+            type: object
+            required: [work_id, checkpoint_id]
+            properties:
+              work_id: { type: string, examples: ['work-08'] }
+              checkpoint_id: { type: string, examples: ['ck-09'] }
+        blocked:
+          type: array
+          items:
+            type: object
+            required: [work_id, reason]
+            properties:
+              work_id: { type: string }
+              reason:
+                type: string
+                description: 机器可读原因码，前端翻译
+                examples: [cancel_timeout, runtime_unresponsive]
+              elapsed_seconds: { type: integer }
+
+    ResumableWork:
+      type: object
+      required: [work_id, checkpoint_id]
+      properties:
+        work_id: { type: string }
+        checkpoint_id: { type: string }
+        unit_id: { type: string }
+        paused_at: { type: string, format: date-time }
+
+    # ── Runtime ───────────────────────────────────────────────
+    Runtime:
+      type: object
+      required: [name, installed]
+      properties:
+        name: { type: string, enum: [claude, codex] }
+        installed: { type: boolean }
+        active_version: { type: string, examples: ['0.63.0'] }
+        available_versions:
+          type: array
+          items: { type: string }
+          description: 多版本并存，切换出问题可一键退回
+        path: { type: string }
+        authenticated: { type: boolean }
+        protocol_version: { type: integer }
+        capabilities: { $ref: '#/components/schemas/CapabilityMatrix' }
+
+    CapabilityMatrix:
+      type: object
+      required: [passed, total, probes]
+      description: |
+        ★ 上层靠能力查询做降级判断，**绝不靠 Runtime 名字**。
+        `if runtime == "codex"` 出现在 adapter 之外即视为设计失败，
+        见 docs/design-principles.md §4.4。
+      properties:
+        passed: { type: integer }
+        total: { type: integer }
+        probes:
+          type: array
+          items:
+            type: object
+            required: [id, passed]
+            properties:
+              id: { type: string, examples: [streaming_thoughts, permission_request] }
+              passed: { type: boolean }
+              detail: { type: string }
+
+    # ── 事件信封（SSE，端点随 M2 增补）────────────────────────
+    Event:
+      type: object
+      required: [id, seq, source, type, ts]
+      description: |
+        统一事件信封。`type` 是**封闭枚举，共 13 类**，与 design/Duet Spec.dc.html
+        第 07 节一一对应。新增一类要同时改四处：本文件 + docs/architecture.md §4
+        + Duet Spec + 前端渲染器注册表。四处缺一不可。
+
+        `seq` 单调递增且持久化 —— 「取消后最后事件游标可读」是产品硬需求。
+      properties:
+        id: { type: string }
+        seq: { type: integer, format: int64 }
+        work_id: { type: string }
+        source: { type: string, enum: [acp, app] }
+        type:
+          type: string
+          enum:
+            # 来自 ACP Runtime
+            - message_chunk
+            - thought_chunk
+            - tool_call
+            - request_permission
+            - turn_end
+            # 来自应用控制层（这些永远可点开到对应的结构化产物）
+            - plan_version
+            - unit_contract
+            - state_change
+            - injection
+            - memory_candidate
+            - decision
+            - evidence
+            - checkpoint
+        ts: { type: string, format: date-time }
+        payload:
+          type: object
+          additionalProperties: true

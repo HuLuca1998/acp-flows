@@ -1,0 +1,92 @@
+name: release
+
+# tag 触发：构建 → minisign 签名 → 生成 latest.json → 发布 GitHub Release。
+# 完整链路见 docs/release-and-update.md。
+#
+# ⚠️ TAURI_SIGNING_PRIVATE_KEY 丢失 = 所有已安装客户端再也收不到更新
+#    （公钥硬编码在旧版本里）。必须离线备份，不能只存在 GitHub Secrets。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: shell/src-tauri }
+
+      # duetd 作为 Tauri sidecar，文件名必须带 target triple 后缀（Tauri 约定）
+      - name: 编译 duetd 与前端 dist
+        run: bash scripts/build.sh --target ${{ matrix.target }}
+
+      - name: 构建并签名 Duet.app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Apple 代码签名与公证：secrets 存在时才启用。
+          # 当前策略是 ad-hoc 签名，首次安装需用户手动放行。见 docs/adr/0002。
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: cd shell && pnpm install --frozen-lockfile && pnpm tauri build --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.target }}
+          path: shell/src-tauri/target/${{ matrix.target }}/release/bundle/
+          retention-days: 1
+
+  publish:
+    name: publish
+    needs: build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: 合成 universal 包
+        run: bash scripts/make-universal.sh artifacts dist
+
+      - name: 生成 latest.json（Tauri updater 清单）
+        run: bash scripts/make-updater-manifest.sh dist "${GITHUB_REF_NAME#v}"
+
+      - name: 发布 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file dist/RELEASE_NOTES.md \
+            dist/*.dmg dist/*.tar.gz dist/*.sig dist/latest.json

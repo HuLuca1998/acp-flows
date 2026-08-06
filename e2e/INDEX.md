@@ -1,0 +1,24 @@
+# 测试索引 · e2e
+
+> Playwright 端到端。**每个 spec 文件一行。**
+> 规则见 [`../docs/testing-strategy.md`](../docs/testing-strategy.md) §8。
+
+## E2E 只测黄金路径
+
+端到端测试慢且脆。**只覆盖跨越整个系统才能验证的行为**，
+单个模块能测出来的东西一律下沉到单测或集成测试。
+
+跑的是真实 `duetd`（临时数据目录 + Fake ACP Runtime），不是 mock 服务。
+
+## 索引
+
+| spec | 覆盖的路径 | 状态 |
+|---|---|---|
+| _（尚无条目）_ | | |
+
+<!--
+登记示例：
+
+| `golden-path.spec.ts` | 创建项目 → 新建工作(worktree) → 计划冻结 → 单元执行 → 权限裁决 → 证据 → 验收 → 检查点 | 必须一直绿 |
+| `update-flow.spec.ts` | 检测新版本 → prepare 暂停工作落检查点 → 模拟重启 → 从检查点恢复 | M1 |
+-->

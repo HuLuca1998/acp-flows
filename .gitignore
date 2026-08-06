@@ -1,0 +1,48 @@
+# ── 构建产物 ──────────────────────────────────────────────
+/backend/bin/
+/backend/dist/
+/frontend/dist/
+/frontend/node_modules/
+/shell/src-tauri/target/
+/shell/src-tauri/gen/
+node_modules/
+*.app
+
+# ── 测试与覆盖率 ──────────────────────────────────────────
+coverage/
+*.out
+*.cover
+/e2e/test-results/
+/e2e/playwright-report/
+/e2e/.playwright/
+
+# ── git worktree 工作区（绝不入库）───────────────────────
+# 开发本仓库时的并行工作区根目录，规范见 docs/git-workflow.md §4
+/.worktree/
+/.worktrees/
+
+# ── 本地运行时状态（绝不入库）────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+/.duet-local/
+/backend/testdata/tmp/
+
+# ── 密钥与凭据（绝不入库）────────────────────────────────
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+/shell/src-tauri/*.minisign
+tauri-signing-*.key*
+
+# ── 编辑器与系统 ──────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ── Claude Code 本地覆盖 ─────────────────────────────────
+.claude/settings.local.json

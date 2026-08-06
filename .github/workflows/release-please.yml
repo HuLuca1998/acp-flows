@@ -1,0 +1,22 @@
+name: release-please
+
+# 读 main 上的 conventional commits，自动开 / 更新一个 Release PR（含 CHANGELOG）。
+# 【人合并那个 Release PR】→ 打 tag → 触发 release.yml。
+# 发版对外不可撤回，属于 D3，所以合并这一下由人点。见 docs/adr/0002。
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

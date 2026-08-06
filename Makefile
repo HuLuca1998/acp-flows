@@ -1,0 +1,148 @@
+# Duet · 顶层任务入口
+#
+# 设计原则：子项目尚未脚手架时，相关 target 跳过而不是报错——
+# 这样 `make check` 从第一天起就能跑通，不会因为"还没写代码"而失效。
+# 一个跑不动的检查等于没有检查。
+
+SHELL := /usr/bin/env bash
+.DEFAULT_GOAL := help
+
+BACKEND  := backend
+FRONTEND := frontend
+SHELLDIR := shell
+E2E      := e2e
+
+has = $(shell [ -f $(1) ] && echo yes)
+
+# ══ 帮助 ═══════════════════════════════════════════════════════
+.PHONY: help
+help: ## 显示所有可用命令
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+# ══ 总检查 ═════════════════════════════════════════════════════
+.PHONY: check
+check: check-docs check-index lint test ## 提交前必跑：文档 + 索引 + lint + 全部测试
+
+# ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
+.PHONY: check-docs
+check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
+	@bash scripts/check-agent-docs.sh
+
+.PHONY: docs-scaffold
+docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store
+	@bash scripts/scaffold-agent-docs.sh "$(DIR)"
+
+# ══ 索引一致性（挡住重复造轮子 / 重复写测试）══════════════════════
+.PHONY: check-index
+check-index: check-util-index check-test-index check-i18n ## 校验工具库索引、测试索引、i18n 词条
+
+.PHONY: check-i18n
+check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/i18n.md）
+	@bash scripts/check-i18n.sh
+
+.PHONY: check-util-index
+check-util-index: ## 工具库 INDEX.md 是否与实际导出函数一致
+	@bash scripts/check-util-index.sh
+
+.PHONY: check-test-index
+check-test-index: ## 测试 INDEX.md 是否与实际测试一致
+	@bash scripts/check-test-index.sh
+
+# ══ 契约代码生成 ════════════════════════════════════════════════
+.PHONY: gen
+gen: ## 由 api/openapi.yaml 生成 Go 服务端接口与 TS 客户端（改完 spec 必跑）
+	@bash scripts/gen-api.sh
+
+.PHONY: check-gen
+check-gen: gen ## 校验生成物与 spec 一致（CI 用；有 diff 即失败）
+	@git diff --exit-code -- $(BACKEND)/internal/api/gen $(FRONTEND)/src/api/gen \
+		|| { echo "✗ 生成物与 api/openapi.yaml 不一致，请跑 make gen 并提交"; exit 1; }
+
+# ══ 测试 ═══════════════════════════════════════════════════════
+.PHONY: test
+test: test-backend test-frontend ## 跑后端 + 前端全部测试
+
+.PHONY: test-backend
+test-backend: ## Go 测试（含 -race）
+ifeq ($(call has,$(BACKEND)/go.mod),yes)
+	cd $(BACKEND) && go test ./... -race -count=1
+else
+	@echo "· 跳过 test-backend：$(BACKEND)/go.mod 尚未创建"
+endif
+
+.PHONY: cover
+cover: ## Go 覆盖率 + 门槛校验（domain 包 >= 90%）
+ifeq ($(call has,$(BACKEND)/go.mod),yes)
+	cd $(BACKEND) && go test ./... -coverprofile=coverage.out -covermode=atomic
+	@bash scripts/check-coverage.sh
+else
+	@echo "· 跳过 cover：$(BACKEND)/go.mod 尚未创建"
+endif
+
+.PHONY: test-frontend
+test-frontend: ## Vitest 单测
+ifeq ($(call has,$(FRONTEND)/package.json),yes)
+	cd $(FRONTEND) && pnpm test --run
+else
+	@echo "· 跳过 test-frontend：$(FRONTEND)/package.json 尚未创建"
+endif
+
+.PHONY: test-e2e
+test-e2e: ## Playwright 端到端（对着真实 duetd + Fake Runtime）
+ifeq ($(call has,$(E2E)/package.json),yes)
+	cd $(E2E) && pnpm test
+else
+	@echo "· 跳过 test-e2e：$(E2E)/package.json 尚未创建"
+endif
+
+# ══ Lint ══════════════════════════════════════════════════════
+.PHONY: lint
+lint: lint-backend lint-frontend ## 全部 lint
+
+.PHONY: lint-backend
+lint-backend:
+ifeq ($(call has,$(BACKEND)/go.mod),yes)
+	cd $(BACKEND) && go vet ./... && golangci-lint run
+else
+	@echo "· 跳过 lint-backend：$(BACKEND)/go.mod 尚未创建"
+endif
+
+.PHONY: lint-frontend
+lint-frontend: ## ESLint + Stylelint（含设计系统合规规则）+ tsc
+ifeq ($(call has,$(FRONTEND)/package.json),yes)
+	cd $(FRONTEND) && pnpm lint && pnpm typecheck
+else
+	@echo "· 跳过 lint-frontend：$(FRONTEND)/package.json 尚未创建"
+endif
+
+# ══ 开发 ═══════════════════════════════════════════════════════
+.PHONY: dev-web
+dev-web: ## ★ 默认开发形态：duetd + vite，浏览器打开 http://localhost:5173
+	@bash scripts/dev-web.sh
+
+.PHONY: dev-app
+dev-app: ## Tauri 壳联调（需要 Rust 工具链）
+	cd $(SHELLDIR) && pnpm tauri dev
+
+# ══ worktree（规范见 docs/git-workflow.md §4）════════════════════
+.PHONY: wt
+wt: ## 建并行工作区： make wt NAME=feat/acp-session-cancel
+	@bash scripts/worktree.sh add "$(NAME)"
+
+.PHONY: wt-clean
+wt-clean: ## 清理已合并分支的 worktree
+	@bash scripts/worktree.sh clean
+
+.PHONY: wt-list
+wt-list: ## 列出当前所有 worktree
+	@git worktree list
+
+# ══ 构建 ═══════════════════════════════════════════════════════
+.PHONY: build
+build: ## 构建 duetd + 前端 dist
+	@bash scripts/build.sh
+
+.PHONY: build-app
+build-app: build ## 构建 Duet.app（含 minisign 签名，需 TAURI_SIGNING_PRIVATE_KEY）
+	cd $(SHELLDIR) && pnpm tauri build
