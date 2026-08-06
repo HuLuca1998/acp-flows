@@ -231,13 +231,19 @@ git worktree list                        # 看当前有哪些
 | 规则 | 值 |
 |---|---|
 | 要求 PR 才能合入 | 是 |
-| 要求状态检查通过 | `ci / backend` `ci / frontend` `ci / docs` `ci / contract` |
+| 要求状态检查通过 | **只有 `ci` 一项**（汇总门禁） |
 | 要求分支为最新 | 是 |
 | 要求线性历史 | 是 |
 | 允许的合并方式 | 仅 squash |
 | 合并后自动删分支 | 是 |
 | 允许强推 | 否 |
 | 允许删除 | 否 |
+
+> ⚠️ **required check 只能是 `ci` 这一个汇总门禁，不能列单个 job。**
+>
+> 单个 job（`backend` / `frontend` / …）会被路径过滤跳过，
+> 而 GitHub 会永远等一个不会来的结果 → **PR 卡死**。
+> 完整原理见 [`ci.md`](ci.md) 规则 2。`scripts/setup-branch-protection.sh` 里写死了 `["ci"]`。
 
 ---
 

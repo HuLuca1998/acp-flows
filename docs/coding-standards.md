@@ -172,6 +172,7 @@ CI 在每个 PR 上跑。**索引不是文档，是被校验的清单。**
 | CSS Module | `PascalCase.module.css`，与组件同名同目录 | `EventStream.module.css` |
 | Rust | `snake_case.rs` | `sidecar_guard.rs` |
 | 文档 | `kebab-case.md` | `release-and-update.md` |
+| SQL 迁移 | `NNNN_<动词>_<对象>.sql`，编号只增不复用 | `0002_add_checkpoint_commit.sql` |
 
 **一个文件一个主要导出。** 一个 `.tsx` 里塞五个组件会让 AI 定位困难，
 也让 diff 变得难读。子组件超过 30 行就拆出去。
@@ -325,6 +326,19 @@ import styles from './EventStream.module.css'
 ```
 
 由 `eslint-plugin-import` 的 `order` 规则强制，不靠手动排。
+
+---
+
+## 4.5 数据库与 GORM
+
+表名、列名、索引命名、GORM 实体定义、迁移文件命名，全部在
+[`database.md`](database.md)。**这里不重复**，只记三条最容易犯的：
+
+| ✗ | ✓ |
+|---|---|
+| 领域模型挂 `gorm:"..."` 标签 | 实体在 `store/entity/`，中间隔一个 `mapper/` |
+| `Updates(entity.Work{State: s})` | `Updates(map[string]any{"state": s})` —— struct 形式零值静默丢更新 |
+| `Find(&e)` 查单条 | `First(&e)` —— `Find` 记录不存在时 `err` 是 nil |
 
 ---
 

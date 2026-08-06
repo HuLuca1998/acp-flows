@@ -37,14 +37,18 @@
 
 ## 2. CI：每个 PR 跑什么
 
-`.github/workflows/ci.yml`，四个必过检查（对应分支保护里的 required checks）：
+`.github/workflows/ci.yml`。**分支保护只 required `ci` 这一个汇总门禁**——
+列单个 job 会因为路径过滤跳过而让 PR 永远 pending，见 [`ci.md`](ci.md) 规则 2。
 
-| job | 内容 |
-|---|---|
-| `backend` | `go vet` · `golangci-lint` · `go test ./... -race` · 覆盖率门槛 |
-| `frontend` | `tsc --noEmit` · ESLint · Stylelint（设计合规）· `vitest --run` |
-| `contract` | `make check-gen`（生成物与 `api/openapi.yaml` 一致）· `redocly lint` |
-| `docs` | `make check-docs`（关键目录都有填实的 AGENTS.md + CLAUDE.md）· 提交信息格式 |
+| job | 内容 | 什么时候跑 |
+|---|---|---|
+| `changes` | 变更探测 + 脚手架探测 | 永远 |
+| `guard` | 文档完整性 · 索引一致性 · 命名规范 · 提交信息格式 | 永远 |
+| `contract` | `redocly lint` · `make check-gen`（生成物与 spec 一致） | `api/**` 变动 |
+| `backend` | `golangci-lint` · `go test -race` · 集成测试 · 覆盖率门槛 | `backend/**` 或契约变动 |
+| `frontend` | `tsc --noEmit` · ESLint · Stylelint（设计合规）· `vitest --run` | `frontend/**` 或契约变动 |
+| `shell` | `cargo clippy -D warnings` · `cargo test` | `shell/**` 变动 |
+| `ci` | ★ 汇总门禁，跳过算通过、失败不放过 | 永远 |
 
 E2E（Playwright）在 `main` 上跑，不阻塞 PR —— 它慢，且依赖构建产物。
 
@@ -72,10 +76,14 @@ E2E（Playwright）在 `main` 上跑，不阻塞 PR —— 它慢，且依赖构
 `.github/workflows/release.yml`，`on: push: tags: ['v*']`。
 
 ```
-macos-14 (arm64) ─┐
-                  ├─▶ lipo 合成 universal ─▶ 打包 .app / .dmg ─▶ minisign 签名
-macos-13 (x64)  ──┘
+macos-14 ─┬─ 构建 aarch64-apple-darwin ─┐
+          └─ 交叉编译 x86_64-apple-darwin ┴─▶ lipo 合成 universal
+                                            ─▶ 打包 .app / .dmg ─▶ minisign 签名
 ```
+
+两个 target 都在 `macos-14`（arm64）上构建：Rust 交叉编译到 x86_64 只需
+`rustup target add`，Go 侧 `CGO_ENABLED=0` 更是零成本。
+用两个不同架构的 runner 反而更慢更贵，且 x64 runner 排队更久。
 
 ### 构建顺序
 

@@ -69,6 +69,7 @@ make help
 | [`docs/architecture.md`](docs/architecture.md) | 进程模型、前后端分层、事件流、目录规划 |
 | [`docs/domain-model.md`](docs/domain-model.md) | 聚合、状态机、不变量 |
 | [`docs/design-principles.md`](docs/design-principles.md) | 抽象怎么切、接口放哪、怎么复用而不复制 |
+| [`docs/database.md`](docs/database.md) | GORM 实体与领域模型的边界、表/列/索引命名、迁移、GORM 陷阱 |
 | [`docs/coding-standards.md`](docs/coding-standards.md) | 命名、文件组织、`model`/`constant`/`util` 归属、工具库索引 |
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
 | [`docs/acp-integration.md`](docs/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
@@ -92,7 +93,7 @@ make help
 | 层 | 选择 |
 |---|---|
 | 外壳 | Tauri v2（Rust） |
-| 后端 | Go · 单进程 `duetd` · HTTP + SSE · SQLite |
+| 后端 | Go · 单进程 `duetd` · HTTP + SSE · GORM + SQLite（纯 Go 驱动，无 CGO） |
 | 前端 | React 18 + TypeScript + Vite |
 | 契约 | OpenAPI 3.1（手写 spec 先行） |
 | 测试 | Go test · Vitest + Testing Library · Playwright |
