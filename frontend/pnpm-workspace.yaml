@@ -1,0 +1,6 @@
+# 显式批准需要运行构建脚本的依赖。
+# pnpm 默认不跑第三方 postinstall（供应链安全），未批准的会让 `pnpm install` 直接失败。
+# 加新依赖时如果 CI 报 ERR_PNPM_IGNORED_BUILDS，把它加到这里并说明为什么可信。
+allowBuilds:
+  esbuild: true        # vite/vitest 的打包器，需要下载对应平台的二进制
+  unrs-resolver: true  # eslint-import-resolver-typescript 的原生解析器

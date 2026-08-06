@@ -146,7 +146,9 @@ Tauri 读该文件，把 `port` 与 `token` 注入 WebView（`window.__DUET__`�
 | Work / Plan / Unit / Contract / Attempt / Evidence / Decision / Checkpoint | SQLite `~/.acpflows/duet.db` | 结构化状态 |
 | GitHub PAT | `~/.acpflows/credentials`（加密） | **绝不写入任何项目目录，绝不进入 Agent 上下文** |
 
-SQLite 用 `modernc.org/sqlite`（纯 Go，无 CGO），保证交叉编译与 CI 简单。
+持久化用 **GORM + SQLite**，驱动是 `github.com/glebarez/sqlite`（纯 Go，无 CGO），
+保证交叉编译与 CI 简单。**只做 SQLite，不做 MySQL** —— 理由见 [`adr/0005-persistence.md`](adr/0005-persistence.md)。
+表结构、实体定义、迁移规范见 [`database.md`](database.md)。
 启动时执行 **DB ↔ 文件对账**：文件被人手改过或删过，索引要能自愈并上报差异。
 
 ---

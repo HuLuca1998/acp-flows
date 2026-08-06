@@ -287,6 +287,7 @@ CI 在每个 PR 上跑这条。缺失即**红**，PR 合不进去。
 | skill | 什么时候用 |
 |---|---|
 | `tdd-unit` | 开始任何一个开发单元时（**最常用**） |
+| `db-operate` | 连数据库、查数据、调试、改数据 |
 | `go-unit-test` | 写或改任何 Go 测试 |
 | `web-ui-test` | 前端测试：组件行为 / E2E / 真实浏览器模拟用户走查 |
 | `review-diff` | 审查另一个 AI 的改动 |
@@ -361,6 +362,8 @@ pnpm -C e2e test
 | **撞上烂代码**（铲还是不铲、怎么铲、债务登记） | [`docs/tech-debt.md`](docs/tech-debt.md) |
 | 理解整体架构、进程模型、分层 | [`docs/architecture.md`](docs/architecture.md) |
 | 改领域模型、状态机、业务规则 | [`docs/domain-model.md`](docs/domain-model.md) |
+| **建表 / 写 GORM 实体 / 迁移 / 查询** | [`docs/database.md`](docs/database.md) |
+| 连数据库看数据、排查数据问题、改数据 | `db-operate` skill |
 | 写任何测试 | [`docs/testing-strategy.md`](docs/testing-strategy.md) |
 | 做 ACP 协议层 / Runtime 适配 | [`docs/acp-integration.md`](docs/acp-integration.md)（规格）+ [`docs/acp-field-notes.md`](docs/acp-field-notes.md)（**实测与前一个项目踩过的 10 个坑**） |
 | 做发版、CI、客户端自动更新 | [`docs/release-and-update.md`](docs/release-and-update.md) |
@@ -431,6 +434,9 @@ pnpm -C e2e test
 - ✗ 断言恒真、mock 喂 mock、只运行不断言的测试
 - ✗ 改了接口不改 `api/openapi.yaml`
 - ✗ `domain` 包 import 任何基础设施包或做 IO
+- ✗ **领域模型挂 `gorm` 标签** —— 实体在 `store/entity/`，中间隔一个 `mapper/`
+- ✗ GORM 的 `Updates` 传 struct（零值静默丢更新）、用 `Find` 查单条、用 `Save`
+- ✗ 用 `AutoMigrate` 代替版本化迁移；不开 `foreign_keys` pragma；事务里做 IO
 - ✗ 测试读写 `~/.acpflows`、用户真实仓库或真实令牌
 - ✗ 未经批准新增第三方依赖
 - ✗ 把 Agent 的转述当证据（证据必须由应用直接采集）

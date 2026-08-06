@@ -22,12 +22,16 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-index lint test ## 提交前必跑：文档 + 索引 + lint + 全部测试
+check: check-docs check-doc-commands check-index check-icons lint test ## 提交前必跑：文档 + 索引 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
 check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
 	@bash scripts/check-agent-docs.sh
+
+.PHONY: check-doc-commands
+check-doc-commands: ## 文档里提到的 make 目标与脚本是否真实存在
+	@bash scripts/check-doc-commands.sh
 
 .PHONY: docs-scaffold
 docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store
@@ -101,9 +105,18 @@ endif
 lint: lint-backend lint-frontend ## 全部 lint
 
 .PHONY: lint-backend
-lint-backend:
+lint-backend: ## go vet + golangci-lint（含 depguard 分层约束）
 ifeq ($(call has,$(BACKEND)/go.mod),yes)
-	cd $(BACKEND) && go vet ./... && golangci-lint run
+	cd $(BACKEND) && go vet ./...
+	@# golangci-lint 是可选工具：本机没装时给出安装方式而不是让 make check 整个失效。
+	@# CI 上用 golangci/golangci-lint-action，一定会跑到。
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		cd $(BACKEND) && golangci-lint run; \
+	else \
+		echo "· 跳过 golangci-lint（本机未安装）"; \
+		echo "  装它：brew install golangci-lint  或  go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
+		echo "  注意：depguard 的分层约束只有它能查，CI 上一定会跑。"; \
+	fi
 else
 	@echo "· 跳过 lint-backend：$(BACKEND)/go.mod 尚未创建"
 endif
@@ -117,6 +130,20 @@ else
 endif
 
 # ══ 开发 ═══════════════════════════════════════════════════════
+.PHONY: icons
+icons: ## 由 design/icon/duet.svg 重新生成全部图标尺寸
+	@bash scripts/gen-icons.sh
+
+.PHONY: check-icons
+check-icons: ## 图标产物是否与源 SVG 同步
+	@bash scripts/check-icons.sh
+
+.PHONY: probe
+probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
+	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/codex.json  codex
+	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/claude.json claude
+	@echo "报告已更新。对照 docs/acp-field-notes.md §7.1 核对差异。"
+
 .PHONY: dev-web
 dev-web: ## ★ 默认开发形态：duetd + vite，浏览器打开 http://localhost:5173
 	@bash scripts/dev-web.sh

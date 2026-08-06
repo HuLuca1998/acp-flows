@@ -81,7 +81,8 @@ make -C .. cover             # 覆盖率 + 门槛校验
 | 项 | 选择 | 理由 |
 |---|---|---|
 | Go 版本 | 与 `go.mod` 一致，不用未发布特性 | |
-| SQLite 驱动 | `modernc.org/sqlite` | 纯 Go 无 CGO，交叉编译与 CI 简单 |
+| ORM | **GORM** | 生态最大；隐式行为多，规则见 `docs/database.md` §9 |
+| 数据库 | **SQLite**，驱动 `github.com/glebarez/sqlite` | 纯 Go 无 CGO。**不做 MySQL**，见 `adr/0005` |
 | HTTP 路由 | 标准库 `net/http` + `ServeMux`（Go 1.22+ 模式匹配） | 少一个依赖 |
 | 日志 | 标准库 `log/slog`，结构化 | |
 | 错误 | `errors.Is/As` + 领域错误类型，`api` 层统一映射成 `Problem` | |

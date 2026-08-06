@@ -303,6 +303,59 @@ for (const n of updates.slice(before)) yield // ← 然后才补发
 
 ---
 
+## 7.1 真机复验（2026-08-07）★
+
+用 `backend/cmd/acpprobe` 在**本机真实 runtime** 上复验。报告归档在
+`backend/tests/fixtures/probe/{codex,claude}.json`，可 diff。
+
+```bash
+make probe          # 零模型开销：只做 initialize + session/new
+```
+
+实跑版本：**`codex-acp 1.1.7`** · **`claude-agent-acp 0.63.0`** —— 与笔记记录的版本一致。
+
+### 已确认（B 级 → 保持 B 级，但绑定到具体版本与日期）
+
+| 结论 | 复验结果 |
+|---|---|
+| 两端 `protocolVersion` 都是 `1` | ✅ |
+| codex 档位 = `read-only` / `agent` / `agent-full-access`，**默认 `agent`** | ✅ 逐字一致 |
+| claude 档位 6 个 = `auto` / `default` / `acceptEdits` / `plan` / `dontAsk` / `bypassPermissions`，**默认 `default`** | ✅ 逐字一致 |
+| 两端 `loadSession: true` | ✅ |
+| 两端 `promptCapabilities` 含 `image` 与 `embeddedContext` | ✅ |
+
+### ★ 最重要的一条得到证实：按 `category` 取，不按 `id` 取
+
+| 概念 | claude 的 `id` | codex 的 `id` | 两端 `category` |
+|---|---|---|---|
+| 权限档 | `mode` | `mode` | **`mode`** ✅ |
+| 模型 | `model` | `model` | **`model`** ✅ |
+| 推理强度 | **`effort`** | **`reasoning_effort`** | **`thought_level`** ✅ |
+| 快速模式 | **`fast`** | **`fast-mode`** | **`model_config`** ✅ |
+
+**`id` 三处不同，`category` 四处全同。** 这条不是推测，是本机实测。
+[`design-principles.md`](design-principles.md) §4.4 的「差异内化最佳实证」由此坐实——
+协议本身提供了语义层的稳定键，**不需要维护映射表**。
+
+> 笔记原文对「快速模式」的 `category` 记的是 `—`（未知）。现在补上：两端都是 `model_config`。
+
+### 新发现（笔记里没有的）
+
+| # | 发现 | 影响 |
+|---|---|---|
+| N1 | codex 多一项 `collaboration_mode`（category 同名），claude 没有 | 属于 codex 私有能力，**必须走能力查询暴露，不能假装两端一致** |
+| N2 | claude 多一项 `agent` configOption，且 **`category` 为空字符串** | 按 category 取时要能容忍空 category，不能崩 |
+| N3 | codex 的 `agentCapabilities.sessionCapabilities` 明确列出 `additionalDirectories` / `close` / `delete` / `list` / `resume` | 隔离方案依赖的 `additionalDirectories` **确实被声明为能力**，不是靠猜 |
+| N4 | codex 的 `authMethods` 有 `api-key`（`_meta` 里标了 provider: openai）与 `chat-gpt` 两种 | 印证「codex 支持纯环境变量认证，CI/批量优先选 codex」 |
+| N5 | 两端 `mcpCapabilities` 都是 `http: true` / `sse: false` / `acp: false` | MCP 注入只能走 http |
+
+### Q4b 得到证实
+
+`open-questions.md` Q4b 说「设计稿把 codex 实现工程师绑到 `auto` 模式，但 codex 没有这个档」——
+**证实**：`auto` 确实只在 claude 的 6 个档里，codex 的三个档里没有。设计稿的角色表需修正。
+
+---
+
 ## 8. 这些笔记怎么维护
 
 - **绑定版本。** 每条 B 级结论都要注明实跑版本。升级 runtime 后**必须复验**，

@@ -33,7 +33,7 @@
 | # | 冲突 | 影响 |
 |---|---|---|
 | ~~Q4a~~ | ~~设计稿的 `mem-188` 是错的~~ **← 已撤回，判定过重** | 见下 |
-| Q4b | **角色表把 codex 实现工程师绑到 `auto` 模式**，但 codex-acp 只有 `read-only` / `agent` / `agent-full-access`，`auto` 是 claude 侧的 id | 绑不上，设计稿的角色表需修正 |
+| Q4b | ✅ **已真机证实**：`auto` 只存在于 claude 的 6 个档里，codex 只有 `read-only`/`agent`/`agent-full-access`。设计稿角色表把 codex 绑到 `auto` 是错的，需设计侧修正 | 见 `acp-field-notes.md` §7.1 |
 | Q4c | **`session/set_mode` 官方已挂废弃告示**，将被 Session Config Options 取代（codex-acp 已同时暴露两套） | 影响 `AGENTS.md` §8 术语表「会话模式 = `session/set_mode`」的表述 |
 | Q4d | **客户端 MUST 用 `cancelled` 应答所有 pending 的 `session/request_permission`** —— 设计稿完全没提。漏了会导致每次取消都超时、`prepare` 永远返回 `blocked` | 直接影响 M1 的自动更新能否工作 |
 
@@ -106,6 +106,46 @@
 | Q24 | **面包屑**只在布局规则里被提一句，无视觉条目（原型有三级） | 低 |
 
 完整明细见 `frontend-guide.md` §16。
+
+---
+
+## P1 · 由 M1 分章拆解时发现
+
+| # | 问题 | 出处 |
+|---|---|---|
+| Q33 | **「发现新版本」要不要成为第 14 类事件？** `release-and-update.md` 说要发一条 `app` 事件，但 `Event.type` 是封闭枚举共 13 类，没有对应的一类。新增第 14 类要同时改四处。裁定前不实现事件发布 | `M1-release-and-update.md` |
+| Q34 | **简化版 `prepare` 遇到「有进行中工作」时该怎么办？** `roadmap.md` 1.7 与 `adr/0002` 都只说「无工作时直接放行」，没说有工作时。M1 分章按**失败安全**补齐为返回 `blocked`，需确认 | `M1-release-and-update.md` U1.7.1 |
+| Q35 | **`prepare` 的完整语义横跨 M0 与 M2。** `adr/0002` 说它依赖「M0 的 Work 状态机与 checkpoint」，但 Checkpoint 单元实际排在 M2（2.8），M1 内部无法闭环 | `M1-release-and-update.md` 全局停止条件 |
+| Q36 | **品牌判断禁令与契约打架**：`openapi.yaml` 的 `RuntimeName` 是 `enum: [claude, codex]`，生成物必然落在 `internal/api/gen`，与「`grep 'codex\|claude'` 在 `api` 下为空」冲突。M1 分章按「排除 `gen/`」处理，需确认 | `M1-release-and-update.md` U1.9.1 |
+
+## P2 · 由 M3/M4 分章拆解时发现（`domain-model.md` 有编号但此处未收录）
+
+| # | 问题 | 出处 | 挡住谁 |
+|---|---|---|---|
+| Q37 | **报表指标的口径没定义** —— 「一次通过率 68%」「平均单元耗时 6m12s」的分子分母是什么？`obsolete` 单元计不计入分母？**这比图表没有设计条目更靠前**：图画不了只是画不了，口径没定则数字本身没有意义 | `domain-model.md` OPEN-7 | M4 报表全部 |
+| Q38 | **三个隔离开关的默认值**（关闭 Runtime 机器级记忆 / 禁用未授权项目 MCP / 允许 Runtime 内建 Skill） | `domain-model.md` OPEN-17 | M3 U3.5.2 |
+| Q39 | **「Work 工作记忆」是第三种存储，还是 `scope=work` 的 Memory？** 影响 `Memory.scope` 的枚举形态 | `domain-model.md` OPEN-8 | M3 记忆落库 |
+
+### 里程碑划分的待确认项
+
+| # | 问题 | 建议 |
+|---|---|---|
+| Q40 | **启动时从检查点恢复（`U4.7.1`）放在 M4 是否合理？** 它依赖 M1 的 `/system/resume` 与 M2 的 Checkpoint，与报表/设置/GitHub/英文版零交集，在 M4 里是一条孤立的并行链 | 挪到 M1 尾部或 M2 |
+| Q41 | **三个隔离开关的归属**：界面在设置页（M4），实现在 adapter 会话参数（M3）。M3/M4 若要并行，**这是唯一一处跨里程碑依赖** | 把开关的设置页 UI 也划进 M3 |
+| Q42 | **M2 的 2.5「13 类事件渲染器」是全做还是只做主链路用到的几个？** 影响 M3 的 `injection` 渲染器是新建还是改已有文件 | — |
+
+---
+
+### 已就地修正的（不需要拍板）
+
+| 问题 | 处理 |
+|---|---|
+| `git-workflow.md` §5 列了四个 required check，与 `ci.md` 规则 2「只能 required 汇总门禁」矛盾 | ✅ 已改为只有 `ci`，并加了警告框说明为什么 |
+| `release-and-update.md` §2 说 CI 有 `docs` job，实际文档检查在 `guard` 里 | ✅ 已改 |
+| `release.yml` 的构建矩阵两行都是 `macos-14`，与 §4 的图（arm64 + x64 两个 runner）不符 | ✅ 已改注释说明 macos-14 可交叉编译两个 target |
+| `database.md` §7 说「行结构+查询+映射全在一起」，与 §1 的 `entity/`+`mapper/` 分包矛盾 | ✅ 已改，并说明为什么这是有理由的例外 |
+| `release.yml` 引用了不存在的 `scripts/make-universal.sh` 与 `make-updater-manifest.sh` | 由 M1 的 U1.5.1 / U1.5.3 补 |
+| 三个端点只在 `release-and-update.md` §8 的表里，`openapi.yaml` 没有 | 由 M1 对应单元补 |
 
 ---
 

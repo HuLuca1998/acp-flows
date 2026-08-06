@@ -55,6 +55,62 @@ bash -n scripts/xxx.sh           # 语法检查
 - 你要强制的那条规则出自哪份文档 —— 检查逻辑必须和文档一字对应，
   文档说 400 行，脚本就不能写 500
 
+## ★ 四个反复踩的 shell 陷阱
+
+写检查脚本时**每次都要对照这四条**。前三条我在同一个仓库里各踩过 2–3 次，
+说明只写一句「注意」是不够的。
+
+### 1. `set -e` + `[[ ]] && cmd`
+
+```bash
+set -euo pipefail
+[[ -n $found ]] && report "$found"     # ✗ $found 为空时整个脚本退出
+if [[ -n $found ]]; then report "$found"; fi   # ✓
+```
+
+AND 列表整体失败会触发 `set -e`。**检查脚本里「没发现问题」是最常见的路径**，
+所以这个 bug 表现为「脚本永远静默退出 1」，最难排查。
+
+### 2. `set -o pipefail` + 管道里的 `grep` / `find`
+
+```bash
+x=$(find . -name '*.go' | grep foo | sort)          # ✗ grep 无匹配返回 1 → 整脚本死
+x=$(find . -name '*.go' | { grep foo || true; } | sort)   # ✓
+x=$(... | sort || true)                                    # ✓ 收尾兜底
+```
+
+`grep` 无匹配、`find` 遇到无权限目录，都会返回非零。**在检查脚本里这两件事都是常态。**
+
+### 3. `case` 的 `)` 在 `$(...)` 里让括号失衡
+
+```bash
+x=$(... | while read -r s; do
+      case "$s" in *xxx*) continue ;; esac   # ✗ syntax error near `;;`
+    done)
+
+x=$(... | while read -r s; do
+      [[ $s == *xxx* ]] && continue          # ✓
+    done)
+```
+
+命令替换里**不要用 `case`**，用 `[[ ]]`。
+
+### 4. `find` 剪枝要用 `-prune`
+
+```bash
+find . -not -path './node_modules/*'    # ✗ 只匹配顶层，漏掉 ./frontend/node_modules/
+find . \( -name node_modules \) -prune -o -name '*.md' -print   # ✓
+```
+
+漏剪的后果很直观：几千个第三方 README 的散文被当成待检查内容。
+
+### 验证方式
+
+**改完必须手动造一个负例**，确认脚本真的会红。`bash -n` 只查语法，
+查不出上面四条——它们都是运行时行为。
+
+---
+
 ## 本域特有的坑
 
 - **macOS 的 `bash` 是 3.2**，没有 `declare -A` 关联数组、没有 `${x@Q}`。

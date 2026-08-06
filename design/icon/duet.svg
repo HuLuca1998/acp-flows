@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Duet">
+  <title>Duet</title>
+
+  <!--
+    Duet app icon - source of truth. Regenerate every product with:
+        ./scripts/gen-icons.sh
+    Never hand-edit the PNG / ICNS / ICO under shell/src-tauri/icons/.
+
+    NOTE  XML comments may not contain a double hyphen, so CSS custom-property
+          names are written below without their two leading hyphens.
+          The full token table lives in design/icon/README.md.
+
+    Colours - every literal is copied from a Nocturne / Duet token value:
+        #161826  color-bg
+        #0e0f18  s-canvas
+        #2b2741  color-accent-900
+        #3f424d  color-neutral-800
+        #b5abfc  color-accent-400    role: Claude
+        #cfd3e5  color-neutral-300   role: Codex
+        #d2cefd  color-accent-300
+
+    Geometry - macOS Big Sur icon grid:
+        canvas 1024, icon body 824x824 centred (100px clear on every side),
+        corner radius 184.33 = 22.37% of 824.
+        Mark: two 120-degree arcs of r=232 about (512,512), stroke 84, round
+        caps, 60-degree openings at 12 and 6 o'clock; centre dot r=52.
+        Mark extent 548 = 66.5% of the body.
+  -->
+
+  <defs>
+    <clipPath id="duet-body">
+      <rect x="100" y="100" width="824" height="824" rx="184.33"/>
+    </clipPath>
+
+    <!-- ground: color-bg at the head falling to s-canvas at the foot -->
+    <linearGradient id="duet-ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#161826"/>
+      <stop offset="1" stop-color="#0e0f18"/>
+    </linearGradient>
+
+    <!-- accent as light, never as fill: color-accent-900 fading to nothing -->
+    <radialGradient id="duet-glow" cx="0.5" cy="0.43" r="0.55">
+      <stop offset="0" stop-color="#2b2741"/>
+      <stop offset="1" stop-color="#2b2741" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g clip-path="url(#duet-body)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#duet-ground)"/>
+    <circle cx="512" cy="452" r="352" fill="url(#duet-glow)"/>
+  </g>
+
+  <!-- hairline edge so the body holds against a dark wallpaper: color-neutral-800 -->
+  <rect x="103" y="103" width="818" height="818" rx="181.33"
+        fill="none" stroke="#3f424d" stroke-width="6"/>
+
+  <!-- Claude, the left voice: color-accent-400 -->
+  <path d="M 396 712.92 A 232 232 0 0 1 396 311.08"
+        fill="none" stroke="#b5abfc" stroke-width="84" stroke-linecap="round"/>
+
+  <!-- Codex, the right voice: color-neutral-300 -->
+  <path d="M 628 311.08 A 232 232 0 0 1 628 712.92"
+        fill="none" stroke="#cfd3e5" stroke-width="84" stroke-linecap="round"/>
+
+  <!-- the single unit both voices are working on: color-accent-300 -->
+  <circle cx="512" cy="512" r="52" fill="#d2cefd"/>
+</svg>

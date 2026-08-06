@@ -1,0 +1,114 @@
+/* Duet 产品层令牌与全局样式。
+ *
+ * 建立在 Nocturne 之上（tokens.css），补齐本产品特有的层级与全局规则。
+ * 规格见 docs/frontend-guide.md 与 design/Duet Spec.dc.html。
+ *
+ * ★ 组件里一律用 var()，禁止写死 hex 与裸 px —— stylelint 会拦。
+ */
+
+:root {
+  /* ── 四层底色 · 由深到浅决定层级（设计规范 §01）───────────── */
+  --s-canvas: #0e0f18; /* 窗口外画布 */
+  --s-rail: #12141f; /* 侧栏 / 抽屉 */
+  --s-raised: #1b1d2b; /* 窗口栏 / 浮层 */
+  --s-inset: #191b28; /* 卡片与列表项的内嵌底 */
+  --s-claude-edge: #2f2b47; /* Claude 角色徽标描边 */
+  --s-scrim: rgb(14 15 24 / 72%); /* 抽屉遮罩 */
+
+  /* ── 语义色 · 只有两个，不得引入第三种 ────────────────────── */
+  --color-pass: var(--color-accent-300); /* 通过 / 新增行 / 有效 */
+  --color-fail: oklch(66% 0.125 25deg); /* 失败 / 删除行 / 失效 */
+
+  /* ── 等宽字体 · 标识符与数据 ──────────────────────────────── */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+
+  /* ── 布局尺寸（设计规范 §06）──────────────────────────────── */
+  --layout-titlebar-h: 42px;
+  --layout-left-w: 252px;
+  --layout-left-min: 180px;
+  --layout-left-max: 420px;
+  --layout-left-collapsed: 48px;
+  --layout-main-w: 800px;
+  --layout-right-w: 300px;
+  --layout-right-min: 220px;
+  --layout-right-max: 460px;
+
+  /* ── z-index 约定（设计规范 §03）──────────────────────────── */
+  --z-handle: 5; /* 拖拽手柄 / 悬浮胶囊 */
+  --z-titlebar: 6;
+  --z-plan-panel: 9; /* 可拖动的计划面板 */
+  --z-dropdown: 16; /* 页内下拉 */
+  --z-drawer: 26; /* 抽屉 / 对话框 */
+  --z-tooltip: 60; /* tooltip 与输入框浮层 */
+}
+
+body {
+  margin: 0;
+  background: var(--s-canvas);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+/* ── 滚动条 · 统一 10px，不允许出现系统默认浅色滚动条 ────────── */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 99px;
+  background: var(--color-neutral-800);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-700);
+  background-clip: content-box;
+}
+
+* {
+  scrollbar-color: var(--color-neutral-800) transparent;
+  scrollbar-width: thin;
+}
+
+/* ── Tooltip · 所有纯图标控件必须有中文 tooltip ──────────────── */
+[data-tt] {
+  position: relative;
+}
+
+[data-tt]:hover::after {
+  content: attr(data-tt);
+  position: absolute;
+  z-index: var(--z-tooltip);
+  top: calc(100% + 7px);
+  left: 50%;
+  padding: 4px 9px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-neutral-800), 0 8px 20px rgb(0 0 0 / 55%);
+  color: var(--color-text);
+  font: 400 11px/1.2 var(--font-body);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+a {
+  color: var(--color-accent-400);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-300);
+}
+
+/* 焦点可见性继承设计系统，不要覆盖 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

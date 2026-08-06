@@ -1,0 +1,51 @@
+{
+  "extends": [
+    "stylelint-config-standard"
+  ],
+  "rules": {
+    "color-no-hex": [
+      true,
+      {
+        "message": "禁止写死 hex —— 用设计令牌 var(--color-*)。见 docs/frontend-guide.md §1"
+      }
+    ],
+    "declaration-property-value-disallowed-list": {
+      "font-family": [
+        "/^(?!.*(var\\(--font-|inherit)).*$/"
+      ]
+    },
+    "custom-property-pattern": null,
+    "selector-class-pattern": [
+      "^[a-z][a-zA-Z0-9]*$",
+      {
+        "message": "CSS Modules 类名用 camelCase"
+      }
+    ],
+    "no-descending-specificity": null
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/design/tokens.css"
+      ],
+      "rules": {
+        "color-no-hex": null,
+        "comment-empty-line-before": null,
+        "custom-property-empty-line-before": null,
+        "hue-degree-notation": null,
+        "color-function-notation": null,
+        "alpha-value-notation": null,
+        "declaration-empty-line-before": null
+      }
+    },
+    {
+      "files": [
+        "src/design/duet.css"
+      ],
+      "rules": {
+        "color-no-hex": null,
+        "comment-empty-line-before": null
+      }
+    }
+  ]
+}

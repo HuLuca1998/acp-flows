@@ -30,6 +30,7 @@
 | [`go-unit-test`](go-unit-test/SKILL.md) | 写或改任何 Go 测试（Fake Runtime / 临时 SQLite / 假测试图鉴） |
 | [`web-ui-test`](web-ui-test/SKILL.md) | 前端测试三层：组件行为 / E2E 自动化 / 真实浏览器模拟用户走查 |
 | [`review-diff`](review-diff/SKILL.md) | 审查另一个 AI 的改动（实现方不得自审） |
+| [`db-operate`](db-operate/SKILL.md) | 连数据库、查数据、调试「数据对不上」、改数据 |
 | [`create-issue`](create-issue/SKILL.md) | 要开 GitHub issue 时 |
 
 ### 待建（按需补，别提前造）

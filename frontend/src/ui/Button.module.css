@@ -1,0 +1,90 @@
+/* 按钮。设计规范 §05 与 §08。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.btn {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  height: 25px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-400);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* 主操作：描边 + 强调色字，**永不填充实心** */
+.primary {
+  border-color: var(--color-accent-700);
+  color: var(--color-accent-300);
+}
+
+.primary:hover:not(:disabled) {
+  border-color: var(--color-accent-600);
+  background: var(--color-accent-900);
+}
+
+/* 次操作：中性描边 */
+.secondary {
+  border-color: var(--color-neutral-800);
+  color: var(--color-neutral-400);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-accent-700);
+  background: var(--color-surface);
+  color: var(--color-accent-300);
+}
+
+/* 幽灵：无描边，仅 hover 出底 */
+.ghost {
+  border-color: transparent;
+  color: var(--color-neutral-500);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-surface);
+  color: var(--color-accent-300);
+}
+
+/* 危险动作：用文字色表达，**不是红底** */
+.danger {
+  border-color: transparent;
+  color: var(--color-fail);
+}
+
+.danger:hover:not(:disabled) {
+  border-color: var(--color-fail);
+  background: var(--color-surface);
+}
+
+/* 纯图标按钮：透明底，hover 才出 surface 底 */
+.iconOnly {
+  width: 25px;
+  padding: 0;
+}
+
+/* 激活/选中态（设计规范 §08） */
+.btn[data-active] {
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn i {
+  font-size: 15px;
+}
+
+.iconOnly i {
+  font-size: 16px;
+}

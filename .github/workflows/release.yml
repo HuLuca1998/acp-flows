@@ -21,6 +21,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # 两个 target 都在 macos-14（arm64）上构建：Rust 交叉编译到 x86_64-apple-darwin
+        # 只需 rustup target add，Go 侧 CGO_ENABLED=0 更是零成本。
+        # 用两个不同架构的 runner 反而更慢更贵，且 x64 runner 排队更久。
         include:
           - target: aarch64-apple-darwin
             runner: macos-14

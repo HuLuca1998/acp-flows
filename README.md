@@ -8,7 +8,9 @@
 
 macOS 桌面应用（Tauri 壳 + Go sidecar），同一份代码可作为纯 Web 运行。
 
-> **状态：设计与规范阶段，代码尚未开始编写。** 进度见 [`docs/roadmap.md`](docs/roadmap.md)。
+> **状态：M0 进行中**，脚手架四件套（backend / frontend / shell / e2e）已跑通，
+> `make check` 全绿。剩余关键路径是 Fake ACP Runtime。
+> 进度见 [`docs/roadmap.md`](docs/roadmap.md)，分章见 [`docs/milestones/`](docs/milestones/)。
 
 ---
 
@@ -69,6 +71,7 @@ make help
 | [`docs/architecture.md`](docs/architecture.md) | 进程模型、前后端分层、事件流、目录规划 |
 | [`docs/domain-model.md`](docs/domain-model.md) | 聚合、状态机、不变量 |
 | [`docs/design-principles.md`](docs/design-principles.md) | 抽象怎么切、接口放哪、怎么复用而不复制 |
+| [`docs/database.md`](docs/database.md) | GORM 实体与领域模型的边界、表/列/索引命名、迁移、GORM 陷阱 |
 | [`docs/coding-standards.md`](docs/coding-standards.md) | 命名、文件组织、`model`/`constant`/`util` 归属、工具库索引 |
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
 | [`docs/acp-integration.md`](docs/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
@@ -80,7 +83,8 @@ make help
 | [`docs/ci.md`](docs/ci.md) | CI 设计：只跑受影响的部分、汇总门禁、时长预算 |
 | [`docs/release-and-update.md`](docs/release-and-update.md) | 发版流水线、签名、客户端自动更新 |
 | [`docs/ai-workflow.md`](docs/ai-workflow.md) | Claude × Codex 分工与交接 |
-| [`docs/roadmap.md`](docs/roadmap.md) | 里程碑 |
+| [`docs/roadmap.md`](docs/roadmap.md) | 里程碑总览 |
+| [`docs/milestones/`](docs/milestones/) | ★ 里程碑分章：子计划 → 单元 → 五段契约 → 可断言的验收标准 |
 | [`docs/open-questions.md`](docs/open-questions.md) | ★ 待人拍板的问题（AI 不许替这些拍板） |
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
 | [`.skills/`](.skills/) | 项目级 skill（Claude 与 Codex 共用） |
@@ -92,7 +96,7 @@ make help
 | 层 | 选择 |
 |---|---|
 | 外壳 | Tauri v2（Rust） |
-| 后端 | Go · 单进程 `duetd` · HTTP + SSE · SQLite |
+| 后端 | Go · 单进程 `duetd` · HTTP + SSE · GORM + SQLite（纯 Go 驱动，无 CGO） |
 | 前端 | React 18 + TypeScript + Vite |
 | 契约 | OpenAPI 3.1（手写 spec 先行） |
 | 测试 | Go test · Vitest + Testing Library · Playwright |
