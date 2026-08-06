@@ -1,0 +1,27 @@
+[package]
+name = "duet"
+version = "0.1.0"
+description = "ACP 多智能体协作编程 App"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "duet_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints.clippy]
+# 壳崩了整个 App 就没了——非测试代码禁止 unwrap/expect。
+# 见 docs/coding-standards.md §5。
+unwrap_used = "deny"
+expect_used = "deny"
