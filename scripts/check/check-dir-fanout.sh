@@ -38,6 +38,19 @@ EXEMPT = {
     # 路径: 理由
     "backend/internal/api/gen": "生成物，由 api/openapi.yaml 决定，人改不了",
     "frontend/src/api/gen": "同上",
+    # ★ 这一条是给检查自己开的豁免，所以理由要写得比别处更硬。
+    #
+    # scripts/check/ 下每个 check-*.sh 都是**一个独立的检查入口**，
+    # 与 Makefile 的一个 target 一一对应。分子目录要回答「新检查放哪」，
+    # 而这个问题没有好答案：check-i18n 算代码类还是文档类？
+    # check-commit-msg 算 git 类还是规范类？分错了比不分更难找。
+    #
+    # 辅助脚本已经分出去了（lib/），那才是这个目录里真正需要分的东西。
+    #
+    # **什么时候该重新考虑**：超过 25 个，或者出现了明显自成一族的一批
+    # （比如将来有五六个 check-perf-*）。到那时再分，分法也会自然清楚。
+    "scripts/check": "每个文件是一个独立检查入口，与 Makefile target 一一对应；"
+                     "分子目录会让「新检查放哪」变成没有好答案的问题。超过 25 个时重新考虑",
 }
 
 violations = []

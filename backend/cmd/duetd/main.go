@@ -25,7 +25,10 @@ import (
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
+	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
 	"github.com/HuLuca1998/acp-flows/backend/internal/release"
@@ -133,6 +136,19 @@ func run() error {
 		return fmt.Errorf("build update service: %w", err)
 	}
 
+	// ★ 预热 ID 序号。IDGen 的计数在内存里，进程一重启就归零——
+	// 不回填的话，一个已经有 proj-01 的库重启后会再发一次 proj-01，
+	// 用户重启应用后第一次添加项目就撞主键。
+	// 这个坑在开发机上撞不到（数据库总是空的），只会在用户那儿炸。
+	ids := platform.NewIDGen(clk)
+	maxSeq, err := db.Projects().MaxProjectSeq(context.Background())
+	if err != nil {
+		return fmt.Errorf("prime project id seq: %w", err)
+	}
+	ids.PrimeSeq("proj", maxSeq)
+
+	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
+
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,
 		Version: version,
@@ -141,6 +157,7 @@ func run() error {
 		// 环境检测用内置注册表。**不缓存**：用户装完 codex 回来刷新一下
 		// 就该看到变化，而缓存的表现是「照着提示装好了，界面还是说没装」。
 		Runtimes: runtime.Detector{},
+		Projects: projectSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
@@ -256,4 +273,20 @@ func writeSession(path string, port int, token string) error {
 		return fmt.Errorf("write session file: %w", err)
 	}
 	return nil
+}
+
+// gitProbe 把 gitx 接到 app/port 上。
+//
+// cmd 是唯一做依赖装配的地方，所以这层薄适配器放这里——
+// 让 gitx 直接返回 port 的类型会让基础设施依赖 app 的数据结构。
+type gitProbe struct{}
+
+func (gitProbe) ProbeGit(ctx context.Context, path string) (port.GitInfo, error) {
+	info, err := gitx.Probe(ctx, path)
+	if errors.Is(err, gitx.ErrNotADirectory) {
+		// 基础设施的错误类型不许穿到 app/api——翻成契约里的哨兵，
+		// 让界面能说出「这个文件夹找不到」而不是一句通用错误
+		return port.GitInfo{}, fmt.Errorf("%w: %s", port.ErrPathNotFound, path)
+	}
+	return port.GitInfo{IsRepo: info.IsRepo, DefaultBranch: info.DefaultBranch}, err
 }

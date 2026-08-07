@@ -31,6 +31,9 @@ type Config struct {
 	// Runtimes 检测本机装了哪些 ACP Runtime。为 nil 时该端点返回
 	// runtime_detection_unavailable，其余端点不受影响。
 	Runtimes runtimeDetector
+	// Projects 是本地项目用例。为 nil 时相关端点返回
+	// project_service_unavailable，其余端点不受影响。
+	Projects projectService
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -60,6 +63,11 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// 环境检测：只看，不碰用户的 ~/.claude 与 ~/.codex，也不发起任何
 	// 会产生费用的模型调用。
 	mux.HandleFunc("GET /v1/runtimes", handleListRuntimes(cfg.Runtimes))
+
+	// 项目：添加只登记路径，**往用户的项目目录里写零个字节**。
+	mux.HandleFunc("GET /v1/projects", handleListProjects(cfg.Projects))
+	mux.HandleFunc("POST /v1/projects", handleAddProject(cfg.Projects))
+	mux.HandleFunc("DELETE /v1/projects/{id}", handleRemoveProject(cfg.Projects))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

@@ -2,9 +2,17 @@ package port
 
 import (
 	"context"
+	"errors"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
+
+// ErrPathNotFound 表示用户给的路径不存在、或不是目录。
+//
+// ★ 这是**契约的一部分**：GitProbe 的实现必须让 errors.Is 能判定出它来。
+// 不区分的话，路径打错和探测崩了会显示成同一句话，
+// 而用户能自己解决的只有前者。
+var ErrPathNotFound = errors.New("port: project path not found")
 
 // ProjectRepo 是项目的持久化抽象。
 //

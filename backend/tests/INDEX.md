@@ -142,3 +142,18 @@
 | `TestAdd` | `internal/app/project/service_test.go` | app | git 仓库记下默认分支；**普通目录也能加**并给出 `git init`（拒绝的话用户得先去命令行）；路径不存在报错且不落库；相对路径报错 |
 | `TestAdd_IsIdempotent` | `internal/app/project/service_test.go` | app | 同一目录的不同写法只落一条——用户从 Finder 拖两次很常见，列表里冒出两条一样的会让人以为点错了 |
 | `TestRemove_DoesNotDeleteUserFiles` | `internal/app/project/service_test.go` | app | ★ 移除只取消登记，用户目录原封不动——这是「移除」与「删除」的全部区别 |
+| `TestProjectRepo_SurvivesRestart` | `internal/store/project_repo_test.go` | store | ★ R1：**真的关掉 Store 再用同一个文件重新打开**——「存进去再从同一连接读出来」证明的是缓存不是持久化；git 信息也要一起活下来 |
+| `TestProjectRepo_FindByPath` | `internal/store/project_repo_test.go` | store | 查不到返回 `ErrNotFound` 而不是「零值 + nil error」（后者会让重复添加检查形同虚设） |
+| `TestProjectRepo_PathIsUnique` | `internal/store/project_repo_test.go` | store | ★ path 唯一是最后一道防线——应用层先查后写挡不住并发添加 |
+| `TestProjectRepo_SaveIsUpsert` | `internal/store/project_repo_test.go` | store | 同 ID 再存是更新（用户改显示名），不是插第二条 |
+| `TestProjectRepo_Delete` | `internal/store/project_repo_test.go` | store | 删不存在的报 `ErrNotFound`——静默成功的话界面显示「已移除」而下次打开它还在 |
+| `TestProjectRepo_ListIsStable` | `internal/store/project_repo_test.go` | store | 按添加顺序且两次一致；时间戳相同时靠 id 兜底，否则顺序由 SQLite 扫描顺序决定 |
+| `TestProjectRepo_MaxSeqForPrime` | `internal/store/project_repo_test.go` | store | ★★ 重启后 ID 不能从头发——IDGen 序号在内存里，不回填的话重启后第一次添加就撞主键。这坑在开发机撞不到（库总是空的），只在用户那儿炸 |
+| `TestProjectRepo_MaxSeqIgnoresUnparsableIDs` | `internal/store/project_repo_test.go` | store | 解析不了的 ID 跳过而不是报错——宁可序号多跳几个，也不能让 duetd 起不来 |
+| `TestAddProject_ReturnsCreated` | `internal/api/projects_test.go` | api | 201 而不是 200；名字取目录名 |
+| `TestAddProject_NonGitCarriesRemedy` | `internal/api/projects_test.go` | api | 非 git 目录带上 `git init` 这条能直接敲的命令 |
+| `TestAddProject_DomainErrorBecomesProblem` | `internal/api/projects_test.go` | api | ★ 领域错误翻成机器可读错误码——直接吐 Go 的 error 文本会让英文漏进中文界面 |
+| `TestAddProject_RejectsBadRequest` | `internal/api/projects_test.go` | api | 空 body / 空 path / 非法 JSON 都不当成成功 |
+| `TestListProjects_EmptyIsArrayNotNull` | `internal/api/projects_test.go` | api | ★ 空列表是 `[]` 不是 `null`——「一个项目都没有」正是新用户第一次打开的状态 |
+| `TestRemoveProject_ReturnsNoContent` | `internal/api/projects_test.go` | api | 204 且真的调到用例 |
+| `TestProjects_WithoutServiceDoNotPanic` | `internal/api/projects_test.go` | api | 没配用例时不 panic 也不假装成功 |

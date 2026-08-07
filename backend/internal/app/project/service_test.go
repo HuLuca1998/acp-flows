@@ -3,6 +3,7 @@ package project_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -78,6 +79,10 @@ type gitAdapter struct{}
 
 func (gitAdapter) ProbeGit(ctx context.Context, path string) (port.GitInfo, error) {
 	info, err := gitx.Probe(ctx, path)
+	if errors.Is(err, gitx.ErrNotADirectory) {
+		// 基础设施的错误类型不许穿到 app/api——翻成契约里的哨兵
+		return port.GitInfo{}, fmt.Errorf("%w: %s", port.ErrPathNotFound, path)
+	}
 	return port.GitInfo{IsRepo: info.IsRepo, DefaultBranch: info.DefaultBranch}, err
 }
 
@@ -144,8 +149,11 @@ func TestAdd(t *testing.T) {
 		svc := newService(repo)
 
 		_, err := svc.Add(context.Background(), filepath.Join(t.TempDir(), "nope"))
-		if err == nil {
-			t.Fatal("路径不存在却添加成功了")
+		// ★ 要能判定成「路径不存在」，不能只是「出错了」——
+		// 界面上「这个文件夹找不到」和「检测失败了」是两句话，
+		// 用户能自己解决的只有前者
+		if !errors.Is(err, port.ErrPathNotFound) {
+			t.Fatalf("err = %v, 想要 port.ErrPathNotFound", err)
 		}
 		if len(repo.items) != 0 {
 			t.Errorf("失败了却落了 %d 条记录", len(repo.items))
