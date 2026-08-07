@@ -80,9 +80,18 @@
 | | |
 |---|---|
 | `goal` | 能可靠地拉起、关闭真实 Agent 进程，出错时说得清为什么 |
-| `allowed_changes` | `backend/internal/acp/runtime/process.go` · `backend/internal/platform/proc.go` |
+| `allowed_changes` | `backend/internal/acp/runtime/process.go` |
 | `forbidden_changes` | 不实现 Runtime 发现与版本管理（那是 M1 的 S1.3） |
 | `stop_conditions` | 发现需要按进程组杀孙进程而当前抽象做不到 |
+
+> **2026-08-08：platform/proc.go 没有建，已从 allowed_changes 去掉。**
+> 原计划把「起子进程」这件事拆成通用层（platform）与 ACP 层（runtime），
+> 但实际做下来**没有第二个调用方**：进程组、SIGTERM 升级、stderr 采集、
+> 清嵌套环境变量，每一条都是为 ACP Runtime 的具体形态服务的。
+> 拆出去只会得到一个只有一个使用者的抽象，而它的接口形状完全由那个使用者决定。
+>
+> `stop_conditions` 里那条「按进程组杀孙进程」**确实发生了**——但当前抽象做得到，
+> 所以没有停下来找人。
 
 **验收标准**
 
