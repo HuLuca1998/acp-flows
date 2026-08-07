@@ -54,6 +54,7 @@ type Handler interface {
 // HandlerFunc 让普通函数满足 Handler。
 type HandlerFunc func(ctx context.Context, method string, params json.RawMessage) (any, error)
 
+// Handle 实现 Handler。
 func (f HandlerFunc) Handle(ctx context.Context, m string, p json.RawMessage) (any, error) {
 	return f(ctx, m, p)
 }

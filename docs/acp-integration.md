@@ -6,6 +6,30 @@
 > 与根 [`AGENTS.md`](../AGENTS.md) 的六条铁律冲突时以铁律为准。
 > 术语按 `AGENTS.md` §8；状态词与协议标识符一律英文原值、等宽显示，不翻译。
 
+> **读法**：本文 ~27k token（占上下文 13%），**不要整篇读**。先在下表定位到章节，
+> 再 `Read` 那一段。规则见 [`ai-playbook.md`](ai-playbook.md) §1。
+>
+> | 你要做的事 | 读哪一节 | 定位 |
+> |---|---|---|
+> | 搞清楚这层为什么存在 | §1 | `grep -n '^## 1\.' docs/acp-integration.md` |
+> | 确认某个结论是否核实过 | §2 ★ | `grep -n '^## 2\.' docs/acp-integration.md` |
+> | 新建文件放哪个包 | §3 | `grep -n '^## 3\.' docs/acp-integration.md` |
+> | 改传输层 / ndjson 分帧 | §4 | `grep -n '^## 4\.' docs/acp-integration.md` |
+> | 会话建立、prompt 循环 | §5 | `grep -n '^## 5\.' docs/acp-integration.md` |
+> | **两段式取消** | §6 ★ | `grep -n '两段式取消' docs/acp-integration.md` |
+> | 权限裁决 / `request_permission` | §7 | `grep -n '^## 7\.' docs/acp-integration.md` |
+> | 能力探针 / `configOptions` | §8 | `grep -n '^## 8\.' docs/acp-integration.md` |
+> | 加一个新 Runtime | §9 §10 | `grep -n '^## 9\.\|^## 10\.' docs/acp-integration.md` |
+> | 事件映射到 13 类封闭枚举 | §11 | `grep -n '^## 11\.' docs/acp-integration.md` |
+> | **写 / 改 Fake Runtime** | §12 ★ | `grep -n '^## 12\.' docs/acp-integration.md` |
+> | 写这层的测试 | §13 | `grep -n '^## 13\.' docs/acp-integration.md` |
+> | 错误分类与降级 | §14 | `grep -n '^## 14\.' docs/acp-integration.md` |
+> | 「这个要不要做」 | §15 | `grep -n '^## 15\.' docs/acp-integration.md` |
+> | 卡在没核实的假设上 | §16 ★ | `grep -n '^## 16\.' docs/acp-integration.md` |
+>
+> **实测结论不在本文**，在 [`acp-field-notes.md`](acp-field-notes.md)。
+> 本文写「应该怎样」，那份写「真机上实际怎样」——**冲突时以实测为准**。
+
 ---
 
 ## 0. 阅读约定

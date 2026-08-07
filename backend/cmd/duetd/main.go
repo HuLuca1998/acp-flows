@@ -25,6 +25,7 @@ import (
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
+	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
 	"github.com/HuLuca1998/acp-flows/backend/internal/store"
 )
 
@@ -53,9 +54,12 @@ func run() error {
 	)
 	flag.Parse()
 
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: levelFromEnv(),
-	})))
+	// 日志级别按域可调：DUET_LOG="info,acp=trace,store=debug"
+	// 一次调试通常只关心一个组件，全局调 debug 会淹没在噪音里（docs/logging.md §3）。
+	globalLevel, compLevels, err := logging.ParseLevels(os.Getenv("DUET_LOG"))
+	if err != nil {
+		return fmt.Errorf("DUET_LOG: %w", err)
+	}
 
 	// ── 装配顺序即依赖方向的证明 ─────────────────────────────
 	// platform → store → (app) → api。反向依赖一律拒绝。
@@ -74,6 +78,20 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("open store: %w", err)
 	}
+
+	// 日志双去处：stderr 给人看，SQLite 给 AI 查（docs/logging.md §1）。
+	// 落库必须在 store 之后装配 —— 它要往 logs 表写。
+	sink := db.NewLogSink()
+	slog.SetDefault(slog.New(logging.NewHandler(logging.Options{
+		Stderr:          os.Stderr,
+		Sink:            sink,
+		GlobalLevel:     globalLevel,
+		ComponentLevels: compLevels,
+	})))
+	defer func() {
+		// 先冲刷日志再关数据库 —— 顺序反了会丢掉关闭过程的日志
+		_ = sink.Close()
+	}()
 	defer func() {
 		if cerr := db.Close(); cerr != nil {
 			slog.Error("关闭数据库失败", "err", cerr)
@@ -200,11 +218,4 @@ func writeSession(path string, port int, token string) error {
 		return fmt.Errorf("write session file: %w", err)
 	}
 	return nil
-}
-
-func levelFromEnv() slog.Level {
-	if os.Getenv("DUET_LOG_DEBUG") == "1" {
-		return slog.LevelDebug
-	}
-	return slog.LevelInfo
 }

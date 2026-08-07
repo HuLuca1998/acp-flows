@@ -89,6 +89,10 @@ jobs:
       - name: 文档里的命令与脚本真实存在
         run: bash scripts/check-doc-commands.sh
 
+      # 文档超预算不会报错，只会表现为「AI 好像没按文档做」——所以必须机器拦
+      - name: 文档的上下文预算（L0 常驻 / L1 阶段 / L2 读法块）
+        run: bash scripts/check-doc-budget.sh
+
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
         run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

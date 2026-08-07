@@ -8,19 +8,22 @@ import (
 	"time"
 )
 
-// systemClock 是生产环境的时间源。
-type systemClock struct{}
+// SystemClock 是生产环境的时间源。
+//
+// 导出是因为 cmd/duetd 装配时要持有它；其他层只见 port.Clock 接口。
+type SystemClock struct{}
 
 // NewClock 返回系统时间源。
 //
 // 一律返回 UTC：数据库里存 UTC，事件流里也是 UTC，
 // 时区转换只在前端展示时做一次。
-func NewClock() *systemClock { return &systemClock{} }
+func NewClock() *SystemClock { return &SystemClock{} }
 
-func (systemClock) Now() time.Time { return time.Now().UTC() }
+// Now 返回当前 UTC 时间。
+func (SystemClock) Now() time.Time { return time.Now().UTC() }
 
-// idGen 生成带类型前缀的顺序 ID 与按时间可排序的 ULID。
-type idGen struct {
+// IDGen 生成带类型前缀的顺序 ID 与按时间可排序的 ULID。
+type IDGen struct {
 	mu   sync.Mutex
 	seq  map[string]int
 	clk  interface{ Now() time.Time }
@@ -31,8 +34,8 @@ type idGen struct {
 //
 // 前缀序号由调用方在启动时用数据库里的最大值预热（PrimeSeq），
 // 避免重启后 ID 回退撞主键。
-func NewIDGen(clk interface{ Now() time.Time }) *idGen {
-	return &idGen{
+func NewIDGen(clk interface{ Now() time.Time }) *IDGen {
+	return &IDGen{
 		seq:  map[string]int{},
 		clk:  clk,
 		rand: cryptoRandUint64,
@@ -40,7 +43,7 @@ func NewIDGen(clk interface{ Now() time.Time }) *idGen {
 }
 
 // PrimeSeq 把某个前缀的序号预热到 n，供启动时从数据库回填。
-func (g *idGen) PrimeSeq(prefix string, n int) {
+func (g *IDGen) PrimeSeq(prefix string, n int) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if n > g.seq[prefix] {
@@ -49,7 +52,7 @@ func (g *idGen) PrimeSeq(prefix string, n int) {
 }
 
 // NextID 返回形如 "work-08" 的标识符。
-func (g *idGen) NextID(prefix string) string {
+func (g *IDGen) NextID(prefix string) string {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.seq[prefix]++
@@ -59,7 +62,7 @@ func (g *idGen) NextID(prefix string) string {
 // NextULID 返回按时间可排序的标识符，用于高频写入的事件表。
 //
 // 形状是 evt_<48位毫秒时间戳><随机>，定宽十六进制保证字典序 == 时间序。
-func (g *idGen) NextULID() string {
+func (g *IDGen) NextULID() string {
 	ms := uint64(g.clk.Now().UnixMilli())
 	return fmt.Sprintf("evt_%012x%016x", ms&0xFFFFFFFFFFFF, g.rand())
 }

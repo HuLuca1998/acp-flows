@@ -41,14 +41,25 @@ func NewPaths() (*OSPaths, error) {
 // 开发态默认落在 ~/.duet-dev，与用户真实数据隔离。
 func NewPathsAt(root string) *OSPaths { return &OSPaths{home: root} }
 
+// DataDir 是全局数据目录，生产环境为 ~/.acpflows。
 func (p *OSPaths) DataDir() string { return filepath.Join(p.home, dataDirName) }
-func (p *OSPaths) DBPath() string  { return filepath.Join(p.DataDir(), "duet.db") }
+
+// DBPath 是 SQLite 数据库文件路径。
+func (p *OSPaths) DBPath() string { return filepath.Join(p.DataDir(), "duet.db") }
+
+// RuntimeSession 是 duetd 写端口与 token 的文件（权限 0600）。
 func (p *OSPaths) RuntimeSession() string {
 	return filepath.Join(p.DataDir(), "runtime", "session.json")
 }
-func (p *OSPaths) RuntimesDir() string     { return filepath.Join(p.DataDir(), "runtimes") }
+
+// RuntimesDir 存放多版本并存的 ACP Runtime。
+func (p *OSPaths) RuntimesDir() string { return filepath.Join(p.DataDir(), "runtimes") }
+
+// CredentialsPath 是加密后的 GitHub 令牌存放位置。
 func (p *OSPaths) CredentialsPath() string { return filepath.Join(p.DataDir(), "credentials") }
-func (p *OSPaths) WorktreeRoot() string    { return filepath.Join(p.DataDir(), "worktrees") }
+
+// WorktreeRoot 是各个 Work 的 git worktree 根目录。
+func (p *OSPaths) WorktreeRoot() string { return filepath.Join(p.DataDir(), "worktrees") }
 
 // EnsureDirs 建出全部需要的目录。
 //

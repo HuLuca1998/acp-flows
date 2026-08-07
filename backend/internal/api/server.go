@@ -11,7 +11,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"strings"
@@ -96,8 +96,8 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		// 响应头已经发出去了，只能记录。调用方会看到截断的响应。
-		fmt.Fprintf(w, "\n")
+		// 响应头已经发出去了，改不了状态码。记日志，调用方会看到截断的响应。
+		slog.Error("序列化响应失败", "err", err)
 	}
 }
 

@@ -1,0 +1,138 @@
+version: "2"
+
+# 分层依赖方向由 depguard 强制，不是靠自觉。
+#
+# ★ 加新包时必须同步加规则，否则规则形同虚设 —— 见 backend/AGENTS.md。
+# 规则来源：docs/architecture.md §3、docs/design-principles.md §2.1、
+# docs/database.md §1、docs/testing-strategy.md §2。
+
+run:
+  timeout: 5m
+
+issues:
+  # ★ 默认 true —— 一行只报一个问题。后果是 depguard 的分层违规会被
+  # 同一行上的 revive 提示盖掉，看起来「配了但不生效」。踩过一次。
+  uniq-by-line: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - revive
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+
+  settings:
+    depguard:
+      rules:
+        # ── domain：这一层是纯计算，测试策略的地基 ──────────────
+        # 只准标准库，且不做 IO。一旦它 import 了 gorm 或 store，
+        # 「domain 100% 可单测」这个前提就没了。
+        domain:
+          files:
+            - "**/internal/domain/**"
+          allow:
+            - $gostd
+            - github.com/HuLuca1998/acp-flows/backend/internal/constant
+          deny:
+            - pkg: gorm.io
+              desc: "领域模型禁止挂 gorm 标签或 import gorm —— 实体在 store/entity，中间隔一个 mapper（docs/database.md §1）"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/store
+              desc: "domain 不许 import 基础设施包（docs/architecture.md §3）"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp
+              desc: "domain 不许 import 基础设施包"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/api
+              desc: "依赖方向是 api → app → domain，不能反向"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/app
+              desc: "依赖方向是 app → domain，不能反向"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/platform
+              desc: "domain 不做 IO —— 时间/ID/路径通过 port 接口注入"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/tests
+              desc: "生产代码禁止 import 测试辅助包（docs/testing-strategy.md §2）"
+
+        # ── constant：比 domain 还底层，谁都不 import ────────────
+        constant:
+          files:
+            - "**/internal/constant/**"
+          allow:
+            - $gostd
+
+        # ── util：纯函数，零业务语义 ───────────────────────────
+        util:
+          files:
+            - "**/internal/util/**"
+          allow:
+            - $gostd
+          deny:
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/domain
+              desc: "util 不许有业务语义 —— 带业务的挪回 domain/model（docs/coding-standards.md §1.3）"
+
+        # ── app：定义 port 接口，不碰具体实现 ──────────────────
+        app:
+          files:
+            - "**/internal/app/**"
+          allow:
+            - $gostd
+            - github.com/HuLuca1998/acp-flows/backend/internal/domain
+            - github.com/HuLuca1998/acp-flows/backend/internal/constant
+            - github.com/HuLuca1998/acp-flows/backend/internal/util
+            - github.com/HuLuca1998/acp-flows/backend/internal/app
+          deny:
+            - pkg: gorm.io
+              desc: "app 不认识 ORM —— 想拼 SQL 时说明 port 接口设计错了，回去改接口"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/store
+              desc: "app 只依赖自己定义的 port 接口，不依赖具体实现（docs/design-principles.md §2.1）"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp
+              desc: "同上"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/api
+              desc: "依赖方向是 api → app，不能反向"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/tests
+              desc: "生产代码禁止 import 测试辅助包"
+
+        # ── api：只做协议翻译 ─────────────────────────────────
+        api:
+          files:
+            - "**/internal/api/**"
+          deny:
+            - pkg: gorm.io
+              desc: "api 层不碰 ORM"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/store
+              desc: "api 只调 app，不碰持久化（docs/architecture.md §3）"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp
+              desc: "api 只调 app，不碰 ACP"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/tests
+              desc: "生产代码禁止 import 测试辅助包"
+
+        # ── 基础设施之间不互相依赖 ────────────────────────────
+        infra:
+          files:
+            - "**/internal/store/**"
+            - "**/internal/acp/**"
+            - "**/internal/gitx/**"
+            - "**/internal/ghx/**"
+            - "**/internal/fsstore/**"
+            - "**/internal/eventbus/**"
+            - "**/internal/platform/**"
+          deny:
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/api
+              desc: "基础设施不 import 传输层"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/tests
+              desc: "生产代码禁止 import 测试辅助包（docs/testing-strategy.md §2）"
+
+  exclusions:
+    rules:
+      # 测试文件可以 import testutil —— 那正是它的用途
+      - path: _test\.go
+        linters: [depguard]
+      # cmd/ 是唯一做依赖装配的地方，看得见所有具体类型是正常的
+      - path: ^cmd/
+        linters: [depguard]
+
+formatters:
+  enable:
+    - gofmt

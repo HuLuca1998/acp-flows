@@ -6,6 +6,25 @@
 > 界面原型（真实文案与结构）在 [`design/ACP Duet 1a.dc.html`](../design/ACP%20Duet%201a.dc.html)。
 > `design/` 是**只读**的，不要改；发现缺口按 §14 走登记流程。
 
+> **读法**：本文 ~17k token，**不要整篇读**。写一个组件通常只需要
+> 「§7 的那一行 + §1 令牌 + §13 lint 规则」三处。规则见
+> [`ai-playbook.md`](ai-playbook.md) §1。
+>
+> | 你要做的事 | 读哪一节 | 定位 |
+> |---|---|---|
+> | 用颜色 / 间距 / 字号 → 该写哪个令牌 | §1 §3 §4 §5 | `grep -n '^## 1\.\|^## 3\.' docs/frontend-guide.md` |
+> | 一个面板该用第几层底色 | §2 | `grep -n '^## 2\.' docs/frontend-guide.md` |
+> | 加图标 | §6 | `grep -n '^## 6\.' docs/frontend-guide.md` |
+> | **实现某个具体组件** | §7 查那一行即可 | `grep -n '组件名' docs/frontend-guide.md` |
+> | 页面骨架 / 三栏布局 | §8 | `grep -n '^## 8\.' docs/frontend-guide.md` |
+> | **写事件渲染器** | §9 ★ | `grep -n '^## 9\.' docs/frontend-guide.md` |
+> | hover / focus / disabled 怎么写 | §10 | `grep -n '^## 10\.' docs/frontend-guide.md` |
+> | 文案、状态词展示 | §11 | `grep -n '^## 11\.' docs/frontend-guide.md` |
+> | Tauri / Web 双形态差异 | §12 | `grep -n '^## 12\.' docs/frontend-guide.md` |
+> | **lint 报错了，想知道为什么** | §13 | `grep -n '^## 13\.' docs/frontend-guide.md` |
+> | 设计稿没有这个组件 | §14 §16 | `grep -n '^## 14\.\|^## 16\.' docs/frontend-guide.md` |
+> | 想确认某个写法是不是反例 | §15 | `grep -n '^## 15\.' docs/frontend-guide.md` |
+
 ---
 
 ## 0. 本文的位置与边界
