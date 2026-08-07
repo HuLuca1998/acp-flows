@@ -162,9 +162,16 @@
 | | |
 |---|---|
 | `goal` | AI 每做一步，界面立刻显示，不是等它全做完才刷出来 |
-| `allowed_changes` | `backend/internal/api/sse/**` · `backend/internal/eventbus/**` |
+| `allowed_changes` | `backend/internal/eventbus/**` · `backend/internal/store/**` 的事件仓储与迁移 · `backend/internal/api/**` 的 SSE 端点 |
 | `forbidden_changes` | 为性能异步落库（会导致「前端收到了，重启后库里没有」） |
 | `stop_conditions` | — |
+
+> **2026-08-08 修正 `allowed_changes`。** 原来只写了 sse 与 eventbus，
+> 但 R1 要求「序号**跨重启**连续」、R5 要求「**先落库**再扇出」——
+> 两条都必须落库，而 `events` 表还不存在。照原范围开工，第一步建迁移就越界了。
+>
+> 这是本仓库第二次出现同类疏漏（`U2.1.1` 也漏了 store 与契约）。
+> **写 allowed_changes 时对着验收标准逐条问一句「实现它要碰哪些目录」。**
 
 **验收标准**
 

@@ -171,3 +171,17 @@
 | `TestPrompt_OnlyEndTurnIsSuccess` | `internal/acp/session/session_test.go` | acp | ★ R2：五种结束原因只有 `end_turn` 算正常；`max_tokens` 当成功的话，用户拿到截断的改动而界面显示「完成」 |
 | `TestPrompt_EveryUpdateKindIsHandled` | `internal/acp/session/session_test.go` | acp | ★ R5：穷举 13 类事件都有去处；新增一类而没接住时会红，否则它静默消失、界面像是 AI 少说了点什么 |
 | `TestPrompt_CarriesTextThrough` | `internal/acp/session/session_test.go` | acp | 文本原样带出，且思考摘要与正式消息**不混成一路**（界面上是两种显示） |
+| `TestPublish_DoesNotFanOutWhenStoreFails` | `internal/eventbus/bus_test.go` | eventbus | ★★ R5：**落库失败就不扇出**——反过来会「前端收到了，重启后库里没有」，这种不一致比丢事件更糟；负例（颠倒顺序）立刻红 |
+| `TestPublish_SeqIsMonotonic` | `internal/eventbus/bus_test.go` | eventbus | R1：序号单调递增、无洞 |
+| `TestPublish_SeqContinuesAcrossRestart` | `internal/eventbus/bus_test.go` | eventbus | ★ R1 的另一半：序号**跨重启接续**——从 1 重来的话前端按 seq 去重会把新事件当旧的丢掉 |
+| `TestSubscribe_ClosingReleasesSubscriber` | `internal/eventbus/bus_test.go` | eventbus | R3：订阅者被回收，**防泄漏** |
+| `TestSubscribe_ContextCancelReleasesSubscriber` | `internal/eventbus/bus_test.go` | eventbus | ★ ctx 取消也回收——SSE 客户端断开走的正是这条路径，不会有人来调 Close |
+| `TestPublish_SlowSubscriberDoesNotBlockOthers` | `internal/eventbus/bus_test.go` | eventbus | ★ R4：一个卡住的页面不该让 AI 的进度整个停下来 |
+| `TestPublish_FansOutToAllSubscribers` | `internal/eventbus/bus_test.go` | eventbus | 扇出给所有订阅者，不是只给第一个 |
+| `TestSubscription_CloseIsIdempotent` | `internal/eventbus/bus_test.go` | eventbus | 重复 Close 不 panic（SSE 清理路径会走两遍） |
+| `TestEventRepo_AssignsSeq` | `internal/store/event_repo_test.go` | store | R1：序号由**自增主键**发放并写回，不由内存计数器发 |
+| `TestEventRepo_SeqSurvivesRestart` | `internal/store/event_repo_test.go` | store | ★★ R1 的关键：真的关掉 Store 再打开同一个文件，序号接着往下走——从头发的话前端按 seq 去重会把新事件当旧的丢掉，表现是「重启后 AI 说的话不显示了」 |
+| `TestEventRepo_MaxSeq` | `internal/store/event_repo_test.go` | store | 空库返回 0（`MAX()` 在空表上是 NULL 不是 0） |
+| `TestEventRepo_EventsAfter` | `internal/store/event_repo_test.go` | store | ★ R2：断线重连只补没收到的——从头补会让整条时间线重放一遍，补少了则中间有洞而用户看不出来 |
+| `TestEventRepo_EventsAfterRespectsLimit` | `internal/store/event_repo_test.go` | store | 补发有上限：断了一整天的客户端重连时不该被灌几万条 |
+| `TestEventRepo_PayloadRoundTrips` | `internal/store/event_repo_test.go` | store | 载荷原样存取（含中文与嵌套）——它是界面上真正显示的内容 |
