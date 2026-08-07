@@ -24,7 +24,8 @@
 |---|---|---|
 | 1 | 根 [`AGENTS.md`](../AGENTS.md) | 5 分钟，**必读** |
 | 2 | [`spec/architecture.md`](spec/architecture.md) §1–3 | 10 分钟，看清进程模型 |
-| 3 | [`plan/roadmap.md`](plan/roadmap.md) | 3 分钟，看现在做到哪 |
+| 3 | [`plan/acceptance.md`](plan/acceptance.md) | ★ 3 分钟，看**用户能验收什么**——技术单元都要能对上其中一条 |
+| 4 | [`plan/roadmap.md`](plan/roadmap.md) | 3 分钟，看现在做到哪 |
 | 4 | [`adr/0001-tech-stack.md`](adr/0001-tech-stack.md) | 3 分钟，知道为什么是 Go+Tauri |
 
 **不要一上来通读 `spec/`** —— 那三份加起来 60k token。
@@ -100,7 +101,8 @@
 
 | 文档 | 内容 |
 |---|---|
-| [`roadmap.md`](plan/roadmap.md) | M0–M4 总览与当前进度 |
+| [`acceptance.md`](plan/acceptance.md) | ★ **验收清单（用户视角）** —— V1–V15，每条是使用者能自己操作、自己判断成败的一件事。**不含任何技术名词** |
+| [`roadmap.md`](plan/roadmap.md) | M0–M4 总览与当前进度（技术施工图） |
 | [`open-questions.md`](plan/open-questions.md) | **仍需人拍板的问题** —— 卡住时先查这里 |
 | [`milestones/README.md`](plan/milestones/README.md) | 里程碑体系与编号规则 |
 
