@@ -54,6 +54,7 @@ type Handler interface {
 // HandlerFunc 让普通函数满足 Handler。
 type HandlerFunc func(ctx context.Context, method string, params json.RawMessage) (any, error)
 
+// Handle 实现 Handler。
 func (f HandlerFunc) Handle(ctx context.Context, m string, p json.RawMessage) (any, error) {
 	return f(ctx, m, p)
 }
@@ -180,7 +181,7 @@ func (c *Conn) CallInto(ctx context.Context, method string, params any, out any)
 // Notify 发一个通知，不等响应。
 //
 // ACP 的 session/cancel 就是通知——取消完成的同步点是 session/prompt 的响应，
-// 不是这个调用返回。见 docs/acp-integration.md。
+// 不是这个调用返回。见 docs/spec/acp-integration.md。
 func (c *Conn) Notify(_ context.Context, method string, params any) error {
 	return c.send(message{JSONRPC: "2.0", Method: method, Params: mustRaw(params)})
 }

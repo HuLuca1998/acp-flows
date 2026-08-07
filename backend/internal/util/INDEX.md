@@ -4,7 +4,7 @@
 > 下一轮的 AI 不知道上一轮写过什么，索引就是用来解决这件事的。
 >
 > 新增 / 删除 / 改签名后必须同步本表。`make check-util-index` 会逐项比对，不一致即红。
-> 准入规则见 [`../../../docs/coding-standards.md`](../../../docs/coding-standards.md) §1.3–§1.4。
+> 准入规则见 [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.3–§1.4。
 
 ## 准入门槛（四条全满足才能进来）
 

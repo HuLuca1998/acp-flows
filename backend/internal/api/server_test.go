@@ -2,7 +2,7 @@ package api_test
 
 // M0 U0.10.1 · duetd serve + 本地回环鉴权
 //
-// 验收标准见 docs/milestones/M0-acp-foundation.md § S0.10 U0.10.1。
+// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.10 U0.10.1。
 // 这些测试先于实现写就。
 
 import (

@@ -1,7 +1,7 @@
 // Command acpprobe 是 ACP Runtime 的**只读**真机探针。
 //
 // M0 U0.3.1。它存在的理由：Fake Runtime 要模仿的是**真实行为**，
-// 凭 docs/acp-field-notes.md 里标着「待验证」的假设去写 Fake，
+// 凭 docs/notes/acp-field-notes.md 里标着「待验证」的假设去写 Fake，
 // 等于把猜测固化成夹具，所有依赖它的上层测试都会是假的。
 //
 // 三条硬约束：
@@ -39,7 +39,7 @@ type runtimeSpec struct {
 	//
 	// ★ 对本项目必踩：Claude Code 会给子进程注入 CLAUDECODE 等标记，
 	// 继承下去传给 claude-agent-acp，它会误判自己跑在另一个 agent 内部而**拒绝服务**。
-	// 见 docs/acp-field-notes.md §5 坑 1。
+	// 见 docs/notes/acp-field-notes.md §5 坑 1。
 	envRemove []string
 	npmPkg    string
 }
@@ -232,7 +232,7 @@ func probe(ctx context.Context, spec runtimeSpec) (*report, error) {
 	return rep, nil
 }
 
-// analyze 对着 docs/acp-field-notes.md 的待验证项逐条核对。
+// analyze 对着 docs/notes/acp-field-notes.md 的待验证项逐条核对。
 func analyze(runtime string, sess json.RawMessage) []string {
 	var s struct {
 		Modes struct {

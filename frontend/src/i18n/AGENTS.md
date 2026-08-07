@@ -1,11 +1,11 @@
 # AGENTS.md · frontend/src/i18n
 
 > **就近优先**。前端总规则见 [`../../AGENTS.md`](../../AGENTS.md)，
-> 实现规格见 [`../../../docs/frontend-guide.md`](../../../docs/frontend-guide.md)。
+> 实现规格见 [`../../../docs/frontend-guide.md`](../../../docs/spec/frontend-guide.md)。
 
 ## 负责什么
 
-中英双语词条与初始化。规格见 [`../../../docs/i18n.md`](../../../docs/i18n.md)。
+中英双语词条与初始化。规格见 [`../../../docs/i18n.md`](../../../docs/rules/i18n.md)。
 
 ## 不负责什么
 

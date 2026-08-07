@@ -7,6 +7,8 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
+LOG      ?= info
+
 BACKEND  := backend
 FRONTEND := frontend
 SHELLDIR := shell
@@ -22,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-index check-icons lint test ## 提交前必跑：文档 + 索引 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -33,6 +35,14 @@ check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
 check-doc-commands: ## 文档里提到的 make 目标与脚本是否真实存在
 	@bash scripts/check-doc-commands.sh
 
+.PHONY: check-doc-links
+check-doc-links: ## 文档里的相对链接指向的文件真实存在
+	@bash scripts/check-doc-links.sh
+
+.PHONY: check-doc-budget
+check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大文档读法块
+	@bash scripts/check-doc-budget.sh
+
 .PHONY: docs-scaffold
 docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store
 	@bash scripts/scaffold-agent-docs.sh "$(DIR)"
@@ -42,7 +52,7 @@ docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/
 check-index: check-util-index check-test-index check-i18n ## 校验工具库索引、测试索引、i18n 词条
 
 .PHONY: check-i18n
-check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/i18n.md）
+check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/rules/i18n.md）
 	@bash scripts/check-i18n.sh
 
 .PHONY: check-util-index
@@ -142,17 +152,48 @@ check-icons: ## 图标产物是否与源 SVG 同步
 probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/codex.json  codex
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/claude.json claude
-	@echo "报告已更新。对照 docs/acp-field-notes.md §7.1 核对差异。"
+	@echo "报告已更新。对照 docs/notes/acp-field-notes.md §7.1 核对差异。"
+
+# ══ 本地服务（规范见 run-services skill）════════════════════════
+# 端口写死：duetd 7777 · vite 5173。幂等启动、干净关闭。
+# ★ 不要裸跑 go run / pnpm dev —— 那会绕过 PID 记账，导致进程越积越多。
+.PHONY: dev
+dev: ## ★ 起前后端（幂等）。调级别： make dev LOG=acp=trace
+	@DUET_LOG="$(LOG)" bash scripts/services.sh start all
+
+.PHONY: dev-stop
+dev-stop: ## ★ 停掉前后端。**用完必须停**
+	@bash scripts/services.sh stop all
+
+.PHONY: dev-status
+dev-status: ## 看谁在跑
+	@bash scripts/services.sh status
+
+.PHONY: dev-logs
+dev-logs: ## 跟踪后端日志
+	@bash scripts/services.sh logs backend
+
+.PHONY: dev-restart
+dev-restart: ## 重启（后端改代码后必须 —— go run 不会自动重载）
+	@DUET_LOG="$(LOG)" bash scripts/services.sh restart all
+
+.PHONY: logs-db
+logs-db: ## 查落库的日志（最近 30 条）。完整查询见 debug skill
+	@sqlite3 -header -box "$${DUET_DATA_DIR:-$$HOME/.duet-dev}/.acpflows/duet.db" \
+	  "SELECT seq, ts, CASE level WHEN -8 THEN 'TRACE' WHEN -4 THEN 'DEBUG' WHEN 0 THEN 'INFO' WHEN 4 THEN 'WARN' ELSE 'ERROR' END AS lv, component, msg FROM logs ORDER BY seq DESC LIMIT 30;"
+
+.PHONY: db-reset
+db-reset: ## 删掉开发库并重建（开发期最省事的"回滚"；不碰 ~/.acpflows）
+	@bash scripts/db-reset.sh
 
 .PHONY: dev-web
-dev-web: ## ★ 默认开发形态：duetd + vite，浏览器打开 http://localhost:5173
-	@bash scripts/dev-web.sh
+dev-web: dev ## dev 的别名（历史文档里用过这个名字）
 
 .PHONY: dev-app
 dev-app: ## Tauri 壳联调（需要 Rust 工具链）
 	cd $(SHELLDIR) && pnpm tauri dev
 
-# ══ worktree（规范见 docs/git-workflow.md §4）════════════════════
+# ══ worktree（规范见 docs/rules/git-workflow.md §4）════════════════════
 .PHONY: wt
 wt: ## 建并行工作区： make wt NAME=feat/acp-session-cancel
 	@bash scripts/worktree.sh add "$(NAME)"

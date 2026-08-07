@@ -4,14 +4,14 @@
 //
 // 目标形态是 handler 接口由 api/openapi.yaml 生成（铁律 2），当前是 M0 的
 // 最小骨架，只有 /v1/system/version，供 make dev-web 冒烟。
-// 生成器接入见 docs/milestones/M0-acp-foundation.md U0.10.1。
+// 生成器接入见 docs/plan/milestones/M0-acp-foundation.md U0.10.1。
 package api
 
 import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"strings"
@@ -64,7 +64,7 @@ type versionInfo struct {
 // problem 是 RFC 9457 的错误对象。
 //
 // Type 是**机器可读的错误码**（snake_case），前端据此查 i18n 词条；
-// Title 只给开发者看，界面不展示。见 docs/i18n.md §3。
+// Title 只给开发者看，界面不展示。见 docs/rules/i18n.md §3。
 type problem struct {
 	Type   string         `json:"type"`
 	Title  string         `json:"title"`
@@ -96,8 +96,8 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		// 响应头已经发出去了，只能记录。调用方会看到截断的响应。
-		fmt.Fprintf(w, "\n")
+		// 响应头已经发出去了，改不了状态码。记日志，调用方会看到截断的响应。
+		slog.Error("序列化响应失败", "err", err)
 	}
 }
 

@@ -1,6 +1,6 @@
 # AGENTS.md · backend/internal/store
 
-> **就近优先**。设计规范在 [`../../../docs/database.md`](../../../docs/database.md)，
+> **就近优先**。设计规范在 [`../../../docs/database.md`](../../../docs/rules/database.md)，
 > 选型理由在 [`../../../docs/adr/0005-persistence.md`](../../../docs/adr/0005-persistence.md)，
 > 调试与改数据用 `db-operate` skill。**动手前先读 database.md，它比本文详细。**
 

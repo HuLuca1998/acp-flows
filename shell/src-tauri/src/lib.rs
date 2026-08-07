@@ -6,7 +6,7 @@
 //! ★ 最重要的约束：**不得通过 Rust IPC 绕过 HTTP 调用后端**。
 //! 前端访问后端的方式必须和浏览器完全一样（fetch + EventSource 打 127.0.0.1）。
 //! 破坏这条，Web 版当天就废——而 Web 版是 AI 自测的主要通道。
-//! 见 docs/architecture.md §1 与 shell/AGENTS.md。
+//! 见 docs/spec/architecture.md §1 与 shell/AGENTS.md。
 
 /// 启动应用。
 ///

@@ -1,7 +1,7 @@
 # 测试索引 · e2e
 
 > Playwright 端到端。**每个 spec 文件一行。**
-> 规则见 [`../docs/testing-strategy.md`](../docs/testing-strategy.md) §8。
+> 规则见 [`../docs/testing-strategy.md`](../docs/rules/testing-strategy.md) §8。
 
 ## E2E 只测黄金路径
 

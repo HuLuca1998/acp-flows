@@ -1,7 +1,7 @@
 # AGENTS.md · backend/internal/acp
 
 > **就近优先**。这是 M0 的核心，也是整个项目的地基。
-> 规格在 [`../../../docs/acp-integration.md`](../../../docs/acp-integration.md)，改这里之前必须读完。
+> 规格在 [`../../../docs/acp-integration.md`](../../../docs/spec/acp-integration.md)，改这里之前必须读完。
 
 ## 负责什么
 
@@ -34,7 +34,7 @@ acp/
 接口按**能力**命名而不是按协议方法命名（`RestrictPermissions` 而不是 `SetMode`）——
 ACP 官方已给 `session/set_mode` 挂了废弃告示，接口名照抄协议名的话协议一变全仓库跟着改。
 
-完整规则见 [`../../../docs/design-principles.md`](../../../docs/design-principles.md) §4.4。
+完整规则见 [`../../../docs/design-principles.md`](../../../docs/rules/design-principles.md) §4.4。
 
 ## Fake Runtime 必须第一个做
 
@@ -58,14 +58,14 @@ cd backend && go test -tags=integration ./tests/integration/... -run ACP
 
 ## 改这里之前必读
 
-- [`../../../docs/acp-integration.md`](../../../docs/acp-integration.md) —— 规格，含 §2.2 的 13 条设计稿冲突与 §16 的 10 条待验证假设
-- [`../../../docs/open-questions.md`](../../../docs/open-questions.md) Q4 系列 —— **设计稿里有已核实的事实性错误，别照抄**
-- [`../../../docs/design-principles.md`](../../../docs/design-principles.md) §4
+- [`../../../docs/acp-integration.md`](../../../docs/spec/acp-integration.md) —— 规格，含 §2.2 的 13 条设计稿冲突与 §16 的 10 条待验证假设
+- [`../../../docs/open-questions.md`](../../../docs/plan/open-questions.md) Q4 系列 —— **设计稿里有已核实的事实性错误，别照抄**
+- [`../../../docs/design-principles.md`](../../../docs/rules/design-principles.md) §4
 
 ## 本域特有的坑
 
 > 前一半对着官方规范与 adapter 源码核实；后一半（★）来自
-> [`../../../docs/acp-field-notes.md`](../../../docs/acp-field-notes.md) 的**本机实测**，
+> [`../../../docs/acp-field-notes.md`](../../../docs/notes/acp-field-notes.md) 的**本机实测**，
 > 每一条前一个项目都真实踩过。
 
 ### ★ 实测踩过的（优先看这些）

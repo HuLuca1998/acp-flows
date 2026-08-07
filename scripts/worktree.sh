@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 并行工作区管理。规范见 docs/git-workflow.md §4。
+# 并行工作区管理。规范见 docs/rules/git-workflow.md §4。
 #
 #   scripts/worktree.sh add feat/acp-session-cancel
 #   scripts/worktree.sh clean
@@ -31,7 +31,7 @@ cmd_add() {
   if [[ ! $branch =~ ^(feat|fix|perf|refactor|test|docs|build|ci|chore)/[a-z0-9-]+$ ]]; then
     echo "✗ 分支名不合规: $branch" >&2
     echo "  格式: <type>/<scope>-<slug>，例如 feat/acp-session-cancel" >&2
-    echo "  见 docs/git-workflow.md §1" >&2
+    echo "  见 docs/rules/git-workflow.md §1" >&2
     exit 1
   fi
 

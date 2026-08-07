@@ -31,8 +31,8 @@
 | 场景 | skill | 为什么 |
 |---|---|---|
 | 写任何 Go 测试 | `go-unit-testing` | 强制契约优先、真实实例真实数据，挡住假测试。**写 `*_test.go` 前必须调用。** |
-| 需要 Codex 做独立审查 / 干活 | `codex-collab` | 本项目的双 AI 协作靠它落地，见 [`docs/ai-workflow.md`](docs/ai-workflow.md) |
-| 提交 / 开 PR / 合并 | `gh-commit` `gh-pr` `gh-pass` | 分支与提交规范见 [`docs/git-workflow.md`](docs/git-workflow.md) |
+| 需要 Codex 做独立审查 / 干活 | `codex-collab` | 本项目的双 AI 协作靠它落地，见 [`docs/ai-workflow.md`](docs/rules/ai-workflow.md) |
+| 提交 / 开 PR / 合并 | `gh-commit` `gh-pr` `gh-pass` | 分支与提交规范见 [`docs/git-workflow.md`](docs/rules/git-workflow.md) |
 | 需求不明确、方案有取舍 | `brainstorming` | 别猜着实现，先把问题想清楚 |
 
 ### 子代理
@@ -42,7 +42,7 @@
 ### 与 Codex 的分工
 
 本仓库由 Claude 与 Codex 共同维护。默认分工、交接格式、冲突裁决规则写在
-[`docs/ai-workflow.md`](docs/ai-workflow.md)。**开始跨端协作前必读。**
+[`docs/ai-workflow.md`](docs/rules/ai-workflow.md)。**开始跨端协作前必读。**
 
 一句话版本：**Claude 定契约与做审查，Codex 在冻结契约内实现。** 审查不得由实现方自己做。
 

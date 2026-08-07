@@ -1,6 +1,6 @@
 # AGENTS.md · backend/internal/constant
 
-> **就近优先**。规则见 [`../../../docs/coding-standards.md`](../../../docs/coding-standards.md) §1.2。
+> **就近优先**。规则见 [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.2。
 
 ## 负责什么
 

@@ -5,7 +5,7 @@
 //   - 实体在这里，纯数据、无方法（除 TableName）
 //   - 映射在 internal/store/mapper
 //
-// 给领域模型挂 gorm 标签是本项目最容易犯的错，理由见 docs/database.md §1。
+// 给领域模型挂 gorm 标签是本项目最容易犯的错，理由见 docs/rules/database.md §1。
 package entity
 
 import "time"

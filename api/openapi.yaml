@@ -15,7 +15,7 @@ info:
     duetd 对外暴露的全部接口。Tauri 壳与浏览器走的是同一套 —— 壳不得通过 IPC 绕过 HTTP。
 
     **错误文案**：`Problem.type` 是机器可读错误码，前端据此查 i18n 词条；
-    `detail` 只给开发者看，界面不展示。后端绝不返回用户可见的中文文案（见 docs/i18n.md §3）。
+    `detail` 只给开发者看，界面不展示。后端绝不返回用户可见的中文文案（见 docs/rules/i18n.md §3）。
 
 servers:
   - url: http://127.0.0.1:{port}/v1
@@ -179,7 +179,7 @@ components:
         status: { type: integer }
         detail:
           type: string
-          description: 英文调试信息。**界面不直接展示**，见 docs/i18n.md §3。
+          description: 英文调试信息。**界面不直接展示**，见 docs/rules/i18n.md §3。
         params:
           type: object
           additionalProperties: true
@@ -275,7 +275,7 @@ components:
       description: |
         ★ 上层靠能力查询做降级判断，**绝不靠 Runtime 名字**。
         `if runtime == "codex"` 出现在 adapter 之外即视为设计失败，
-        见 docs/design-principles.md §4.4。
+        见 docs/rules/design-principles.md §4.4。
       properties:
         passed: { type: integer }
         total: { type: integer }
@@ -295,7 +295,7 @@ components:
       required: [id, seq, source, type, ts]
       description: |
         统一事件信封。`type` 是**封闭枚举，共 13 类**，与 design/Duet Spec.dc.html
-        第 07 节一一对应。新增一类要同时改四处：本文件 + docs/architecture.md §4
+        第 07 节一一对应。新增一类要同时改四处：本文件 + docs/spec/architecture.md §4
         + Duet Spec + 前端渲染器注册表。四处缺一不可。
 
         `seq` 单调递增且持久化 —— 「取消后最后事件游标可读」是产品硬需求。

@@ -1,6 +1,6 @@
 // Package store 是 SQLite 持久化实现。
 //
-// 设计规范见 docs/database.md，选型理由见 docs/adr/0005-persistence.md。
+// 设计规范见 docs/rules/database.md，选型理由见 docs/adr/0005-persistence.md。
 // 调试与改数据用 db-operate skill。
 package store
 

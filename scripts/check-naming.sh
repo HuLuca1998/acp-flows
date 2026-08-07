@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 命名与文件组织规范检查。规则见 docs/coding-standards.md。
+# 命名与文件组织规范检查。规则见 docs/rules/coding-standards.md。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

@@ -78,3 +78,56 @@ if [[ $fail -eq 1 ]]; then
 fi
 
 echo "✓ 所有关键目录都有填实的 AGENTS.md + CLAUDE.md"
+
+# ── docs/ 的落位规则（docs/rules/doc-system.md §0）────────────
+#
+# 松散的文档目录不是一次造成的，是每次「我这个比较特殊，单独开一份」
+# 累积出来的。所以两条机器规则：根目录不接受新文件、新文档必须登记进索引。
+
+# 根目录白名单：路由表 / 术语速查 / 索引 / 目录自身的规则文档
+readonly DOCS_ROOT_ALLOWED='README.md ai-playbook.md glossary.md AGENTS.md CLAUDE.md'
+
+stray=$(
+  { find docs -maxdepth 1 -name '*.md' 2>/dev/null || true; } | while read -r f; do
+    base=$(basename "$f")
+    if [[ " $DOCS_ROOT_ALLOWED " != *" $base "* ]]; then
+      echo "    $f"
+    fi
+  done
+)
+if [[ -n $stray ]]; then
+  echo "✗ docs/ 根目录不接受新文件："
+  echo "$stray"
+  echo
+  echo "  新文档必须落进 spec/ rules/ notes/ adr/ plan/ 之一。"
+  echo "  但**默认动作是往已有文档加一节，不是新建文件** ——"
+  echo "  新建之前先答：这件事为什么不能作为某份已有文档的一节？"
+  echo "  规则见 docs/rules/doc-system.md §0"
+  exit 1
+fi
+
+# 每份文档都要在 docs/README.md 里登记 —— 没登记的文档等于不存在
+unindexed=$(
+  { find docs/spec docs/rules docs/notes docs/adr docs/plan -name '*.md' 2>/dev/null || true; } \
+  | while read -r f; do
+      base=$(basename "$f")
+      if [[ $base == AGENTS.md || $base == CLAUDE.md || $base == README.md ]]; then
+        continue
+      fi
+      # README 里以相对 docs/ 的路径引用，例如 (spec/architecture.md)
+      rel="${f#docs/}"
+      if ! grep -q "($rel)" docs/README.md; then
+        echo "    $f"
+      fi
+    done
+)
+if [[ -n $unindexed ]]; then
+  echo "✗ 下列文档没有登记进 docs/README.md 的索引："
+  echo "$unindexed"
+  echo
+  echo "  没登记的文档等于不存在——没人会 ls 一个目录去发现它。"
+  echo "  在 docs/README.md 的「全部文档」里加一行，写明**什么时候该看它**。"
+  exit 1
+fi
+
+echo "✓ docs/ 落位合规，全部文档都在 README 索引里"

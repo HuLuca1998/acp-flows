@@ -5,7 +5,7 @@ description: 连接、查询、调试、修改 Duet 的 SQLite 数据库时使�
 
 # 数据库操作
 
-> 设计规范在 [`docs/database.md`](../../docs/database.md)（表怎么建、模型怎么写）。
+> 设计规范在 [`docs/database.md`](../../docs/rules/database.md)（表怎么建、模型怎么写）。
 > **本文只管「怎么连、怎么查、怎么调、怎么改」。**
 
 ## 三条红线
@@ -21,12 +21,15 @@ description: 连接、查询、调试、修改 Duet 的 SQLite 数据库时使�
 | 环境 | 路径 |
 |---|---|
 | 用户真实数据 | `~/.acpflows/duet.db` |
-| `make dev-web` 开发态 | `~/.duet-dev/duet.db`（由 `DUET_DATA_DIR` 指定，**不碰真实数据**） |
+| `make dev` 开发态 | `~/.duet-dev/.acpflows/duet.db`（**不碰真实数据**） |
 | 测试 | `t.TempDir()` 下的临时文件，测试结束自动清理 |
 
+> ★ `DUET_DATA_DIR` 是**家目录替身**，不是数据目录本身——`platform.NewPathsAt(root)`
+> 之后仍然会拼上 `.acpflows/`。所以开发库多一层，别写成 `~/.duet-dev/duet.db`。
+
 ```bash
-sqlite3 ~/.duet-dev/duet.db          # 开发库
-sqlite3 -readonly ~/.acpflows/duet.db  # ★ 看真实库一律加 -readonly
+sqlite3 ~/.duet-dev/.acpflows/duet.db    # 开发库
+sqlite3 -readonly ~/.acpflows/duet.db    # ★ 看真实库一律加 -readonly
 ```
 
 **看真实库一律 `-readonly`。** 忘了加而手滑执行了 `UPDATE`，用户的工作记录就没了。

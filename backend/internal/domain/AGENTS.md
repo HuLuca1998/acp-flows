@@ -12,7 +12,7 @@ domain/
 └── policy/       跨聚合的业务策略：决策等级判定、DAG 无环校验、注入选择
 ```
 
-规格在 [`../../../docs/domain-model.md`](../../../docs/domain-model.md)：
+规格在 [`../../../docs/domain-model.md`](../../../docs/spec/domain-model.md)：
 115 条不变量，**每一条都要能变成一句可执行断言**。改这里之前必须读完对应章节。
 
 ## 不负责什么
@@ -71,10 +71,10 @@ make -C ../../.. cover
 
 ## 改这里之前必读
 
-- [`../../../docs/domain-model.md`](../../../docs/domain-model.md) —— 规格，含 115 条不变量与 §18 的开放项
-- [`../../../docs/open-questions.md`](../../../docs/open-questions.md) —— **撞上未决问题就停，不要猜**
-- [`../../../docs/design-principles.md`](../../../docs/design-principles.md)
-- [`../../../docs/coding-standards.md`](../../../docs/coding-standards.md) §1.1
+- [`../../../docs/domain-model.md`](../../../docs/spec/domain-model.md) —— 规格，含 115 条不变量与 §18 的开放项
+- [`../../../docs/open-questions.md`](../../../docs/plan/open-questions.md) —— **撞上未决问题就停，不要猜**
+- [`../../../docs/design-principles.md`](../../../docs/rules/design-principles.md)
+- [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.1
 
 ## 本域特有的坑
 

@@ -3,7 +3,7 @@ package jsonrpc_test
 // M0 U0.2.1 · ndjson 编解码与双向路由
 //
 // 全部对着 io.Pipe 做，**不起子进程** —— 传输层不该知道进程的存在。
-// 验收标准见 docs/milestones/M0-acp-foundation.md § S0.2 U0.2.1。
+// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.2 U0.2.1。
 
 import (
 	"bufio"

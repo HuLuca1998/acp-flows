@@ -1,7 +1,7 @@
 package model_test
 
 // U0.9.1 · Work 状态机
-// 验收标准见 docs/milestones/M0-acp-foundation.md § S0.9 U0.9.1
+// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.9 U0.9.1
 //
 // 这些测试先于实现写就，先跑一次确认是红的（铁律 1）。
 

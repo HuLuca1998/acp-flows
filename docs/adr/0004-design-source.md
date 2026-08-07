@@ -35,7 +35,7 @@ Duet 的界面设计做在 Claude Design 项目里（Design Canvas 格式的 `.d
 
 | 用途 | 读哪个 |
 |---|---|
-| 日常开发 | [`../frontend-guide.md`](../frontend-guide.md) —— 设计规范的工程化转译 |
+| 日常开发 | [`../frontend-guide.md`](../spec/frontend-guide.md) —— 设计规范的工程化转译 |
 | 核对原始样式写法 | `design/*.dc.html`，用 `grep` 定位到行 |
 | 令牌真值 | `design/_ds/nocturne/styles.css` |
 | 合规 lint 规则源 | `design/_ds/nocturne/_adherence.oxlintrc.json` |
@@ -50,7 +50,7 @@ Duet 的界面设计做在 Claude Design 项目里（Design Canvas 格式的 `.d
 ### 5. 设计缺口要登记
 
 设计稿里找不到条目、但界面上确实存在的东西 → 登记进
-[`../frontend-guide.md`](../frontend-guide.md) §16 与 [`../open-questions.md`](../open-questions.md)。
+[`../frontend-guide.md`](../spec/frontend-guide.md) §16 与 [`../open-questions.md`](../plan/open-questions.md)。
 
 **AI 不许替这些缺口拍板补设计。** 撞上了就停，指向对应编号。
 

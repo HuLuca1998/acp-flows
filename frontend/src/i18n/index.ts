@@ -5,7 +5,7 @@ import enUS from './locales/en-US.json'
 import zhCN from './locales/zh-CN.json'
 
 /**
- * 中英双语。规则见 docs/i18n.md。
+ * 中英双语。规则见 docs/rules/i18n.md。
  *
  * 默认与回退都是 zh-CN：设计稿的一手文案是中文，
  * 英文缺词条时显示中文，**不显示 key**（那对用户毫无意义）。

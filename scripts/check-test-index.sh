@@ -4,7 +4,7 @@
 #   · 登记了但测试已删除 → 失败
 #
 # 目的：挡住"不同轮次的 AI 各写一个功能相同的测试"。
-# 规则见 docs/testing-strategy.md §8。
+# 规则见 docs/rules/testing-strategy.md §8。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -76,7 +76,7 @@ if [[ -d e2e ]] && find e2e -name '*.spec.ts' -print -quit | grep -q .; then
 fi
 
 if [[ $fail -eq 1 ]]; then
-  echo "修正方式：更新对应的 INDEX.md（见 docs/testing-strategy.md §8）"
+  echo "修正方式：更新对应的 INDEX.md（见 docs/rules/testing-strategy.md §8）"
   echo "注意：如果新测试与已登记的测试实质重复，应该合并而不是补登记。"
   exit 1
 fi

@@ -48,7 +48,7 @@
 
 **每个颜色字面量都能在 Nocturne / Duet 令牌里找到出处，没有新造色。**
 令牌真值来自 [`../_ds/nocturne/styles.css`](../_ds/nocturne/styles.css)（Nocturne 基础层）
-与 [`../../docs/frontend-guide.md`](../../docs/frontend-guide.md) §1.3（Duet 产品层）。
+与 [`../../docs/frontend-guide.md`](../../docs/spec/frontend-guide.md) §1.3（Duet 产品层）。
 
 | 用在哪 | 令牌 | 真值 | 出处 |
 |---|---|---|---|

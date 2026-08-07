@@ -2,7 +2,7 @@
 
 - **日期**：2026-08-07
 - **状态**：已接受
-- **相关**：[`../release-and-update.md`](../release-and-update.md)
+- **相关**：[`../release-and-update.md`](../spec/release-and-update.md)
 
 ## 背景
 

@@ -91,7 +91,7 @@ jobs:
       # 不把坏版本推给用户，比早十分钟发布重要。
       - name: 发布门禁
         if: steps.existing.outputs.exists != 'true'
-        run: make check-docs && make check-doc-commands && make check-index
+        run: make check-docs && make check-doc-commands && make check-doc-budget && make check-index
 
       - name: 生成 release notes
         if: steps.existing.outputs.exists != 'true'

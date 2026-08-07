@@ -12,11 +12,11 @@
 ## 不负责什么
 
 - **不定义 ACP 协议**。ACP 是 duetd 与 Runtime 子进程之间的 JSON-RPC，与本文件无关，
-  见 [`../docs/acp-integration.md`](../docs/acp-integration.md)。
+  见 [`../docs/acp-integration.md`](../docs/spec/acp-integration.md)。
 - **不定义数据库 schema**。DB 结构是 `backend/internal/store` 的私事，
   不得直接把表结构映射成 API 响应。
 - **不放业务规则**。schema 里的 `enum` 只描述"合法取值"，不描述"什么时候能转成这个值"——
-  那是状态机的事，见 [`../docs/domain-model.md`](../docs/domain-model.md)。
+  那是状态机的事，见 [`../docs/domain-model.md`](../docs/spec/domain-model.md)。
 
 ## 铁律：改接口的顺序
 
@@ -39,7 +39,7 @@
 | 时间 | RFC3339 带毫秒与时区（`2026-08-07T03:12:44.512Z`） |
 | 分页 | cursor 分页：`?cursor=&limit=`，响应带 `next_cursor` |
 | 错误 | 统一 `Problem` 对象：`{type, title, status, detail, params, instance}`（RFC 9457） |
-| **错误文案** | ★ `type` 是机器可读错误码（`snake_case`），前端据此查词条；`detail` 只给开发者看，界面不展示；`params` 供词条插值。**后端绝不返回用户可见的中文文案**，见 [`../docs/i18n.md`](../docs/i18n.md) §3 |
+| **错误文案** | ★ `type` 是机器可读错误码（`snake_case`），前端据此查词条；`detail` 只给开发者看，界面不展示；`params` 供词条插值。**后端绝不返回用户可见的中文文案**，见 [`../docs/i18n.md`](../docs/rules/i18n.md) §3 |
 | 长任务 | 一律 `202 Accepted` + 事件流推进，**不做长轮询** |
 | 鉴权 | 全部端点要求 `Authorization: Bearer <token>`，无 token 一律 401 |
 
@@ -65,9 +65,9 @@ npx @redocly/cli lint api/openapi.yaml   # spec 自身的规范性
 
 ## 改这里之前必读
 
-- [`../docs/architecture.md`](../docs/architecture.md) §4 事件流 —— 事件信封与 13 类枚举
-- [`../docs/domain-model.md`](../docs/domain-model.md) —— 别把领域概念翻译错
-- [`../docs/testing-strategy.md`](../docs/testing-strategy.md) §契约测试 —— spec 即测试基准
+- [`../docs/architecture.md`](../docs/spec/architecture.md) §4 事件流 —— 事件信封与 13 类枚举
+- [`../docs/domain-model.md`](../docs/spec/domain-model.md) —— 别把领域概念翻译错
+- [`../docs/testing-strategy.md`](../docs/rules/testing-strategy.md) §契约测试 —— spec 即测试基准
 
 ## 本域特有的坑
 

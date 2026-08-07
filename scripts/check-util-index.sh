@@ -3,7 +3,7 @@
 #   · 导出了但没登记 → 失败
 #   · 登记了但代码里已不存在 → 失败
 #
-# 索引是被校验的清单，不是文档。规则见 docs/coding-standards.md §1.4。
+# 索引是被校验的清单，不是文档。规则见 docs/rules/coding-standards.md §1.4。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -64,7 +64,7 @@ if [[ -d $ts_dir ]]; then
 fi
 
 if [[ $fail -eq 1 ]]; then
-  echo "修正方式：更新对应的 INDEX.md（见 docs/coding-standards.md §1.4）"
+  echo "修正方式：更新对应的 INDEX.md（见 docs/rules/coding-standards.md §1.4）"
   exit 1
 fi
 

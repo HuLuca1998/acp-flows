@@ -8,17 +8,17 @@
 
 | 文档 | 管什么 |
 |---|---|
-| [`architecture.md`](architecture.md) | 进程模型、分层、依赖方向、事件流、目录规划 |
-| [`domain-model.md`](domain-model.md) | 聚合、状态机、不变量 |
-| [`design-principles.md`](design-principles.md) | 抽象怎么切、接口放哪、包怎么分、怎么复用而不复制 |
-| [`coding-standards.md`](coding-standards.md) | 命名、文件组织、model/constant/util 归属、工具库索引 |
-| [`testing-strategy.md`](testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
-| [`acp-integration.md`](acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
-| [`frontend-guide.md`](frontend-guide.md) | 设计系统落地、组件规格、事件渲染器 |
-| [`git-workflow.md`](git-workflow.md) | 分支、提交、PR、worktree、发版触发 |
-| [`release-and-update.md`](release-and-update.md) | CI/CD、签名、客户端自动更新 |
-| [`ai-workflow.md`](ai-workflow.md) | Claude × Codex 分工与交接 |
-| [`roadmap.md`](roadmap.md) | 里程碑 |
+| [`architecture.md`](spec/architecture.md) | 进程模型、分层、依赖方向、事件流、目录规划 |
+| [`domain-model.md`](spec/domain-model.md) | 聚合、状态机、不变量 |
+| [`design-principles.md`](rules/design-principles.md) | 抽象怎么切、接口放哪、包怎么分、怎么复用而不复制 |
+| [`coding-standards.md`](rules/coding-standards.md) | 命名、文件组织、model/constant/util 归属、工具库索引 |
+| [`testing-strategy.md`](rules/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
+| [`acp-integration.md`](spec/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
+| [`frontend-guide.md`](spec/frontend-guide.md) | 设计系统落地、组件规格、事件渲染器 |
+| [`git-workflow.md`](rules/git-workflow.md) | 分支、提交、PR、worktree、发版触发 |
+| [`release-and-update.md`](spec/release-and-update.md) | CI/CD、签名、客户端自动更新 |
+| [`ai-workflow.md`](rules/ai-workflow.md) | Claude × Codex 分工与交接 |
+| [`roadmap.md`](plan/roadmap.md) | 里程碑 |
 | [`adr/`](adr/) | 架构决策记录 |
 | [`templates/`](templates/) | `AGENTS.md` / `CLAUDE.md` 骨架模板 |
 

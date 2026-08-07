@@ -46,7 +46,7 @@ E2E 在 `main` 上跑，不阻塞 PR（它慢，且依赖构建产物）。
 
 ## 改这里之前必读
 
-- [`../docs/testing-strategy.md`](../docs/testing-strategy.md) §6
+- [`../docs/testing-strategy.md`](../docs/rules/testing-strategy.md) §6
 - `web-ui-test` skill —— 三层测试怎么选、走查清单
 
 ## 本域特有的坑

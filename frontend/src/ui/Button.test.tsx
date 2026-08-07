@@ -8,7 +8,7 @@ import { Button } from './Button'
  * 设计规范 §05「按钮」的行为与可访问性契约。
  *
  * ★ 只断言用户能观察到的东西与可访问性契约，**不断言 CSS 类名与 DOM 结构**——
- * 设计会改，绑死结构的测试只会变成噪音。见 docs/testing-strategy.md §6。
+ * 设计会改，绑死结构的测试只会变成噪音。见 docs/rules/testing-strategy.md §6。
  *
  * 「主按钮永不填充实心」这类纯视觉规则由 stylelint + 人工走查保证，不在这里测。
  */

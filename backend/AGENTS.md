@@ -70,11 +70,11 @@ make -C .. cover             # 覆盖率 + 门槛校验
 
 | 改什么 | 读什么 |
 |---|---|
-| **写任何代码** | [`../docs/coding-standards.md`](../docs/coding-standards.md) —— 命名动词表、`model/` `constant/` `util/` 的准入规则 |
-| 领域模型、状态机 | [`../docs/domain-model.md`](../docs/domain-model.md)、[`internal/domain/AGENTS.md`](internal/domain/AGENTS.md) |
-| ACP 协议、Runtime 适配 | [`../docs/acp-integration.md`](../docs/acp-integration.md)、[`internal/acp/AGENTS.md`](internal/acp/AGENTS.md) |
+| **写任何代码** | [`../docs/coding-standards.md`](../docs/rules/coding-standards.md) —— 命名动词表、`model/` `constant/` `util/` 的准入规则 |
+| 领域模型、状态机 | [`../docs/domain-model.md`](../docs/spec/domain-model.md)、[`internal/domain/AGENTS.md`](internal/domain/AGENTS.md) |
+| ACP 协议、Runtime 适配 | [`../docs/acp-integration.md`](../docs/spec/acp-integration.md)、[`internal/acp/AGENTS.md`](internal/acp/AGENTS.md) |
 | HTTP 接口 | [`../api/AGENTS.md`](../api/AGENTS.md) —— **先改 spec** |
-| 任何测试 | [`../docs/testing-strategy.md`](../docs/testing-strategy.md) |
+| 任何测试 | [`../docs/testing-strategy.md`](../docs/rules/testing-strategy.md) |
 
 ## 技术约定
 
