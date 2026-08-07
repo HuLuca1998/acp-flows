@@ -67,6 +67,7 @@
 | [`design-principles.md`](rules/design-principles.md) | 设计抽象、分包、接口与实现 |
 | [`database.md`](rules/database.md) | 建表、写 GORM、写迁移 |
 | [`logging.md`](rules/logging.md) | 加日志、调级别 |
+| [`debugging.md`](rules/debugging.md) | **排查时的查询与手法速查**（流程在 `debug` skill） |
 | [`i18n.md`](rules/i18n.md) | 任何用户可见文本 |
 | [`git-workflow.md`](rules/git-workflow.md) | 分支、提交、PR、worktree |
 | [`ci.md`](rules/ci.md) | 改 workflow |
