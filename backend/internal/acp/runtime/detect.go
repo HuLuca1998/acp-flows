@@ -14,6 +14,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -116,7 +117,7 @@ func Detect(ctx context.Context, spec Spec, timeout time.Duration) Result {
 		res.Detail = err.Error()
 		return res
 	}
-	res.Version = out
+	res.Version = extractVersion(out)
 
 	if len(spec.AuthArgs) == 0 {
 		res.Status = StatusReady
@@ -214,6 +215,30 @@ func run(ctx context.Context, path string, args, envRemove []string, timeout tim
 		return "", combined, err
 	}
 	return line, combined, nil
+}
+
+// versionPattern 匹配语义化版本号，允许 `-beta.1` 这类预发布后缀。
+var versionPattern = regexp.MustCompile(`\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?`)
+
+// extractVersion 从 --version 的输出里抽出版本号。
+//
+// ★ 各家格式完全不统一，都是实测的原文：
+//
+//	claude-agent-acp  →  0.63.0
+//	codex-acp         →  @agentclientprotocol/codex-acp 1.1.7
+//	codex             →  codex-cli 0.145.0
+//	claude            →  2.1.224 (Claude Code)
+//
+// 不抽的话，界面上会显示成「版本 @agentclientprotocol/codex-acp 1.1.7」——
+// 用户看到的是一串包名。
+//
+// 抽不出来时**原样返回**而不是留空：显示得难看总好过显示不出来，
+// 而且那点原文正是排查「这是个什么版本」的唯一线索。
+func extractVersion(raw string) string {
+	if m := versionPattern.FindString(raw); m != "" {
+		return m
+	}
+	return raw
 }
 
 // cleanEnv 返回删掉指定变量后的环境。

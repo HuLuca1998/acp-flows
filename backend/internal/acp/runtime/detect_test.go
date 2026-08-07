@@ -83,7 +83,7 @@ esac
 			},
 			wantStatus:  runtime.StatusReady,
 			wantRemedy:  "",
-			wantVersion: "codex-cli 0.63.0",
+			wantVersion: "0.63.0", // 从 "codex-cli 0.63.0" 里抽出来的
 		},
 		{
 			name:       "PATH 上根本没有 → not_installed，给安装命令",
@@ -180,7 +180,7 @@ esac
 				return s
 			},
 			wantStatus:  runtime.StatusReady,
-			wantVersion: "codex-cli 0.63.0",
+			wantVersion: "0.63.0", // 从 "codex-cli 0.63.0" 里抽出来的
 		},
 		{
 			// ★ 适配器与 CLI 是两个可执行文件：能不能跑看 claude-agent-acp，
@@ -266,6 +266,39 @@ esac
 			}
 			if got.Name != "codex" {
 				t.Errorf("Name = %q, 想要 codex", got.Name)
+			}
+		})
+	}
+}
+
+// 版本号要从各式各样的 --version 输出里抽出来。
+//
+// ★ 四种格式都是真机实测的原文。不抽的话界面上会显示成
+// 「版本 @agentclientprotocol/codex-acp 1.1.7」——用户看到的是一串包名。
+func TestDetectExtractsVersionNumber(t *testing.T) {
+	tests := []struct {
+		raw  string // --version 的真实输出
+		want string
+	}{
+		{"0.63.0", "0.63.0"},                              // claude-agent-acp
+		{"@agentclientprotocol/codex-acp 1.1.7", "1.1.7"}, // codex-acp
+		{"codex-cli 0.145.0", "0.145.0"},                  // codex
+		{"2.1.224 (Claude Code)", "2.1.224"},              // claude
+		{"v1.2.3-beta.1", "1.2.3-beta.1"},                 // 带前缀与预发布号
+		{"没有版本号的一行字", "没有版本号的一行字"},                        // 抽不出就原样保留，不弄丢信息
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			dir, _ := binDir(t)
+			// raw 里没有单引号，用单引号包住最省事
+			fakeBin(t, dir, "codex", "case \"$1\" in\n"+
+				"  --version) echo '"+tt.raw+"' ;;\n"+
+				"  login)     exit 0 ;;\n"+
+				"esac\n")
+			got := runtime.Detect(context.Background(), codexSpec(), 5*time.Second)
+			if got.Version != tt.want {
+				t.Errorf("Version = %q, 想要 %q", got.Version, tt.want)
 			}
 		})
 	}
