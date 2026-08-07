@@ -164,3 +164,10 @@
 | `TestProcess_LeavesNoZombie` | `internal/acp/runtime/process_test.go` | acp | R4：Wait 回收进程，不留僵尸（用 `ps` 的状态位判，signal 0 对僵尸也返回 nil） |
 | `TestProcess_StopIsIdempotent` | `internal/acp/runtime/process_test.go` | acp | 「停止」被连点两下不报错 |
 | `TestProcess_StartFailureNamesTheBinary` | `internal/acp/runtime/process_test.go` | acp | 启动失败时错误信息指出是哪个可执行文件 |
+| `TestConn_NotificationsAreProcessedInOrder` | `internal/acp/jsonrpc/conn_test.go` | acp | ★★ 通知**按到达顺序**处理——原来每条起一个 goroutine，实测 200 条里第一条到手的是 seq 3；对 ACP 来说这是语义错误：`agent_message_chunk` 的顺序就是用户看到的字序 |
+| `TestOpen_ValidatesCwdBeforeAnyRequest` | `internal/acp/session/session_test.go` | acp | ★ R4：cwd 非法时**一个请求都不发**——先发再校验的话，Agent 那边已开了会话而我们报了错，它会挂着没人关 |
+| `TestOpen_ReturnsSessionID` | `internal/acp/session/session_test.go` | acp | 会话建好能拿到 sessionID，后续取消与恢复都靠它 |
+| `TestPrompt_StreamsFirstChunkLongBeforeTurnEnds` | `internal/acp/session/session_test.go` | acp | ★ R1：真流式——首块在 500ms 内到，而整轮 2 秒才结束；攒完再吐的话用户会盯着不动的界面等 |
+| `TestPrompt_OnlyEndTurnIsSuccess` | `internal/acp/session/session_test.go` | acp | ★ R2：五种结束原因只有 `end_turn` 算正常；`max_tokens` 当成功的话，用户拿到截断的改动而界面显示「完成」 |
+| `TestPrompt_EveryUpdateKindIsHandled` | `internal/acp/session/session_test.go` | acp | ★ R5：穷举 13 类事件都有去处；新增一类而没接住时会红，否则它静默消失、界面像是 AI 少说了点什么 |
+| `TestPrompt_CarriesTextThrough` | `internal/acp/session/session_test.go` | acp | 文本原样带出，且思考摘要与正式消息**不混成一路**（界面上是两种显示） |
