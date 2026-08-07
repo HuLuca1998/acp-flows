@@ -20,7 +20,8 @@
 | **现在做** | `U2.4.1` 的**剩余部分**：落库 + `/works` 端点 + 前端接线 |
 | **对应验收点** | V5 + V6 真正连起来 —— 提一个需求就有一个看得见、停得掉的「工作」 |
 | **已完成的部分** | R1 R2 R6 已验：worktree 隔离、app 用例、落库、`/works` 端点、duetd 接线。<br>**整条「提需求 → 建工作」真机跑通过**（工作重启后还在，仓库没被动） |
-| **接着做什么** | ① 前端把 `Timeline` 接进对话页（R4，补 `U2.3.2` 的欠账）<br>　　—— 调 `POST /v1/works` 建工作，连 `EventSource` 按 `work_id` 过滤<br>② 把 ACP 会话接进来（R3 系统提示词只首轮发，补 `U2.2.2`）<br>　　—— `acp/session` 已就绪，缺的是「谁在工作创建后拉起它」<br>③ `//go:build integration` 跑真 Agent（R5，照 `make probe` 的做法） |
+| **接着做什么** | ① 把 ACP 会话接进来（R3 系统提示词只首轮发，补 `U2.2.2`）<br>　　—— `acp/session` 与 `acp/runtime.Start` 都已就绪，<br>　　缺的是「谁在工作创建后拉起 Agent 进程并把事件转成 `WorkEvent`」<br>② `//go:build integration` 跑真 Agent（R5，照 `make probe` 的做法） |
+| **R4 已完成** | 对话页接线完毕（`dd9f2ea`），`U2.3.2` 的欠账一并还清。<br>真机走查：浏览器输入需求 → 后端建出工作 → SSE 连上 → 事件到达 |
 
 **四笔欠账，都等 Work 的创建**：
 
