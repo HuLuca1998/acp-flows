@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/jsonrpc"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/protocol"
@@ -181,12 +182,28 @@ func (s *Session) Prompt(
 	return resp.StopReason, nil
 }
 
+// closeGrace 是等读循环收尾的上限。
+//
+// ★ 不能无限等。Agent 一轮结束后**并不退出**（它等着下一条需求），
+// 而读循环要等对方关掉 stdout——两边互相等，表现是应用退不出去、
+// Agent 进程越攒越多。关传输通常就能把读循环叫醒，这个上限兜住关不动的情况。
+const closeGrace = 2 * time.Second
+
 // Close 关掉会话与底层通道。可重复调用。
+//
+// ★ **有界等待**：见 closeGrace。超时不算错误——传输已经关了，
+// 真正的收尾（杀进程组）归调用方的 runtime.Process.Stop 管。
 func (s *Session) Close() error {
 	var err error
 	s.closeOnce.Do(func() {
 		err = s.transport.Close()
-		<-s.serveDone
+
+		timer := time.NewTimer(closeGrace)
+		defer timer.Stop()
+		select {
+		case <-s.serveDone:
+		case <-timer.C:
+		}
 	})
 	return err
 }

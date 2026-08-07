@@ -1,8 +1,11 @@
 package session_test
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"testing"
@@ -293,3 +296,70 @@ func TestOpen_ReturnsSessionID(t *testing.T) {
 		t.Errorf("SessionID = %q, 想要 sess-abc", s.ID())
 	}
 }
+
+// ★★ Agent **不主动退出**时，Close 也必须回来。
+//
+// 真机上撞出来的：claude-agent-acp 在一轮结束后并不退出（它等着下一条需求），
+// 于是 Close 里那个「等读循环结束」永远等不到——而读循环要等对方关掉 stdout。
+// 两边互相等，表现是应用退不出去、进程越攒越多。
+//
+// 关掉传输本身就会让读循环醒过来；再加一个上限兜住「连关都关不动」的情况。
+func TestClose_ReturnsWhenPeerStaysAlive(t *testing.T) {
+	// toAgent：我们写、假 Agent 读；fromAgent：假 Agent 写、我们读。
+	// fromAgent 的写端**永远不关**——那正是「对方还活着」的样子。
+	agentIn, ourOut := io.Pipe()
+	ourIn, agentOut := io.Pipe()
+	t.Cleanup(func() { _ = agentOut.Close(); _ = ourOut.Close() })
+
+	// 冒充 Agent：逐条读请求、逐条回，回完就一声不吭地活着
+	go func() {
+		sc := bufio.NewScanner(agentIn)
+		for sc.Scan() {
+			var m struct {
+				ID     int    `json:"id"`
+				Method string `json:"method"`
+			}
+			if json.Unmarshal(sc.Bytes(), &m) != nil || m.Method == "" {
+				continue
+			}
+			var result string
+			switch m.Method {
+			case "initialize":
+				result = `{"protocolVersion":1}`
+			case "session/new":
+				result = `{"sessionId":"s1"}`
+			default:
+				continue
+			}
+			_, _ = fmt.Fprintf(agentOut,
+				`{"jsonrpc":"2.0","id":%d,"result":%s}`+"\n", m.ID, result)
+		}
+	}()
+
+	s, err := session.Open(context.Background(), session.Options{
+		Transport: &halfOpen{r: ourIn, w: ourOut}, Cwd: t.TempDir(),
+	})
+	if err != nil {
+		t.Fatalf("开会话失败: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- s.Close() }()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Agent 没主动退出，Close 就一直等着——" +
+			"两边互相等，表现是应用退不出去、Agent 进程越攒越多")
+	}
+}
+
+// halfOpen 的 Close 只关写端，读端留着——模拟「对方进程还活着」。
+type halfOpen struct {
+	r io.Reader
+	w io.WriteCloser
+}
+
+func (h *halfOpen) Read(p []byte) (int, error)  { return h.r.Read(p) }
+func (h *halfOpen) Write(p []byte) (int, error) { return h.w.Write(p) }
+func (h *halfOpen) Close() error                { return h.w.Close() }
