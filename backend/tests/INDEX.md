@@ -192,3 +192,8 @@
 | `TestStreamEvents_DisconnectReleasesSubscriber` | `internal/api/events_test.go` | api | ★ R3：客户端断开时订阅者被回收，防泄漏 |
 | `TestStreamEvents_RequiresToken` | `internal/api/events_test.go` | api | 无 token 401——事件流能看到用户项目里发生的一切 |
 | `TestStreamEvents_TolerantToBadLastEventID` | `internal/api/events_test.go` | api | 非法 `Last-Event-ID` 按全新连接处理而不是 500——为它回 500 会让用户彻底连不上 |
+| `TestThoughtLevel_FoundByCategoryOnBothEnds` | `internal/acp/adapter/adapter_test.go` | acp | ★★ R1：**按 category 取而不是按 id**——两端 id 不同（effort / reasoning_effort）但 category 都是 thought_level；负例（退化成按 id）只有 codex 那端红，正是「差异没内化」的样子 |
+| `TestConfigByCategory_ToleratesMissingAndEmpty` | `internal/acp/adapter/adapter_test.go` | acp | ★ category 缺失与空串是两回事，两种都不能 panic——claude 的 agent 选项是空串、codex 的 sandbox 根本没这字段，直接解引用会在其中一端崩 |
+| `TestConfigByCategory_EmptyList` | `internal/acp/adapter/adapter_test.go` | acp | 空配置列表不是错误 |
+| `TestCapabilities_DerivedFromProbes` | `internal/acp/adapter/adapter_test.go` | acp | R5：能力矩阵由探测结果算出，不写死——写死的话某个 Runtime 悄悄不支持时矩阵还显示通过 |
+| `TestCapabilityMatrix_Supports` | `internal/acp/adapter/adapter_test.go` | acp | ★ 没探过的能力一律当不支持；负例（乐观返回 true）立刻红——乐观假设会让上层走进走不通的路 |
