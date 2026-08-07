@@ -87,7 +87,7 @@ esac
 		},
 		{
 			name:       "PATH 上根本没有 → not_installed，给安装命令",
-			setup:      func(t *testing.T, dir string) {}, // 空目录
+			setup:      func(*testing.T, string) {}, // 空目录
 			wantStatus: runtime.StatusNotInstalled,
 			wantRemedy: "npm i -g @openai/codex",
 		},

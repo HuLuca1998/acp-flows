@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/ui/Skeleton'
 
 import { LanguageSection } from './LanguageSection'
+import { RuntimeSection } from './RuntimeSection'
 import styles from './Settings.module.css'
 import { UpdateSection } from './UpdateSection'
+import { useRuntimes } from './use-runtimes'
 import { useUpdateFlow } from './use-update-flow'
 
 /**
@@ -17,6 +19,7 @@ import { useUpdateFlow } from './use-update-flow'
 export function SettingsPage() {
   const { t } = useTranslation()
   const update = useUpdateFlow()
+  const runtimes = useRuntimes()
   const { check } = update
 
   // 进设置页时检查一次，**不轮询**（docs/adr/0007 修订 3）
@@ -27,6 +30,15 @@ export function SettingsPage() {
   return (
     <div className={styles.page}>
       <h2 className={styles.title}>{t('nav.settings')}</h2>
+
+      {/* 设计稿里「ACP Runtime」排在「环境检测」之前，且是两个不同的分区：
+          前者是 claude / codex，后者是 node / git / cargo。 */}
+      <RuntimeSection
+        runtimes={runtimes.runtimes}
+        loading={runtimes.loading}
+        errorCode={runtimes.errorCode}
+        onRetry={() => void runtimes.refresh()}
+      />
 
       <section className={styles.section}>
         <h3 className={styles.heading}>{t('settings.env.title')}</h3>

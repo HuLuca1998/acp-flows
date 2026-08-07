@@ -106,7 +106,7 @@ fi
 #
 # 这个 bug 不会让编译或 vet 有任何反应，只表现为"偶尔卡很久"。
 # WaitDelay 是标准库给的解法，设了就行——所以直接检查有没有设。
-nodelay=$(python3 "$(dirname "$0")/waitdelay.py" || true)
+nodelay=$(python3 "$(dirname "$0")/lib/waitdelay.py" || true)
 if [[ -n $nodelay ]]; then
   say "exec.CommandContext 之后必须设 cmd.WaitDelay——否则 fork 过的子进程会架空超时" "$nodelay"
 fi

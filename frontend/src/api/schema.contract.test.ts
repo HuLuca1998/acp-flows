@@ -83,6 +83,7 @@ describe('生成的 TS 类型与 openapi.yaml 一致', () => {
 
     const r: Runtime = {
       name: 'claude',
+      status: 'ready',
       installed: true,
       capabilities: {
         passed: 1,
@@ -95,6 +96,23 @@ describe('生成的 TS 类型与 openapi.yaml 一致', () => {
     }
     // 上层靠这个数字降级，绝不靠 r.name 判断（design-principles §4.4）
     expect(r.capabilities?.passed).toBe(1)
+  })
+
+  it('R5b ★ · status 有第四态 probe_failed，且修复命令由后端给', () => {
+    // 只有 installed/authenticated 两个布尔的话，「检测本身失败了」
+    // 只能并进 not_installed——界面会对着一个装好的 Runtime 说「请先安装」。
+    const failed: Runtime = { name: 'codex', status: 'probe_failed', installed: false }
+    expect(failed.status).toBe('probe_failed')
+
+    // remedy.command 是后端给的整条命令。前端按 name 拼命令的话，
+    // 加第三个 Runtime 就要改两处，迟早漂移（design-principles §4.4）。
+    const missing: Runtime = {
+      name: 'gemini',
+      status: 'not_installed',
+      installed: false,
+      remedy: { command: 'npm i -g @agentclientprotocol/gemini-acp' },
+    }
+    expect(missing.remedy?.command).toContain('npm i -g')
   })
 
   it('R6 · operations 类型可用（生成客户端时要靠它推导响应体）', () => {

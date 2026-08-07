@@ -121,6 +121,8 @@
 | `TestPrepareUpdate_BlockedIsStillTwoHundred` | `internal/api/update_test.go` | api | ★ `blocked` 是业务结论不是错误，**仍回 200**：回 4xx 前端会当成请求出错，把「哪些工作在跑」的列表丢掉 |
 | `TestUpdateEndpoints_WithoutServiceDoNotPanic` | `internal/api/update_test.go` | api | 未配置更新服务时返回 `update_not_configured` 而不是 panic（纯 Web 部署可以不接发布源） |
 | `TestDetect` | `internal/acp/runtime/detect_test.go` | acp | 四态可区分：ready / not_installed / not_authenticated / probe_failed；未登录时给的是 `codex login` 这种能直接敲的命令 |
+| `TestDetectorKeepsEveryField` | `internal/acp/runtime/detector_test.go` | acp | 适配层不丢字段——丢了 Remedy 用户就看不到该敲什么命令，而少写一行赋值编译器不会管 |
+| `TestDetectorZeroValueUsesRegistry` | `internal/acp/runtime/detector_test.go` | acp | 零值 Detector 走内置注册表（duetd 就是这么构造的）；空 PATH 下每条都必须给出安装命令 |
 | `TestDetectExtractsVersionNumber` | `internal/acp/runtime/detect_test.go` | acp | 从四种真实的 `--version` 输出里抽出版本号；抽不出时原样保留不弄丢信息 |
 | `TestDetectNeverPrompts` | `internal/acp/runtime/detect_test.go` | acp | ★ 检测**零模型开销**——假 runtime 记下每次 argv，断言只出现声明过的两组参数，多一次调用就红 |
 | `TestDetectAllIsolatesFailures` | `internal/acp/runtime/detect_test.go` | acp | ★ 一个 runtime 卡住不连累另一个，且必须并发——串行的话装 5 个就要等 5 倍超时 |
