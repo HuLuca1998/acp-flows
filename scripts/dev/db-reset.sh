@@ -21,7 +21,7 @@ case "$DB_DIR" in
 esac
 
 if [[ ! -d $DB_DIR ]]; then
-  echo "· 开发库不存在（$DB_DIR），无需重置"
+  echo "· 开发库不存在（${DB_DIR}），无需重置"
   exit 0
 fi
 

@@ -98,6 +98,24 @@
 - **解决** 三处都要断开：`( ... ) </dev/null` 包住，内部 `nohup cmd </dev/null >log 2>&1 &`。
 - **状态** 已修（`scripts/dev/services.sh`）。失效条件：改用 launchd / systemd 之类的进程管理器。
 
+> **P-06 的连带坑：调用方也不能加管道。** `bash scripts/dev/services.sh start all | tail -20`
+> 会把管道重新引入，脚本照样挂住、最后被 SIGKILL（退出码 137）。
+> 起服务时**不要接管道**，要看输出就重定向到文件再读。2026-08-07 又踩了一次。
+
+### P-10
+
+**变量引用后紧跟中文时，C locale 下 bash 把多字节首字节吞进变量名**
+
+- **症状** `scripts/dev/services.sh: line 53: port?: unbound variable`，
+  但同一个脚本在开发者终端里跑得好好的。
+- **根因** `echo "端口 $port）"` —— C locale 里 bash 用 `isalnum()` 判断变量名边界，
+  全角括号 `）` 的首字节 `\xef` 被当成合法标识符字符，变量名变成 `port\xef`。
+  **开发机通常是 UTF-8 locale 所以看不出来，CI 与非交互 shell 是 `LC_CTYPE=C`** ——
+  典型的「本地好好的，一上 CI 就崩」。
+- **解决** 显式界定：`${port}）`。中文注释与文案是本仓库的常态，这个组合会反复出现。
+- **状态** 已修（7 处）并**接进检查**：`scripts/check/check-naming.sh` 第 7 节，
+  负例验证过。检查跳过注释行——注释不会被求值。
+
 ---
 
 ## Git

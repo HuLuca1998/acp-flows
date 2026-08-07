@@ -28,7 +28,7 @@ if [[ -f backend/go.mod ]]; then
   (
     cd backend
     # 3.1 的警告是已知的：oapi-codegen 尚未完整支持 3.1，但我们用到的
-    # 构造（object/string/enum/$ref）在 3.0 与 3.1 里语义相同，实测生成正确。
+    # 构造（object/string/enum/${ref}）在 3.0 与 3.1 里语义相同，实测生成正确。
     # 不要因为这条警告把 spec 降级到 3.0 —— 见 api/AGENTS.md。
     go run "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@${OAPI_CODEGEN_VERSION}" \
       --config ../api/oapi-codegen.yaml ../api/openapi.yaml 2>&1 \

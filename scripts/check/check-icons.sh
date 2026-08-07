@@ -31,7 +31,7 @@ fi
 
 drift=$(for f in "$DIR"/*; do
   name=$(basename "$f")
-  [[ -f "$tmp/$name" ]] || { echo "$name（重新生成时没产出）"; continue; }
+  [[ -f "$tmp/$name" ]] || { echo "${name}（重新生成时没产出）"; continue; }
   cmp -s "$f" "$tmp/$name" || echo "$name"
 done || true)
 

@@ -94,3 +94,29 @@
 | `TestRuntime_R6_RecordsEveryRequestWithoutDeduping` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R6：★★ Fake **如实记录、绝不去重**：连发两次 `session/cancel` 就是 2 条；请求与通知可区分；原始 params 留存。Fake 若自己去重，U0.6.1 的幂等断言永远绿 |
 | `TestRuntime_CompletesAScriptedTurn` | `internal/acp/fake/runtime_test.go` | acp | 正常路径：脚本指定的 `sessionId` 被采用、事件按序推送、`stopReason` 原样带回。这是 R1–R6 的前置 |
 | `TestRuntime_ServeSpeaksTheSameProtocolAsTransport` | `internal/acp/fake/runtime_test.go` | acp | 子进程形态（`Serve`，给 e2e）与进程内形态（`Transport`，给单测）是同一份实现——不是的话「单测绿 + e2e 红」时你不知道该信谁 |
+| `TestParseVersion_ComparesNumericallyNotLexically` | `internal/domain/model/version_test.go` | domain | ★ M1：`1.10.0` 必须比 `1.9.0` 新——按字符串比会判反，用户从此收不到更新且无任何报错 |
+| `TestParseVersion_Ordering` | `internal/domain/model/version_test.go` | domain | 主/次/修订三级排序；**预发布版低于同号正式版**（判反会劝正式版用户降级到开发快照）；`v` 前缀等价 |
+| `TestParseVersion_RejectsMalformed` | `internal/domain/model/version_test.go` | domain | ★ 9 种非法版本一律报错，**绝不静默当成 0.0.0**：latest.json 写错一个字符会让全部客户端永远收不到更新，且没有症状 |
+| `TestVersion_StringRoundTrip` | `internal/domain/model/version_test.go` | domain | 还原成字符串；`v` 前缀被规整掉（界面上的 v 由前端加） |
+| `TestVersion_IsSnapshot` | `internal/domain/model/version_test.go` | domain | 区分开发快照与正式版；`0.0.0`（占位版本）不算快照——两者界面文案不同 |
+| `TestCheck_ReportsAvailableWithDetails` | `internal/app/system/update_test.go` | app | M1 S1.6：有新版本时报 `available`，并带上版本号/更新说明/体积/发布时间——那是用户「现在更不更」的判断依据 |
+| `TestCheck_SameOrOlderIsIdle` | `internal/app/system/update_test.go` | app | ★ 相同或**更旧**一律 `idle`。回滚发布后仍提示更新的话，用户会被反复劝着装回旧版 |
+| `TestCheck_WebBuildIsUnsupportedAndSkipsNetwork` | `internal/app/system/update_test.go` | app | ★ Web 形态报 `unsupported` 且**根本不查发布源**——浏览器里没 updater，「提示了更新却点不动」会把用户卡死 |
+| `TestCheck_SourceFailurePropagates` | `internal/app/system/update_test.go` | app | ★ 发布源出错必须上报，**绝不降级成「已是最新版本」**：网络断了会伪装成没有更新，这类故障无症状 |
+| `TestCheck_MalformedRemoteVersionIsAnError` | `internal/app/system/update_test.go` | app | 远端版本号非法要报错，可辨识为 `ErrInvalidVersion` |
+| `TestPrepare_NoActiveWorkIsReady` | `internal/app/system/update_test.go` | app | M1 S1.7：没有进行中的工作时放行 |
+| `TestPrepare_AnyActiveWorkBlocks` | `internal/app/system/update_test.go` | app | ★★ **失败安全**：6 种非终态各自都挡住更新，并给出机器可读的 `work_in_progress`。「先放行、以后再补暂停」会真实丢掉用户几十分钟的工作 |
+| `TestPrepare_TerminalWorkDoesNotBlock` | `internal/app/system/update_test.go` | app | 已结束的工作（completed / failed / initializing_failed）不挡更新 |
+| `TestPrepare_ListFailureBlocksInsteadOfAllowing` | `internal/app/system/update_test.go` | app | ★ 查不到工作列表时按 `blocked` 处理而不是放行——不知道有没有工作在跑时重启应用是最坏的选择 |
+| `TestNewUpdateService_RejectsMissingDeps` | `internal/app/system/update_test.go` | app | 缺依赖时构造即失败，不留到运行时 panic |
+| `TestLatest_ParsesTauriUpdaterManifest` | `internal/release/latest_test.go` | release | 解析 Tauri v2 的 latest.json（version / notes / pub_date）；查的是与 updater **同一个** URL |
+| `TestLatest_NonOKIsAnError` | `internal/release/latest_test.go` | release | ★ 404/500/403 都报错且错误带状态码。**404 最常见**——还没发过 release 时就是它，静默的话第一版发出去前没人会发现链路是断的 |
+| `TestLatest_MalformedJSONIsAnError` | `internal/release/latest_test.go` | release | 坏 JSON 报错，不静默返回零值 |
+| `TestLatest_MissingVersionIsAnError` | `internal/release/latest_test.go` | release | 缺 `version` 字段报错——那样的 manifest 对更新检查毫无意义 |
+| `TestLatest_RespectsContextCancellation` | `internal/release/latest_test.go` | release | ctx 取消被尊重（设置页关掉时这次检查就该停） |
+| `TestLatest_RejectsOversizedBody` | `internal/release/latest_test.go` | release | ★ 响应体超 256KB 被拒——latest.json 正常几百字节，不设限则被劫持的端点能把 duetd 拖死 |
+| `TestCheckUpdate_MatchesContract` | `internal/api/update_test.go` | api | `POST /v1/system/update/check` 响应形状与 openapi 的 `UpdateStatus` 一致 |
+| `TestCheckUpdate_SourceFailureReturnsProblem` | `internal/api/update_test.go` | api | ★ 发布源失败回 `problem+json` 且 `type=update_check_failed`，不回 200「已是最新」 |
+| `TestPrepareUpdate_ReadyWhenNoActiveWork` | `internal/api/update_test.go` | api | 放行时 `prepared`/`blocked` 必须是**空数组不是 null**——前端对 null 调 `.map()` 会白屏 |
+| `TestPrepareUpdate_BlockedIsStillTwoHundred` | `internal/api/update_test.go` | api | ★ `blocked` 是业务结论不是错误，**仍回 200**：回 4xx 前端会当成请求出错，把「哪些工作在跑」的列表丢掉 |
+| `TestUpdateEndpoints_WithoutServiceDoNotPanic` | `internal/api/update_test.go` | api | 未配置更新服务时返回 `update_not_configured` 而不是 panic（纯 Web 部署可以不接发布源） |

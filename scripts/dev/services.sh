@@ -50,7 +50,7 @@ start_one() {
 
   # 幂等：已经在跑就复用。**不要重启** —— 重启会打断正在看的调试会话。
   if is_running "$svc"; then
-    echo "· $svc 已在运行（pid $(cat "$(pid_file "$svc")")，端口 $port）—— 复用"
+    echo "· $svc 已在运行（pid $(cat "$(pid_file "$svc")")，端口 ${port}）—— 复用"
     return 0
   fi
 
@@ -84,7 +84,7 @@ start_one() {
 
   # 等它真的起来，而不是「命令返回了就算起来了」
   for _ in $(seq 1 40); do
-    [[ -n $(port_holder "$port") ]] && { echo "✓ $svc 已启动（端口 $port，日志 $log）"; return 0; }
+    [[ -n $(port_holder "$port") ]] && { echo "✓ $svc 已启动（端口 ${port}，日志 ${log}）"; return 0; }
     sleep 0.5
   done
   echo "✗ $svc 启动超时（20s）。日志末尾：" >&2

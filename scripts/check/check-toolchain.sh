@@ -72,7 +72,7 @@ if [[ -f backend/go.mod ]]; then
 
   if [[ -z $tool_ver ]]; then
     say "CI 没写死 golangci-lint 的版本" \
-"不写死就用 action 自带的默认版本，而它可能是用比 go.mod（go $go_ver）更旧的 Go 构建的，
+"不写死就用 action 自带的默认版本，而它可能是用比 go.mod（go ${go_ver}）更旧的 Go 构建的，
 报「the Go language version used to build golangci-lint is lower than the targeted Go version」。
 这条只在 CI 上出现，本地装的版本通常是新的，完全看不见。"
   fi
