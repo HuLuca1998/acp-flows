@@ -1,3 +1,20 @@
+# ⛔ **这条 workflow 已被 `gh workflow disable` 停用（2026-08-08）。**
+#
+# 发版改在本机做：
+#
+#     bash scripts/release/publish-local.sh 0.0.1
+#
+# 为什么：macOS runner 按 **10 倍**计费，而 universal 包要编两个架构的 Rust。
+# 真发版试了三次，两次挂在环境上（rust target 被 rust-cache 覆盖、门禁红），
+# 每次都是十几分钟额度换一条错误信息。本机编译不花额度、出问题当场能看能改。
+#
+# **不要顺手把它重新启用。** 要恢复 CI 发版得先解决两件事：
+#   ① macOS 额度够不够（一次成功的 universal 构建约 8–12 分钟 × 10 倍）
+#   ② 私钥仍在 GitHub Secrets 里（`TAURI_SIGNING_PRIVATE_KEY`），
+#      它还在，所以恢复只需要 `gh workflow enable release.yml`
+#
+# 文件保留不删：本机脚本与它的步骤是一一对应的，将来恢复时这里就是参照。
+
 name: release
 
 # 只手动触发，且**只在 main 上跑**。两个理由（前一个项目 ai-workflows 实测，
