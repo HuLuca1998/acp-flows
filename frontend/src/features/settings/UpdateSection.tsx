@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
-import type { UpdateStatus } from '@/models/update'
+import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import { Button } from '@/ui/Button'
 
 import styles from './UpdateSection.module.css'
+import type { UpdatePhase } from './use-update-flow'
 
 /**
  * 后端错误码 → i18n key 的**显式映射**。
@@ -15,34 +16,41 @@ import styles from './UpdateSection.module.css'
 const ERROR_MESSAGES: Record<string, string> = {
   update_check_failed: 'error.update_check_failed',
   update_not_configured: 'error.update_not_configured',
+  update_not_supported: 'error.update_not_supported',
+  update_prepare_failed: 'error.update_prepare_failed',
+  update_install_failed: 'error.update_install_failed',
 }
 
 /**
  * 应用更新区。设计规范的更新卡片。
  *
- * ★ **三条硬约束**：
+ * ★ **四条硬约束**：
  *   1. 检查失败**绝不显示「已是最新」** —— 那会让用户永远不知道自己在用旧版
  *   2. 已是最新时**不显示更新按钮** —— 一个点不动的按钮比没有按钮更糟
  *   3. 进设置页时检查一次，**不轮询**（docs/adr/0007 修订 3）
+ *   4. `blocked` 时**列出卡住的工作**并停下，绝不继续安装
  */
 export type UpdateSectionProps = {
   status: UpdateStatus | null
-  /** 检查中。null status + loading 才是「正在查」，null status + 非 loading 是「还没查」。 */
-  loading: boolean
-  /** 检查失败的原因码（机器可读），null 表示没失败。 */
+  phase: UpdatePhase
   errorCode: string | null
+  blocked: UpdatePrepareResult['blocked']
+  progress: number
   onCheck: () => void
   onUpdate: () => void
 }
 
 export function UpdateSection({
   status,
-  loading,
+  phase,
   errorCode,
+  blocked,
+  progress,
   onCheck,
   onUpdate,
 }: UpdateSectionProps) {
   const { t } = useTranslation()
+  const busy = phase === 'checking' || phase === 'preparing' || phase === 'downloading'
 
   return (
     <section className={styles.card} aria-labelledby="update-heading">
@@ -65,7 +73,29 @@ export function UpdateSection({
         </p>
       )}
 
-      {status?.state === 'available' && (
+      {/* ★ 有工作在跑：停下并把它们列出来，让用户知道要先处理什么 */}
+      {phase === 'blocked' && (
+        <div className={styles.blocked} role="alert" data-testid="update-blocked">
+          <p className={styles.error}>{t('settings.update.blocked')}</p>
+          <ul className={styles.blockedList}>
+            {blocked.map((b) => (
+              <li key={b.work_id}>
+                <code className={styles.version}>{b.work_id}</code>
+                <span className={styles.notes}>{t('settings.update.blockedReason')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {phase === 'downloading' && (
+        <p className={styles.notes} data-testid="update-progress">
+          {t('settings.update.downloading')}
+          <code className={styles.version}>{progress}%</code>
+        </p>
+      )}
+
+      {status?.state === 'available' && phase !== 'blocked' && (
         <div className={styles.available} data-testid="update-available">
           <p className={styles.found}>
             {t('settings.update.found')}
@@ -75,7 +105,12 @@ export function UpdateSection({
             <p className={styles.notes}>{status.notes}</p>
           )}
           <div className={styles.actions}>
-            <Button variant="primary" icon="ph-arrows-clockwise" onClick={onUpdate}>
+            <Button
+              variant="primary"
+              icon="ph-arrows-clockwise"
+              onClick={onUpdate}
+              disabled={busy}
+            >
               {t('settings.update.applyAndRestart')}
             </Button>
             <Button variant="ghost">{t('settings.update.fullChangelog')}</Button>
@@ -99,8 +134,8 @@ export function UpdateSection({
       )}
 
       <div className={styles.actions}>
-        <Button variant="secondary" onClick={onCheck} disabled={loading}>
-          {loading ? t('settings.update.checking') : t('settings.update.check')}
+        <Button variant="secondary" onClick={onCheck} disabled={busy}>
+          {phase === 'checking' ? t('settings.update.checking') : t('settings.update.check')}
         </Button>
       </div>
     </section>

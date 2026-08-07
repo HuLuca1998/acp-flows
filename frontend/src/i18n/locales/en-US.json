@@ -56,5 +56,11 @@
   "context.references": "References",
   "context.referencesHint": "This will list files and screenshots referenced in this turn, plus uncommitted changes in the workspace.",
   "nav.resizeRail": "Drag to resize the sidebar",
-  "nav.resizeContext": "Drag to resize the context panel"
+  "nav.resizeContext": "Drag to resize the context panel",
+  "settings.update.blocked": "Work is in progress and updating would interrupt it. Finish it first.",
+  "settings.update.blockedReason": "in progress",
+  "settings.update.downloading": "Downloading",
+  "error.update_not_supported": "Automatic updates are unavailable here. Download from the releases page.",
+  "error.update_prepare_failed": "Could not confirm it is safe to update right now, so it was aborted.",
+  "error.update_install_failed": "Installing the update failed. Retry, or download manually from the releases page."
 }

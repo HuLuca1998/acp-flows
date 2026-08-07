@@ -1,13 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { checkUpdate } from '@/api/system'
-import type { UpdateStatus } from '@/models/update'
 import { Skeleton } from '@/ui/Skeleton'
 
 import { LanguageSection } from './LanguageSection'
 import styles from './Settings.module.css'
 import { UpdateSection } from './UpdateSection'
+import { useUpdateFlow } from './use-update-flow'
 
 /**
  * 设置页。五个分区，未实现的用骨架占位。
@@ -17,28 +16,13 @@ import { UpdateSection } from './UpdateSection'
  */
 export function SettingsPage() {
   const { t } = useTranslation()
-  const [status, setStatus] = useState<UpdateStatus | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [errorCode, setErrorCode] = useState<string | null>(null)
+  const update = useUpdateFlow()
+  const { check } = update
 
-  const runCheck = useCallback(async () => {
-    setLoading(true)
-    setErrorCode(null)
-    try {
-      setStatus(await checkUpdate())
-    } catch (err) {
-      // ★ 绝不降级成「已是最新版本」：网络断了、后端挂了都会走到这里。
-      // 静默的话用户永远不知道自己在用旧版——这类故障没有任何症状。
-      setStatus(null)
-      setErrorCode(err instanceof Error ? err.message : 'update_check_failed')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
+  // 进设置页时检查一次，**不轮询**（docs/adr/0007 修订 3）
   useEffect(() => {
-    void runCheck()
-  }, [runCheck])
+    void check()
+  }, [check])
 
   return (
     <div className={styles.page}>
@@ -50,14 +34,13 @@ export function SettingsPage() {
       </section>
 
       <UpdateSection
-        status={status}
-        loading={loading}
-        errorCode={errorCode}
-        onCheck={() => void runCheck()}
-        onUpdate={() => {
-          // 一键更新的完整流程（先 prepare 再下载）在 M1 的 U1.1.3。
-          // 现在**什么都不做**比假装在更新诚实。
-        }}
+        status={update.status}
+        phase={update.phase}
+        errorCode={update.errorCode}
+        blocked={update.blocked}
+        progress={update.progress}
+        onCheck={() => void update.check()}
+        onUpdate={() => void update.applyUpdate()}
       />
 
       <section className={styles.section}>

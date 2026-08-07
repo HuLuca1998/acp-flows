@@ -60,3 +60,24 @@
   display: flex;
   gap: var(--space-2);
 }
+
+.blocked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.blockedList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blockedList li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}

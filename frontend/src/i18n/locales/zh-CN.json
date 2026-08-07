@@ -56,5 +56,11 @@
   "context.references": "引用",
   "context.referencesHint": "这里将来是本轮引用的文件与截图，以及工作区的未提交改动。",
   "nav.resizeRail": "拖动改变左栏宽度",
-  "nav.resizeContext": "拖动改变右栏宽度"
+  "nav.resizeContext": "拖动改变右栏宽度",
+  "settings.update.blocked": "有工作正在进行，更新会打断它们。请先处理完再更新。",
+  "settings.update.blockedReason": "进行中",
+  "settings.update.downloading": "正在下载",
+  "error.update_not_supported": "当前形态无法自动更新，请前往发布页下载。",
+  "error.update_prepare_failed": "无法确认现在更新是否安全，已中止。",
+  "error.update_install_failed": "安装更新失败，请重试或前往发布页手动下载。"
 }

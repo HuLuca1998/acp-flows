@@ -16,8 +16,10 @@ function renderSection(over: Partial<Parameters<typeof UpdateSection>[0]> = {}) 
   return render(
     <UpdateSection
       status={null}
-      loading={false}
+      phase="idle"
       errorCode={null}
+      blocked={[]}
+      progress={0}
       onCheck={noop}
       onUpdate={noop}
       {...over}
@@ -80,5 +82,24 @@ describe('更新区', () => {
     const { getByRole } = renderSection({ onCheck })
     getByRole('button', { name: /检查更新/ }).click()
     expect(onCheck).toHaveBeenCalledTimes(1)
+  })
+
+  // ★ 有工作在跑时：停下、列出来、**不给继续安装的入口**。
+  it('blocked 时列出卡住的工作，且不显示更新按钮', () => {
+    renderSection({
+      phase: 'blocked',
+      status: { state: 'available', current_version: '1.4.2', latest_version: '1.5.0' },
+      blocked: [{ work_id: 'work-08', reason: 'work_in_progress' }],
+    })
+
+    expect(screen.getByTestId('update-blocked')).toBeInTheDocument()
+    expect(screen.getByText('work-08')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /一键更新并重启/ })).not.toBeInTheDocument()
+  })
+
+  it('下载中显示进度，且检查按钮不可点', () => {
+    renderSection({ phase: 'downloading', progress: 42 })
+    expect(screen.getByTestId('update-progress')).toHaveTextContent('42%')
+    expect(screen.getByRole('button', { name: /检查更新/ })).toBeDisabled()
   })
 })
