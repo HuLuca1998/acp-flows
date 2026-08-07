@@ -204,3 +204,10 @@
 | `TestRemoveWorktree_LeavesUserProjectAlone` | `internal/gitx/worktree_test.go` | gitx | ★ 移除不碰用户项目里的任何文件 |
 | `TestRemoveWorktree_IsIdempotent` | `internal/gitx/worktree_test.go` | gitx | 移除不存在的不报错（清理路径会走两遍：正常结束 + 崩溃后重启） |
 | `TestAddWorktree_RejectsNonRepo` | `internal/gitx/worktree_test.go` | gitx | 非 git 目录给明确错误，不是让 git 吐一句英文 |
+| `TestStart_WritesNothingIntoUserProject` | `internal/app/work/service_test.go` | app | ★★ R2：建工作往用户项目写**零个字节**——worktree 用真 gitx 而不是假实现，假的什么都不写、那条断言会永远绿 |
+| `TestStart_EachWorkGetsItsOwnWorktree` | `internal/app/work/service_test.go` | app | ★ R1：两个工作各有各的 worktree，文件改动互不可见 |
+| `TestStart_TransitionsThroughInitializing` | `internal/app/work/service_test.go` | app | 从 initializing 起步再进 clarifying，且发 state_change 事件（界面靠它知道有新工作） |
+| `TestStart_WorktreeFailureIsTerminal` | `internal/app/work/service_test.go` | app | ★★ 切失败进 initializing_failed 且**落库**；断言的是「最后一次落库时的状态」——内存仓储存指针的话，代码忘了 SaveWork 也测不出来（造负例两次没红才发现这个洞） |
+| `TestStart_RejectsRelativePath` | `internal/app/work/service_test.go` | app | 相对路径在建工作前就拒——它会在 duetd 的工作目录下解析 |
+| `TestStart_RejectsEmptyPrompt` | `internal/app/work/service_test.go` | app | 空需求被拒：没有需求的工作没有意义，而它会占着一个 worktree |
+| `TestList_ReturnsAll` | `internal/app/work/service_test.go` | app | 列出全部工作 |
