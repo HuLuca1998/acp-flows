@@ -211,3 +211,11 @@
 | `TestStart_RejectsRelativePath` | `internal/app/work/service_test.go` | app | 相对路径在建工作前就拒——它会在 duetd 的工作目录下解析 |
 | `TestStart_RejectsEmptyPrompt` | `internal/app/work/service_test.go` | app | 空需求被拒：没有需求的工作没有意义，而它会占着一个 worktree |
 | `TestList_ReturnsAll` | `internal/app/work/service_test.go` | app | 列出全部工作 |
+| `TestWorkRepo_SaveSurvivesRestart` | `internal/store/work_repo_test.go` | store | ★★ R6：真的关掉 Store 再打开同一个文件，工作与**它的状态**都还在——只存 ID 的话重启后全退回初始状态，用户会看到一堆「正在初始化」的僵尸条目 |
+| `TestWorkRepo_SaveIsUpsert` | `internal/store/work_repo_test.go` | store | 同 ID 存两次是更新不是插入；upsert 而非 Create/Update 分开——分开的话调用方每次要先判断「存在吗」，那个判断在并发下必然出错 |
+| `TestStartWork_ReturnsCreated` | `internal/api/works_test.go` | api | 201 + 带出 worktree 路径（「在哪干活」是用户会问的第一个问题） |
+| `TestStartWork_NonRepoBecomesActionableProblem` | `internal/api/works_test.go` | api | ★ 非 git 仓库要有**能让用户自己解决**的错误码——落到通用错误的话界面只有一句「操作失败」，而他其实只需要 `git init` |
+| `TestStartWork_RejectsBadRequest` | `internal/api/works_test.go` | api | 缺 project / 缺 prompt / 空值 / 非法 JSON 都不当成功 |
+| `TestListWorks_EmptyIsArrayNotNull` | `internal/api/works_test.go` | api | 空列表是 `[]` 不是 `null` |
+| `TestWorks_WithoutServiceDoNotPanic` | `internal/api/works_test.go` | api | 没配用例时不 panic 也不假装成功 |
+| `TestWorks_RequiresToken` | `internal/api/works_test.go` | api | 无 token 401——工作能看到用户项目里正在发生的一切 |

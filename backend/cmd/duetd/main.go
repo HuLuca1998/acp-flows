@@ -28,6 +28,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
@@ -150,6 +151,7 @@ func run() error {
 
 	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
 	bus := eventbus.New(eventStore{db.Events()})
+	workSvc := work.New(db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids)
 
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,
@@ -164,6 +166,7 @@ func run() error {
 		// 两者接的是同一张 events 表——bus 写、history 读。
 		Bus:          bus,
 		EventHistory: eventStore{db.Events()},
+		Works:        workSvc,
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
@@ -334,4 +337,40 @@ func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]
 		})
 	}
 	return out, nil
+}
+
+// worktrees 把 gitx 的 worktree 操作接到 app/port 上。
+//
+// ★ root 是 `~/.acpflows/worktrees`——**用户项目之外**（open-questions Q30）。
+// 这一层存在的意义就是把那个路径决定钉死在装配处，
+// 不让 app 层自己去拼路径（拼错了就写进用户仓库了）。
+type worktrees struct{ root string }
+
+func (w worktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
+	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
+		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
+	})
+	return wt.Path, err
+}
+
+func (w worktrees) RemoveWorktree(ctx context.Context, repo, path string) error {
+	return gitx.RemoveWorktree(ctx, repo, path)
+}
+
+// workBus 把 app 层的工作事件接到事件总线上。
+//
+// 两个 Event 类型字段一致但不能互相赋值（结构化类型只对 interface 生效），
+// 而 depguard 不许 app 与 eventbus 互相依赖——接缝落在 cmd。
+type workBus struct{ bus *eventbus.Bus }
+
+func (b workBus) PublishWorkEvent(ctx context.Context, e port.WorkEvent) error {
+	payload, err := json.Marshal(e.Payload)
+	if err != nil {
+		// 载荷编不出来不该让工作本身失败——事件是给界面看的
+		payload = []byte("{}")
+	}
+	return b.bus.Publish(ctx, eventbus.Event{
+		ID: "evt_" + e.WorkID, WorkID: e.WorkID,
+		Source: e.Source, Type: e.Type, Payload: payload,
+	})
 }

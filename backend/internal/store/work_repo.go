@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 	"github.com/HuLuca1998/acp-flows/backend/internal/store/entity"
@@ -84,4 +85,27 @@ func (r *WorkRepo) ListWorks(ctx context.Context) ([]*model.Work, error) {
 		return nil, translate("list works", err)
 	}
 	return mapper.WorksToModels(es), nil
+}
+
+// SaveWork 新增或更新一条工作记录。
+//
+// ★ upsert 而不是分成 Create/Update 两个：分开的话，调用方每次都要先判断
+// 「这个工作存在吗」——而那个判断在并发下必然出错（两个请求同时查到不存在，
+// 然后一起插入）。
+//
+// 冲突时只更新可变字段，**不动 created_at**：创建时间被覆盖的话，
+// 左栏「按创建时间倒序」的排序会在每次状态变化时跳一下。
+func (r *WorkRepo) SaveWork(ctx context.Context, w *model.Work) error {
+	e := mapper.WorkToEntity(w)
+	now := r.clk.Now()
+	e.CreatedAt, e.UpdatedAt = now, now
+
+	err := r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"state", "updated_at"}),
+		}).
+		Create(e).Error
+
+	return translate("save work "+w.ID(), err)
 }
