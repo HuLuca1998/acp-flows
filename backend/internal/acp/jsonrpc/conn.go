@@ -116,9 +116,18 @@ func (c *Conn) Serve(ctx context.Context) error {
 
 		switch {
 		case m.Method != "" && m.ID != nil:
-			go c.serveRequest(ctx, m) // 反向请求：不阻塞读循环
+			// 反向请求（session/request_permission）要等用户回答，
+			// 同步处理会卡死读循环——只有它需要 goroutine。
+			go c.serveRequest(ctx, m)
 		case m.Method != "":
-			go c.serveNotification(ctx, m)
+			// ★ 通知**同步按序处理**，绝不起 goroutine。
+			//
+			// session/update 里的 agent_message_chunk 是流式文本，
+			// 顺序就是用户看到的字序。并发派发意味着「今天没复现」只是运气——
+			// 实测 200 条通知里第一条到手的是 seq 3。
+			//
+			// 代价是 handler 里不能做慢操作，那写在 Handler 的文档上。
+			c.serveNotification(ctx, m)
 		case m.ID != nil:
 			c.deliver(m)
 		default:

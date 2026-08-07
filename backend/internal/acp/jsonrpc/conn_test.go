@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -460,5 +461,75 @@ func TestConn_R12_UnknownResponseIDIsIgnored(t *testing.T) {
 	m := p.readFrame(t)
 	if m["result"] != "ok" {
 		t.Errorf("无人认领的响应之后连接不可用了: %v", m)
+	}
+}
+
+// ★★ 通知必须**按到达顺序**处理。
+//
+// 真踩过（2026-08-08，做 U2.2.2 时发现）：原来是 `go c.serveNotification(...)`，
+// 每条通知起一个 goroutine。对 ACP 来说这是**语义错误**——
+// session/update 里的 agent_message_chunk 是流式文本，顺序就是用户看到的字序。
+// 并发派发意味着「今天没复现」只是运气，用户迟早会看到乱掉的句子。
+//
+// 反向请求（session/request_permission）仍然要 goroutine：它等用户回答，
+// 同步处理会卡死读循环。两者的区别是「会不会阻塞」，不是「重不重要」。
+func TestConn_NotificationsAreProcessedInOrder(t *testing.T) {
+	const n = 200
+
+	var mu sync.Mutex
+	var got []int
+
+	in, w := io.Pipe()
+	conn := jsonrpc.New(in, io.Discard, jsonrpc.HandlerFunc(func(_ context.Context, method string, params json.RawMessage) (any, error) {
+		if method != "tick" {
+			return nil, nil
+		}
+		var p struct {
+			Seq int `json:"seq"`
+		}
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, err
+		}
+		mu.Lock()
+		got = append(got, p.Seq)
+		mu.Unlock()
+		return nil, nil
+	}))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() { _ = conn.Serve(ctx) }()
+
+	go func() {
+		for i := range n {
+			_, _ = fmt.Fprintf(w, `{"jsonrpc":"2.0","method":"tick","params":{"seq":%d}}`+"\n", i)
+		}
+		_ = w.Close()
+	}()
+
+	deadline := time.After(3 * time.Second)
+	for {
+		mu.Lock()
+		done := len(got) == n
+		mu.Unlock()
+		if done {
+			break
+		}
+		select {
+		case <-deadline:
+			mu.Lock()
+			t.Fatalf("只收到 %d/%d 条通知", len(got), n)
+		default:
+			time.Sleep(5 * time.Millisecond)
+		}
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	for i, seq := range got {
+		if seq != i {
+			t.Fatalf("第 %d 条通知的 seq 是 %d——顺序乱了，"+
+				"流式文本会以错误的字序显示给用户", i, seq)
+		}
 	}
 }
