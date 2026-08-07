@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   railOpen: 'duet.rail.open',
   contextOpen: 'duet.context.open',
   page: 'duet.page',
+  railWidth: 'duet.rail.width',
+  contextWidth: 'duet.context.width',
 } as const
 
 /**

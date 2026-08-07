@@ -15,8 +15,11 @@ test.describe('黄金路径', () => {
     await page.goto('/')
 
     // 用 role/text 定位，**不用 CSS 选择器** —— 设计会改，绑死结构的用例只会变成噪音
-    await expect(page.getByRole('button', { name: '折叠侧栏' })).toBeVisible()
-    await expect(page.getByText('Duet')).toBeVisible()
+    // 窗口栏的三个折叠开关（设计规范 §06 规则①：全部集中在窗口栏）
+    await expect(page.getByRole('button', { name: /折叠侧栏|Toggle sidebar/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /计划面板|Plan panel/ })).toBeVisible()
+    // 主区渲染出内容（当前是对话页的骨架占位）
+    await expect(page.locator('main')).not.toBeEmpty()
   })
 
   test('后端可达且鉴权生效', async ({ request }) => {

@@ -10,11 +10,15 @@ import styles from './Context.module.css'
  *
  * **只在对话主区出现**，其余页面是全宽内容页。
  */
-export function ContextPanel() {
+export function ContextPanel({ width }: { width?: number }) {
   const { t } = useTranslation()
 
   return (
-    <aside className={styles.panel} aria-label={t('context.title')}>
+    <aside
+      className={styles.panel}
+      style={width === undefined ? undefined : { width }}
+      aria-label={t('context.title')}
+    >
       <header className={styles.head}>
         <span className={styles.title}>{t('context.timelineFilter')}</span>
       </header>

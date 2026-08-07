@@ -23,7 +23,7 @@
   "settings.update.checking": "Checking…",
   "settings.update.checkFailed": "Update check failed. Check your connection and try again.",
   "settings.update.upToDate": "You are on the latest version",
-  "settings.update.applyAndRestart": "⟳ Update and restart",
+  "settings.update.applyAndRestart": "Update and restart",
   "settings.update.fullChangelog": "Full changelog",
   "settings.update.webHint": "Automatic updates are unavailable in the browser. Download the latest build from the releases page.",
   "settings.update.openDownloads": "Open downloads",
@@ -54,5 +54,7 @@
   "context.timelineFilter": "Timeline",
   "context.filterHint": "This will be the event filter: ACP events and application events grouped separately, so you can show only what you care about.",
   "context.references": "References",
-  "context.referencesHint": "This will list files and screenshots referenced in this turn, plus uncommitted changes in the workspace."
+  "context.referencesHint": "This will list files and screenshots referenced in this turn, plus uncommitted changes in the workspace.",
+  "nav.resizeRail": "Drag to resize the sidebar",
+  "nav.resizeContext": "Drag to resize the context panel"
 }

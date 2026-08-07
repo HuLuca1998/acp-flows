@@ -1,0 +1,14 @@
+/* 分栏拖拽手柄。设计规范 §06 / §08。 */
+
+.handle {
+  flex-shrink: 0;
+  width: 5px;
+  background: var(--color-neutral-900);
+  cursor: col-resize;
+}
+
+.handle:hover,
+.handle:focus-visible {
+  background: var(--color-accent-700);
+  outline: none;
+}

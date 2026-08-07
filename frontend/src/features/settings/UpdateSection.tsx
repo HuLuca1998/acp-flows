@@ -75,7 +75,7 @@ export function UpdateSection({
             <p className={styles.notes}>{status.notes}</p>
           )}
           <div className={styles.actions}>
-            <Button variant="primary" onClick={onUpdate}>
+            <Button variant="primary" icon="ph-arrows-clockwise" onClick={onUpdate}>
               {t('settings.update.applyAndRestart')}
             </Button>
             <Button variant="ghost">{t('settings.update.fullChangelog')}</Button>

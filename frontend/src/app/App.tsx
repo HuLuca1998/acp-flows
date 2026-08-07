@@ -5,6 +5,7 @@ import { ChatPage } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
 import { Button } from '@/ui/Button'
+import { Resizer } from '@/ui/Resizer'
 import { STORAGE_KEYS, usePersistedState } from '@/utils/persisted'
 
 import styles from './App.module.css'
@@ -36,6 +37,9 @@ export function App() {
   const [railOpen, setRailOpen] = usePersistedState(STORAGE_KEYS.railOpen, true)
   const [contextOpen, setContextOpen] = usePersistedState(STORAGE_KEYS.contextOpen, true)
   const [planOpen, setPlanOpen] = useState(false)
+  // 栏宽可拖，范围写死在设计规范 §06：左栏 180–420、右栏 220–460
+  const [railWidth, setRailWidth] = usePersistedState(STORAGE_KEYS.railWidth, 252)
+  const [contextWidth, setContextWidth] = usePersistedState(STORAGE_KEYS.contextWidth, 300)
 
   const navPage = navPageById(pageId)
   const showContext = hasContextPanel(pageId) && contextOpen
@@ -59,7 +63,8 @@ export function App() {
           <span className={styles.crumbMuted}>{t('common.state.noProject')}</span>
         </nav>
 
-        <div className={styles.titlebarRight}>
+        {/* 靠视口右缘：tooltip 必须右对齐，否则会把页面撑出横向滚动条 */}
+        <div className={styles.titlebarRight} data-tt-align="end">
           <Button
             icon="ph-tree-structure"
             label={t('nav.togglePlan')}
@@ -77,13 +82,38 @@ export function App() {
       </header>
 
       <div className={styles.body}>
-        {railOpen && <Rail currentPage={pageId} onNavigate={setPageId} />}
+        <Rail
+          currentPage={pageId}
+          onNavigate={setPageId}
+          collapsed={!railOpen}
+          width={railWidth}
+        />
+        {railOpen && (
+          <Resizer
+            width={railWidth}
+            min={180}
+            max={420}
+            grow="right"
+            onResize={setRailWidth}
+            label={t('nav.resizeRail')}
+          />
+        )}
 
         <main className={styles.main}>
           {navPage === null ? <ChatPage /> : <navPage.Component />}
         </main>
 
-        {showContext && <ContextPanel />}
+        {showContext && (
+          <Resizer
+            width={contextWidth}
+            min={220}
+            max={460}
+            grow="left"
+            onResize={setContextWidth}
+            label={t('nav.resizeContext')}
+          />
+        )}
+        {showContext && <ContextPanel width={contextWidth} />}
       </div>
 
       {planOpen && (

@@ -16,8 +16,10 @@
   padding: var(--space-2) var(--space-4) 0;
 }
 
+/* 规范 §02：分组标题 10 / uppercase / letter-spacing .09em */
 .title {
-  color: var(--color-neutral-600);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  color: var(--color-neutral-700);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }

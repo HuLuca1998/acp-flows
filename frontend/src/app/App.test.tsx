@@ -90,13 +90,22 @@ describe('应用骨架', () => {
     expect(screen.getByRole('button', { name: /上下文面板/ })).toBeInTheDocument()
   })
 
-  it('折叠开关能收起左栏', async () => {
+  // ★ 折叠后**保留图标条**，不是整条消失（设计规范 §06 规则②）。
+  // 整条消失会让用户失去「我在哪」的锚点，也让重新展开变成一次寻找。
+  it('折叠后左栏保留图标条：文字收起但导航仍在', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(screen.getByRole('navigation', { name: '主导航' })).toBeInTheDocument()
+    const nav = () => screen.getByRole('navigation', { name: '主导航' })
+    expect(within(nav()).getByText('设置')).toBeInTheDocument()
+
     await user.click(screen.getByRole('button', { name: /折叠侧栏/ }))
-    expect(screen.queryByRole('navigation', { name: '主导航' })).not.toBeInTheDocument()
+
+    // 导航还在——只是文字收起了
+    expect(nav()).toBeInTheDocument()
+    expect(within(nav()).queryByText('设置')).not.toBeInTheDocument()
+    // 项目树与最近也一并收起，只留图标条
+    expect(screen.queryByText('项目')).not.toBeInTheDocument()
   })
 
   it('计划面板由窗口栏唤出，不是导航页', async () => {

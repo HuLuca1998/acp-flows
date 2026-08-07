@@ -1,11 +1,11 @@
 /* 左栏。设计规范 §06。尺寸与颜色一律 var()。 */
 
-.rail {
+.rail,
+.railCollapsed {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   gap: var(--space-4);
-  width: var(--layout-left-w);
   padding: var(--space-3) var(--space-2);
   overflow-y: auto;
   background: var(--s-rail);
@@ -57,11 +57,13 @@
   padding: 0 var(--space-3);
 }
 
+/* 规范 §02：分组标题 10 / uppercase / letter-spacing .09em */
 .sectionTitle {
   padding: 0 var(--space-3);
-  color: var(--color-neutral-600);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  color: var(--color-neutral-700);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
 .sectionHead .sectionTitle {
@@ -95,4 +97,14 @@
   color: var(--color-neutral-500);
   font-family: var(--font-mono);
   font-size: 11px;
+}
+
+.rail {
+  width: var(--layout-left-w);
+}
+
+/* 规范 §06 规则②：折叠后保留 48px 图标条，不是整条消失 */
+.railCollapsed {
+  width: var(--layout-left-collapsed);
+  align-items: center;
 }

@@ -23,7 +23,7 @@
   "settings.update.checking": "检查中…",
   "settings.update.checkFailed": "检查更新失败，请确认网络后重试。",
   "settings.update.upToDate": "已是最新版本",
-  "settings.update.applyAndRestart": "⟳ 一键更新并重启",
+  "settings.update.applyAndRestart": "一键更新并重启",
   "settings.update.fullChangelog": "完整更新日志",
   "settings.update.webHint": "浏览器里无法自动更新，请前往发布页下载最新版本。",
   "settings.update.openDownloads": "前往下载",
@@ -54,5 +54,7 @@
   "context.timelineFilter": "时间线显示",
   "context.filterHint": "这里将来是事件过滤器：按 ACP 事件与应用事件分组，可只看关心的几类。",
   "context.references": "引用",
-  "context.referencesHint": "这里将来是本轮引用的文件与截图，以及工作区的未提交改动。"
+  "context.referencesHint": "这里将来是本轮引用的文件与截图，以及工作区的未提交改动。",
+  "nav.resizeRail": "拖动改变左栏宽度",
+  "nav.resizeContext": "拖动改变右栏宽度"
 }
