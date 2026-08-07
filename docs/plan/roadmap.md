@@ -19,8 +19,8 @@
 |---|---|
 | **现在做** | `U2.4.1` 的**剩余部分**：落库 + `/works` 端点 + 前端接线 |
 | **对应验收点** | V5 + V6 真正连起来 —— 提一个需求就有一个看得见、停得掉的「工作」 |
-| **已完成的部分** | **worktree 隔离**（`gitx`，R1 R2 已验）与 **app 用例**<br>（状态流转、失败落库、发事件）。两层都造过负例。 |
-| **接着做什么** | ① `store` 的工作仓储（R6 重启后还在）<br>② `api/openapi.yaml` 加 `/works` + 端点<br>③ 前端把 `Timeline` 接进对话页（R4，补 `U2.3.2` 的欠账）<br>④ `//go:build integration` 跑真 Agent（R5，照 `make probe` 的做法） |
+| **已完成的部分** | R1 R2 R6 已验：worktree 隔离、app 用例、落库、`/works` 端点、duetd 接线。<br>**整条「提需求 → 建工作」真机跑通过**（工作重启后还在，仓库没被动） |
+| **接着做什么** | ① 前端把 `Timeline` 接进对话页（R4，补 `U2.3.2` 的欠账）<br>　　—— 调 `POST /v1/works` 建工作，连 `EventSource` 按 `work_id` 过滤<br>② 把 ACP 会话接进来（R3 系统提示词只首轮发，补 `U2.2.2`）<br>　　—— `acp/session` 已就绪，缺的是「谁在工作创建后拉起它」<br>③ `//go:build integration` 跑真 Agent（R5，照 `make probe` 的做法） |
 
 **四笔欠账，都等 Work 的创建**：
 

@@ -33,6 +33,8 @@ tags:
     description: ACP Runtime 探测与管理
   - name: project
     description: 本地项目的添加、列出与移除
+  - name: work
+    description: 一次工作的创建与查看
 
 paths:
   # ── 系统 ────────────────────────────────────────────────────
@@ -194,6 +196,56 @@ paths:
         - $ref: '#/components/parameters/ProjectID'
       responses:
         '204': { description: 已移除 }
+        default: { $ref: '#/components/responses/Problem' }
+
+  # ── Work ────────────────────────────────────────────────────
+  /works:
+    get:
+      tags: [work]
+      operationId: listWorks
+      summary: 全部工作
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [works]
+                properties:
+                  works:
+                    type: array
+                    items: { $ref: '#/components/schemas/Work' }
+    post:
+      tags: [work]
+      operationId: startWork
+      summary: 对一个项目提需求，开一个工作
+      description: |
+        切一个独立 worktree、建 ACP 会话、开始澄清需求。
+
+        ★ worktree 建在 `~/.acpflows/worktrees`，**不在用户的项目目录里**
+        （见 docs/plan/open-questions.md Q30）。用户把代码目录交给 Duet 时，
+        并没有同意我们在他的仓库里造一堆分支和目录。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project, prompt]
+              properties:
+                project:
+                  type: string
+                  description: 项目的本地绝对路径
+                prompt:
+                  type: string
+                  description: 用户的需求原话
+      responses:
+        '201':
+          description: 已创建
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Work' }
         default: { $ref: '#/components/responses/Problem' }
 
   # ── Runtime ─────────────────────────────────────────────────
@@ -383,6 +435,43 @@ components:
             command:
               type: string
               examples: ['git init']
+
+    # ── Work ──────────────────────────────────────────────────
+    Work:
+      type: object
+      required: [id, state]
+      description: |
+        一次工作。`state` 是**封闭枚举**，与 backend/internal/constant 的
+        WorkState 一一对应；新增取值要同时改三处：本文件 + 那个常量 +
+        状态迁移表（domain/model/work.go）。
+      properties:
+        id: { type: string, examples: ['work-01'] }
+        state:
+          type: string
+          description: |
+            ★ `initializing_failed` 是**终态、不可恢复** —— worktree 没切成
+            就没有可执行的现场（docs/adr/0006 Q1）。界面上不该给「重试」按钮。
+          enum:
+            - initializing
+            - initializing_failed
+            - clarifying
+            - planning
+            - ready
+            - executing
+            - reviewing_unit
+            - waiting_user
+            - paused
+            - completed
+            - failed
+        project:
+          type: string
+          description: 项目的本地绝对路径
+        worktree:
+          type: string
+          description: 这个工作的独立工作区；**在用户项目之外**
+        prompt:
+          type: string
+          description: 用户的需求原话
 
     # ── Runtime ───────────────────────────────────────────────
     Runtime:
