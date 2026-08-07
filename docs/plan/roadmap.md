@@ -35,7 +35,7 @@ Secret 一旦就绪，`U1.2.2` → `U1.2.3` 立刻可以接着做。
 
 | | 里程碑 | 用户拿到什么 | 验收点 | 状态 |
 |---|---|---|---|---|
-| **M0** | [基础框架](milestones/M0-foundation.md) | 打开就能看到完整界面轮廓，未做的地方是骨架占位 | V0 系列 | ◐ 差 `U0.3.3` |
+| **M0** | [基础框架](milestones/M0-foundation.md) | 打开就能看到完整界面轮廓，未做的地方是骨架占位 | V0 系列 | ✓ 完成 |
 | **M1** | [装得上，能一直更新](milestones/M1-install-and-update.md) | 能装、能开，之后每次改动都靠一键更新拿到 | V1 V2 V3 | **进行中** |
 | **M2** | [能提需求，看得见 AI 在干什么](milestones/M2-talk-and-observe.md) | 加项目、提需求、AI 边做边显示 | V4 V5 V6 | 待开始 |
 | **M3** | [能管住 AI](milestones/M3-control.md) | 动文件前先问、随时能喊停且现场保留 | V7 V8 | 待开始 |
