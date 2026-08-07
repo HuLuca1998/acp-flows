@@ -42,6 +42,8 @@
 | `TestConn_R5_ContextCancellation` | `internal/acp/jsonrpc/conn_test.go` | acp | M0 U0.2.1 R5：对方永不回复时超时返回 `DeadlineExceeded`，pending 表不泄漏 |
 | `TestConn_R6_MalformedLineDoesNotKillConnection` | `internal/acp/jsonrpc/conn_test.go` | acp | M0 U0.2.1 R6：一行坏帧被跳过，后续消息仍正常处理 |
 | `TestConn_PropagatesRemoteError` | `internal/acp/jsonrpc/conn_test.go` | acp | 远端 error 翻译成可辨识的 `*jsonrpc.Error`，保留 code（-32000 是 ACP 的认证错误）与 message |
+| `TestCallInto_FailsWhenPeerDies` | `internal/acp/jsonrpc/conn_test.go` | acp | ★ **对方进程退出时，等着的调用立刻失败**（`ErrPeerGone`）而不是挂到 ctx 超时——Agent 起不来时用户看到的是界面停在「正在初始化」，没有转圈没有报错，只能杀应用 |
+| `TestCallInto_FailsAfterServeStopped` | `internal/acp/jsonrpc/conn_test.go` | acp | 连接断掉**之后**新发起的调用也立刻失败，不等 ctx 超时 |
 | `TestAuth_R3_RejectsWithoutToken` | `internal/api/server_test.go` | api | M0 U0.10.1 R3：无 token / 空 token / 错 token / token 前缀，四种都必须 401；**401 响应里不泄漏正确 token 与版本信息** |
 | `TestAuth_AcceptsValidToken` | `internal/api/server_test.go` | api | 带正确 token 时放行 |
 | `TestSystemVersion_R5_MatchesContract` | `internal/api/server_test.go` | api | M0 U0.10.1 R5：响应 Content-Type 与 `openapi.yaml` 的 `VersionInfo` 必填字段一致 |
@@ -219,3 +221,23 @@
 | `TestListWorks_EmptyIsArrayNotNull` | `internal/api/works_test.go` | api | 空列表是 `[]` 不是 `null` |
 | `TestWorks_WithoutServiceDoNotPanic` | `internal/api/works_test.go` | api | 没配用例时不 panic 也不假装成功 |
 | `TestWorks_RequiresToken` | `internal/api/works_test.go` | api | 无 token 401——工作能看到用户项目里正在发生的一切 |
+| `TestClose_ReturnsWhenPeerStaysAlive` | `internal/acp/session/session_test.go` | acp | ★ Agent 一轮结束后**不退出**（它等下一条需求）时 `Close` 仍在 2s 内返回——死等的话两边互相等，表现是应用退不出去、Agent 进程越攒越多 |
+| `TestRun_TranslatesUpdateKinds` | `internal/acp/agent/agent_test.go` | acp | M2 U2.4.1 R3：★ ACP 的判别值翻成**契约里的**事件类型（`agent_message_chunk`→`message_chunk`、`tool_call`/`tool_call_update`→`tool_call`、三种计划变化→`plan_version`）；靠字符串相等碰运气的话前端全落到兜底渲染器 |
+| `TestTimelineType_CoversEveryKind` | `internal/acp/agent/agent_test.go` | acp | ★★ 本包的守卫：翻译表必须盖住 `protocol.AllSessionUpdateKinds()` 全集——Agent 新增一类事件时逼人做一次决定（翻成哪类，还是明确「认识但不上时间线」），否则它静静消失 |
+| `TestRun_TagsEveryEventWithWorkID` | `internal/acp/agent/agent_test.go` | acp | 每条事件带 `work_id` 与 `source=acp`——前端靠 work_id 过滤，不带会串台 |
+| `TestRun_EmitsTurnEndWithReason` | `internal/acp/agent/agent_test.go` | acp | 轮次结束必发 `turn_end` 且带**真实** stopReason（`end_turn`/`max_tokens`/`refusal`）——不发的话界面停在那儿，用户不知道是说完了还是卡住了 |
+| `TestRun_CarriesText` | `internal/acp/agent/agent_test.go` | acp | 文本块的内容带进 payload，那是用户真正读的东西 |
+| `TestRun_EmitsWhileRunning` | `internal/acp/agent/agent_test.go` | acp | ★ 事件**边说边发**不攒批（第一条 <500ms，整轮 1.5s）——攒的话用户盯着不动的界面等 |
+| `TestRun_SkipsSessionMetadata` | `internal/acp/agent/agent_test.go` | acp | 会话元数据（用量、可用命令）不上时间线，只留 `turn_end`——塞进去会淹掉真正的进展 |
+| `TestRun_PrependsSystemPromptOnce` | `internal/acp/agent/agent_test.go` | acp | M2 U2.2.2 R3 欠账：系统提示词只在**第一轮**拼上去，每轮都发的话几十轮后上下文全是重复的同一段话 |
+| `TestRun_InvalidCwdEmitsNothing` | `internal/acp/agent/agent_test.go` | acp | cwd 非法时一个事件都不发——那意味着这一轮压根没开始 |
+| `TestProcessRunner_NoRuntimeReady` | `internal/acp/agent/runner_test.go` | acp | ★ 一个 Runtime 都没就绪时错误里带**补救办法**（`npm i -g ...`）——这句话会出现在时间线的失败事件里，是用户唯一能看到的线索 |
+| `TestProcessRunner_ReportsAgentStderr` | `internal/acp/agent/runner_test.go` | acp | ★ Agent 起来又立刻退出时把它的 stderr 带回来（「not authenticated」）——不带的话真正的原因躺在一个没人读的管道里 |
+| `TestProcessRunner_PublishesToBus` | `internal/acp/agent/runner_test.go` | acp | 事件发到**总线**（那是它去到界面的唯一通路）；对手方是 `t.TempDir()` 里按 ACP 规范说话的 shell 脚本，不是 Fake——要验的正是进程怎么拉起来 |
+| `TestProcessRunner_LeavesNoOrphan` | `internal/acp/agent/runner_test.go` | acp | ★★ 一轮跑完 Agent 进程**不能还活着**（假 Agent 里放 `sleep 300`，跑完 `ps` 查 pid）——留着的话用户每提一个需求就多一个常驻进程，关掉应用后它们还在 |
+| `TestProcessRunner_BusFailureDoesNotFailTurn` | `internal/acp/agent/runner_test.go` | acp | 总线发不出去不让整轮失败——AI 那边的活已经干了，报「失败」而磁盘上躺着改好的文件比不通知更糟 |
+| `TestStart_RunsTurnInWorktree` | `internal/app/work/service_test.go` | app | ★★ M2 U2.4.1：工作建好后**真的把需求送给 AI**，且 cwd 是工作自己的 worktree 而非用户项目目录——后者等于让 AI 直接在他的分支上改文件 |
+| `TestStart_TurnSurvivesRequestCancel` | `internal/app/work/service_test.go` | app | ★★ 这一轮脱开请求的 ctx（`WithoutCancel`）——挂在上面的话 HTTP 一返回 AI 就被砍掉，用户看到时间线停在半截且没有报错 |
+| `TestStart_ReportsTurnFailure` | `internal/app/work/service_test.go` | app | AI 那一轮跑挂了要发 `state_change → failed` **并带原因**——静默的话用户对着「正在澄清需求」永远等 |
+| `TestStart_NoTurnWhenWorktreeFails` | `internal/app/work/service_test.go` | app | worktree 没切成就不跑 AI——没有现场可以让它干活 |
+| `TestStart_NilRunnerDoesNotPanic` | `internal/app/work/service_test.go` | app | 没配 runner 时（只跑 API 冒烟）不崩 |
