@@ -28,6 +28,9 @@ type Config struct {
 	// Update 是更新用例。为 nil 时更新端点返回 update_not_configured
 	// 而不是 panic —— 纯 Web 部署可以不接发布源。
 	Update updateService
+	// Runtimes 检测本机装了哪些 ACP Runtime。为 nil 时该端点返回
+	// runtime_detection_unavailable，其余端点不受影响。
+	Runtimes runtimeDetector
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -53,6 +56,10 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// duetd 会在更新时被替换掉，让它管自己的替换过程是错的（docs/adr/0002）。
 	mux.HandleFunc("POST /v1/system/update/check", handleCheckUpdate(cfg.Update))
 	mux.HandleFunc("POST /v1/system/update/prepare", handlePrepareUpdate(cfg.Update))
+
+	// 环境检测：只看，不碰用户的 ~/.claude 与 ~/.codex，也不发起任何
+	// 会产生费用的模型调用。
+	mux.HandleFunc("GET /v1/runtimes", handleListRuntimes(cfg.Runtimes))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
