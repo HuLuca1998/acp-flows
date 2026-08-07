@@ -117,3 +117,159 @@ describe('时间线', () => {
     expect(document.querySelector('[data-shape="line"]')).not.toBeNull()
   })
 })
+
+// ── U2.4.1 · 真机走查补的：工具调用要看得出在干什么 ──────────
+
+function toolEv(payload: Record<string, unknown>): TimelineEvent {
+  seq += 1
+  return {
+    id: `evt_${seq}`,
+    seq,
+    source: 'acp',
+    type: 'tool_call',
+    ts: '2026-08-08T00:00:00Z',
+    payload,
+  }
+}
+
+describe('工具调用', () => {
+  // ★★ 一次工具调用是**一张卡片**，不是四张。
+  //
+  // ACP 会为同一次调用连发 tool_call + 若干 tool_call_update（状态变化），
+  // 它们共用一个 toolCallId。不归并的话，用户看到四条一模一样的「工具调用」，
+  // 以为 AI 动了四个文件——真机上撞到的第一个问题。
+  it('同一个 toolCallId 归并成一张卡片', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
+          toolEv({ acp_kind: 'tool_call_update', toolCallId: 't1', status: 'in_progress' }),
+          toolEv({ acp_kind: 'tool_call_update', toolCallId: 't1', status: 'completed' }),
+        ]}
+      />,
+    )
+
+    // ★ 断言的是**卡片数量**，不是标题出现了几次。
+    // 只有第一条事件带 title，所以数标题的话，不归并时它照样只出现一次——
+    // 那样这条测试什么都证明不了（造负例时发现的）。
+    const cards = document.querySelectorAll('[data-event-type="tool_call"]')
+    expect(cards, '同一次调用被拆成了多张卡片——用户会以为 AI 动了好几个文件').toHaveLength(1)
+    expect(screen.getByText('Read README.md')).toBeInTheDocument()
+  })
+
+  // 不同的调用不能并到一起——并了的话用户以为 AI 只动了一个文件。
+  it('不同的 toolCallId 各占一张卡片', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read a.md' }),
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't2', title: 'Read b.md' }),
+        ]}
+      />,
+    )
+
+    expect(document.querySelectorAll('[data-event-type="tool_call"]')).toHaveLength(2)
+    expect(screen.getByText('Read a.md')).toBeInTheDocument()
+    expect(screen.getByText('Read b.md')).toBeInTheDocument()
+  })
+
+  // ★ 卡片上要写清楚**在干什么**。
+  //
+  // 只显示「工具调用」四个字的话，信息量是零——设计稿里每条事件行都是
+  // 「图标 + 类型 + 等宽标识 + 一句人话」，光有类型标签比设计稿差。
+  it('显示 Agent 给的标题', () => {
+    render(<Timeline events={[toolEv({ toolCallId: 't1', title: 'Edit src/main.go' })]} />)
+
+    expect(screen.getByText('Edit src/main.go')).toBeInTheDocument()
+  })
+
+  // 没有 title 时退到文件路径——总比只显示「工具调用」强。
+  it('没有标题时退到文件路径', () => {
+    render(
+      <Timeline
+        events={[toolEv({ toolCallId: 't1', rawInput: { file_path: '/repo/README.md' } })]}
+      />,
+    )
+
+    expect(screen.getByText(/README\.md/)).toBeInTheDocument()
+  })
+
+  // ★ 最终状态要盖住中间态：一次调用完成之后，卡片上不该还写着「进行中」。
+  it('状态取最后一次更新', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ toolCallId: 't1', title: 'Read a.md', status: 'in_progress' }),
+          toolEv({ toolCallId: 't1', status: 'completed' }),
+        ]}
+      />,
+    )
+
+    const card = screen.getByText('Read a.md').closest('[data-event-type="tool_call"]')
+    expect(card?.getAttribute('data-status'), '状态停在中间态——用户以为还在跑').toBe('completed')
+  })
+
+  // ★★ 归并时，**后来的低质量摘要不许顶掉先前的标题**。
+  //
+  // 真机撞到的：tool_call 带 title「Read README.md」，随后的
+  // tool_call_update 只带 kind，结果卡片上显示的是「tool_call_update」——
+  // 用户看不出 AI 读的是哪个文件，等于白归并了。
+  it('状态更新不会把标题顶掉', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
+          toolEv({ toolCallId: 't1', kind: 'tool_call_update', status: 'completed' }),
+        ]}
+      />,
+    )
+
+    expect(
+      screen.getByText('Read README.md'),
+      '标题被后来的状态更新顶掉了——用户看不出 AI 在读哪个文件',
+    ).toBeInTheDocument()
+  })
+
+  // ★★ 同一档的后来者要**覆盖**先前的。
+  //
+  // 真机上 Claude 先给泛称「Read File」，随后的 tool_call_update 才补上
+  // 具体的「Read README.md」——两者都在 title 上。只让「更好的档」覆盖的话，
+  // 卡片会停在「Read File」，用户仍然看不出读的是哪个文件。
+  it('后来的同档标题会覆盖先前的', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ toolCallId: 't1', title: 'Read File', kind: 'read' }),
+          toolEv({ toolCallId: 't1', title: 'Read README.md' }),
+        ]}
+      />,
+    )
+
+    expect(
+      screen.getByText('Read README.md'),
+      'ACP 后来补的具体标题没生效——卡片停在泛称，看不出读的是哪个文件',
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Read File')).not.toBeInTheDocument()
+  })
+
+  // 反过来：真带了更好的标题时要更新。
+  it('后来带了标题时会补上', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ toolCallId: 't1', kind: 'read' }),
+          toolEv({ toolCallId: 't1', title: 'Read README.md' }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('Read README.md')).toBeInTheDocument()
+  })
+
+  // 载荷里什么都没有时不能白屏，也不能显示一个空卡片。
+  it('载荷是空的也不崩', () => {
+    render(<Timeline events={[toolEv({})]} />)
+
+    expect(screen.getByText(/工具调用/)).toBeInTheDocument()
+  })
+})

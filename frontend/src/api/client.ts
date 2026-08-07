@@ -18,6 +18,16 @@ function token(): string {
   return injected?.token ?? DEV_TOKEN
 }
 
+/**
+ * 认证头。SSE 那条路径用得上——它不走 openapi-fetch。
+ *
+ * ★ **不许改成把 token 放进查询串。** URL 会进浏览器历史、进访问日志，
+ * 而这个 token 等于「驱动 Agent 改用户代码」的权限。
+ */
+export function authHeader(): Record<string, string> {
+  return { Authorization: `Bearer ${token()}` }
+}
+
 export const api = createClient<paths>({
   baseUrl: '/v1',
   headers: {

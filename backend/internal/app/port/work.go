@@ -40,3 +40,23 @@ type WorkEvent struct {
 type WorkEventBus interface {
 	PublishWorkEvent(ctx context.Context, e WorkEvent) error
 }
+
+// AgentTurn 是要跑的一轮对话。
+type AgentTurn struct {
+	WorkID string
+	// Cwd 是 Agent 的工作目录，**必须是工作自己的 worktree**。
+	//
+	// ★ 传用户的仓库路径就等于让 AI 直接在他的分支上改文件——
+	// 他把代码目录交给 Duet 时并没有同意这件事（open-questions.md Q30）。
+	Cwd string
+	// Prompt 是用户提的需求。
+	Prompt string
+}
+
+// AgentRunner 拉起一个 Agent 跑一轮对话，把它说的话发到事件总线。
+//
+// ★ 实现**阻塞到这一轮结束**（可能好几分钟）。调用方负责另起 goroutine，
+// 别把它挂在 HTTP 请求上——请求一返回 ctx 就被取消，AI 说到一半会被砍掉。
+type AgentRunner interface {
+	RunTurn(ctx context.Context, t AgentTurn) error
+}

@@ -82,7 +82,22 @@ type Conn struct {
 
 	pendingMu sync.Mutex
 	pending   map[uint64]chan message
+
+	// done 在读循环结束时关闭，等着的调用据此立刻失败。
+	//
+	// ★ 没有它的话，对方进程一死，所有 pending 的调用就永远挂着——
+	// 用户看到界面停在「正在初始化」，没有转圈、没有报错，只能杀掉应用。
+	// 靠 ctx 超时兜底不行：那是几分钟之后的事，而且错误说的是「超时」，
+	// 与真正的原因（Agent 起不来）差着十万八千里。
+	done     chan struct{}
+	doneOnce sync.Once
+	doneErr  error
 }
+
+// ErrPeerGone 表示对方（Agent 进程）已经不在了。
+//
+// 上层据此告诉用户「Agent 退出了」，而不是一句无从下手的「超时」。
+var ErrPeerGone = errors.New("jsonrpc: 对方已断开")
 
 // New 建立一条连接。handler 可以是 nil，那样收到的请求一律回 -32601。
 func New(r io.Reader, w io.Writer, handler Handler) *Conn {
@@ -92,11 +107,29 @@ func New(r io.Reader, w io.Writer, handler Handler) *Conn {
 		handler: handler,
 		log:     slog.Default(),
 		pending: make(map[uint64]chan message),
+		done:    make(chan struct{}),
 	}
 }
 
 // Serve 读循环。它会一直跑到 ctx 结束或读端关闭。
+//
+// ★ 无论怎么结束，都要**叫醒所有等着的调用**——见 Conn.done 的说明。
 func (c *Conn) Serve(ctx context.Context) error {
+	var err error
+	defer func() { c.closeDone(err) }()
+	err = c.serve(ctx)
+	return err
+}
+
+// closeDone 关掉 done，只关一次。
+func (c *Conn) closeDone(err error) {
+	c.doneOnce.Do(func() {
+		c.doneErr = err
+		close(c.done)
+	})
+}
+
+func (c *Conn) serve(ctx context.Context) error {
 	sc := bufio.NewScanner(c.r)
 	// ACP 的单条消息可能很大（tool_call 里带 diff），默认 64KB 不够。
 	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
@@ -173,6 +206,13 @@ func (c *Conn) CallInto(ctx context.Context, method string, params any, out any)
 	case <-ctx.Done():
 		// R5：超时/取消时立刻返回，pending 由 defer 摘掉，不泄漏
 		return fmt.Errorf("jsonrpc call %s: %w", method, ctx.Err())
+	case <-c.done:
+		// ★ 对方没了。等 ctx 超时的话，用户要对着一个不动的界面等几分钟，
+		// 而最后拿到的错误还是「超时」，跟真正的原因对不上。
+		if c.doneErr != nil {
+			return fmt.Errorf("jsonrpc call %s: %w", method, c.doneErr)
+		}
+		return fmt.Errorf("jsonrpc call %s: %w", method, ErrPeerGone)
 	case resp := <-ch:
 		if resp.Error != nil {
 			return fmt.Errorf("jsonrpc call %s: %w", method, resp.Error)

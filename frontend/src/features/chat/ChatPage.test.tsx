@@ -20,21 +20,44 @@ vi.mock('@/api/system', () => ({
   startWork: (...a: unknown[]): unknown => startWork(...a),
 }))
 
-class FakeEventSource {
-  static instances: FakeEventSource[] = []
-  closed = false
-  constructor(public url: string) {
-    FakeEventSource.instances.push(this)
+/**
+ * 假的**网络**，不是假的 EventSource。
+ *
+ * ★ 这里只关心「有没有去连事件流」，所以流本身永远不吐数据。
+ * 但替身必须换在 fetch 这一层——真实现用的是 fetch + ReadableStream
+ * （`EventSource` 带不了 Authorization 头，真机上一路 401）。
+ * 假在更高层的话，测的就不是真跑的那条路。
+ */
+class FakeEventStream {
+  static instances: FakeEventStream[] = []
+  aborted = false
+
+  constructor(
+    readonly url: string,
+    init?: RequestInit,
+  ) {
+    FakeEventStream.instances.push(this)
+    init?.signal?.addEventListener('abort', () => {
+      this.aborted = true
+    })
   }
-  addEventListener() {}
-  close() {
-    this.closed = true
+
+  static response(url: string, init?: RequestInit): Promise<Response> {
+    new FakeEventStream(url, init)
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      // 永不结束、永不吐数据的流：本页只关心有没有去连
+      body: new ReadableStream<Uint8Array>({ start: () => undefined }),
+    } as Response)
   }
 }
 
 beforeEach(() => {
-  FakeEventSource.instances = []
-  vi.stubGlobal('EventSource', FakeEventSource)
+  FakeEventStream.instances = []
+  vi.stubGlobal('fetch', (url: string, init?: RequestInit) =>
+    FakeEventStream.response(url, init),
+  )
 
   listProjects.mockReset().mockResolvedValue([
     { id: 'proj-01', name: 'my-app', path: '/Users/me/work/my-app', is_git_repo: true },
@@ -111,13 +134,13 @@ describe('对话页', () => {
     render(<ChatPage />)
 
     await screen.findByRole('textbox')
-    expect(FakeEventSource.instances, '还没有工作就连上了').toHaveLength(0)
+    expect(FakeEventStream.instances, '还没有工作就连上了').toHaveLength(0)
 
     await user.type(screen.getByRole('textbox'), '做点事')
     await user.click(screen.getByRole('button', { name: /开始/ }))
 
     await waitFor(() => {
-      expect(FakeEventSource.instances).toHaveLength(1)
+      expect(FakeEventStream.instances).toHaveLength(1)
     })
   })
 
@@ -129,7 +152,7 @@ describe('对话页', () => {
     render(<ChatPage />)
 
     await waitFor(() => {
-      expect(FakeEventSource.instances).toHaveLength(1)
+      expect(FakeEventStream.instances).toHaveLength(1)
     })
   })
 })

@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/agent"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
@@ -151,7 +152,11 @@ func run() error {
 
 	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
 	bus := eventbus.New(eventStore{db.Events()})
-	workSvc := work.New(db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids)
+	// ★ Agent 真的会被拉起来。这里传的是**内置注册表**（claude / codex）：
+	// 用哪一个由检测结果决定，上层不认识任何品牌名。
+	agentRunner := &agent.ProcessRunner{Bus: workBus{bus}}
+	workSvc := work.New(
+		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner)
 
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,

@@ -33,11 +33,18 @@ type Service struct {
 	worktrees port.Worktrees
 	bus       port.WorkEventBus
 	ids       port.IDGen
+	runner    port.AgentRunner
 }
 
-// New 组装用例。
-func New(repo port.WorkRepo, wt port.Worktrees, bus port.WorkEventBus, ids port.IDGen) *Service {
-	return &Service{repo: repo, worktrees: wt, bus: bus, ids: ids}
+// New 组装用例。runner 可以为 nil（只跑 API 冒烟时），那时工作建出来但没人干活。
+func New(
+	repo port.WorkRepo,
+	wt port.Worktrees,
+	bus port.WorkEventBus,
+	ids port.IDGen,
+	runner port.AgentRunner,
+) *Service {
+	return &Service{repo: repo, worktrees: wt, bus: bus, ids: ids, runner: runner}
 }
 
 // Start 新建一个工作：切 worktree → 落库 → 发事件。
@@ -85,10 +92,64 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 	}
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
 
-	return View{
+	// ★ **先把视图取出来，再开后台那一轮。** 反过来的话，
+	// 后台 goroutine 可能已经把 w 推到 failed，而这边还在读 w.State()——
+	// 两个 goroutine 同时碰一个领域对象，race detector 会红，
+	// 而在用户那儿的表现是返回的状态时对时不对。
+	view := View{
 		ID: id, State: w.State(),
 		Project: project, Worktree: worktree, Prompt: prompt,
-	}, nil
+	}
+
+	s.runTurn(ctx, id, worktree, prompt)
+
+	return view, nil
+}
+
+// runTurn 在后台把需求送给 AI，跑完一轮。
+//
+// ★ **另起 goroutine，且脱开请求的 ctx。** 一轮对话要好几分钟，而
+// HTTP 处理函数一返回请求的 ctx 就被取消——挂在上面的话，AI 刚说两句就被砍掉，
+// 用户看到的是时间线停在半截、没有任何报错。
+//
+// 用 WithoutCancel 而不是 context.Background()：它保留了链路上的值
+// （日志的 trace id 之类），只是不跟着取消。
+func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) {
+	if s.runner == nil {
+		return
+	}
+	turnCtx := context.WithoutCancel(ctx)
+
+	go func() {
+		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
+			WorkID: workID,
+			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
+			// 后者等于让 AI 直接在他的分支上改文件。
+			Cwd:    worktree,
+			Prompt: prompt,
+		})
+		if err == nil {
+			return
+		}
+
+		// ★ 跑挂了要**说出来**。静默的话，用户看到工作停在「正在澄清需求」，
+		// 永远等不到下一句，而真正的原因（claude 没装、没登录）没人告诉他。
+		s.failWork(turnCtx, workID, err)
+	}()
+}
+
+// failWork 把工作推到 failed 并把原因发出去。
+func (s *Service) failWork(ctx context.Context, workID string, cause error) {
+	w, findErr := s.repo.FindWork(ctx, workID)
+	if findErr == nil {
+		if tErr := w.Transition(constant.WorkStateFailed); tErr == nil {
+			_ = s.repo.SaveWork(ctx, w)
+		}
+	}
+	// 落库失败也照样发事件：用户至少要知道出事了，而不是对着「正在澄清需求」干等
+	s.emit(ctx, workID, "state_change", map[string]any{
+		"to": string(constant.WorkStateFailed), "reason": cause.Error(),
+	})
 }
 
 // List 列出全部工作。

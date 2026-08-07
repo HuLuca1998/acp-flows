@@ -24,9 +24,13 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
+check: check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
+.PHONY: check-license
+check-license: ## 检查 LICENSE.md 没被裁过、版权人填实、README 说法一致
+	@scripts/check/check-license.sh
+
 .PHONY: check-docs
 check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
 	@bash scripts/check/check-agent-docs.sh

@@ -533,3 +533,61 @@ func TestConn_NotificationsAreProcessedInOrder(t *testing.T) {
 		}
 	}
 }
+
+// ★★ 读端关掉时，**所有等着的调用都要立刻失败**。
+//
+// 这是真机上撞出来的：Agent 进程启动失败直接退出，我们这边的 initialize
+// 就永远等在那儿。用户看到的是界面停在「正在初始化」——没有转圈、没有报错、
+// 没有超时，只能杀掉应用。
+//
+// ctx 上有超时的话最终能醒，但那是几分钟之后，而且错误说的是「超时」，
+// 与真正的原因（Agent 起不来）差着十万八千里。
+func TestCallInto_FailsWhenPeerDies(t *testing.T) {
+	// 一个立刻 EOF 的读端 = 对方进程已经退出
+	pr, pw := io.Pipe()
+	conn := jsonrpc.New(pr, io.Discard, nil)
+
+	go func() { _ = conn.Serve(context.Background()) }()
+	// 对方退出
+	_ = pw.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- conn.CallInto(context.Background(), "initialize", map[string]any{}, nil)
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("对方已经退出了，这次调用却成功了")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("对方进程退出后调用还挂着——" +
+			"用户看到的是界面停在「正在初始化」，没有转圈、没有报错，只能杀掉应用")
+	}
+}
+
+// 连接断掉之后**新发起的**调用也要立刻失败，而不是挂到 ctx 超时。
+func TestCallInto_FailsAfterServeStopped(t *testing.T) {
+	pr, pw := io.Pipe()
+	conn := jsonrpc.New(pr, io.Discard, nil)
+
+	served := make(chan struct{})
+	go func() { defer close(served); _ = conn.Serve(context.Background()) }()
+	_ = pw.Close()
+	<-served
+
+	done := make(chan error, 1)
+	go func() {
+		done <- conn.CallInto(context.Background(), "session/new", map[string]any{}, nil)
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("连接已经断了，这次调用却成功了")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("连接断掉之后发起的调用还挂着")
+	}
+}
