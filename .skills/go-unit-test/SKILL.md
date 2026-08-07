@@ -34,13 +34,24 @@ description: 在本仓库写或改任何 Go 测试文件时使用（*_test.go、
 ### Fake ACP Runtime
 
 ```go
-rt := fake.NewRuntime(t,
-    fake.WithScript(fake.ScriptFromFile("testdata/cancel_flow.json")),
-    fake.NeverStops(),                  // 不回 stopReason → 测取消超时
-)
+rt := fake.New(fake.Options{
+    Script: fake.MustLoadScript("testdata/cancel_flow.json"),
+    Clock:  testutil.FixedClock(testutil.T0), // 必填，禁止 time.Now()
+})
+fake.NeverStops(rt)                     // 不回 stopReason → 测取消超时
 ```
 
+四个预设的签名**固定为 `func(*fake.Runtime)`**，所以能直接放进表驱动的
+`setup` 字段（见 [`testing-strategy.md`](../../docs/rules/testing-strategy.md) §3.5）：
+
+```go
+{"Runtime 不回 stopReason 时超时", fake.NeverStops, acp.ErrCancelTimeout},
+```
+
+`SilentAfter(d)` / `Slow(base, jitter)` / `Reorder(seed)` 带参数，返回同样的签名。
+
 **任何需要 Agent 行为的测试都用它**，绝不起真实 `claude-agent-acp` / `codex-acp`。
+完整 API 见 [`acp-integration.md`](../../docs/spec/acp-integration.md) §12.2。
 
 ### 临时数据目录
 

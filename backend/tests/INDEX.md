@@ -86,3 +86,11 @@
 | `TestSessionUpdate_ZeroValueRefusesToMarshal` | `internal/acp/protocol/update_test.go` | acp | 零值 `SessionUpdate` 拒绝序列化，不写成 `null`（Fake 脚本漏填 emit 时要立刻暴露） |
 | `TestContentBlocks_ZeroValueRefusesToMarshal` | `internal/acp/protocol/content_test.go` | acp | 同上，作用于 `ContentBlock` / `ToolCallContent` |
 | `TestConfigOption_CategoryOrEmpty_HandlesMissingAndBlank` | `internal/acp/protocol/enum_test.go` | acp | ★ claude 的 `agent` 配置项 **category 是空字符串**（实测 N2）：缺失与空串都不能 panic，且线上要能区分（回写时不给本无 category 的选项凭空加一个）。差异内化整套方案建立在「按 category 取」之上 |
+| `TestRuntime_R1_ReplaysEverySessionUpdateKind` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R1：Fake 按脚本推送**全部 13 类** `sessionUpdate`，每条都带对的 `sessionId` 且能被 `protocol` 反序列化；样本数由 `AllSessionUpdateKinds()` 驱动，协议加变体时会红 |
+| `TestRuntime_R2_StepDelayIsHonored` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R2：每条事件的延迟可配置，两条事件到达间隔 ≥ 配置值（实测过：删掉延迟实现会红） |
+| `TestRuntime_R3_ReorderIsDeterministic` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R3：乱序**由 seed 驱动可复现**、确实改变了顺序、且不丢事件不造事件——复现不了的随机只会制造 flaky 测试 |
+| `TestRuntime_R4_SilentAfterEndsTheStream` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R4：中途断流后消费方**感知到 EOF** 而不是永久阻塞（永久阻塞的症状是测试挂住，比失败更难查） |
+| `TestRuntime_R5_NeverStopsLeavesPromptPending` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R5：★ `NeverStops` 下 `session/prompt` 永不 resolve，**但事件照常流出**——连接整个挂掉的话，S0.6 测出来的是「连接断了」而不是「Runtime 不收尾」 |
+| `TestRuntime_R6_RecordsEveryRequestWithoutDeduping` | `internal/acp/fake/runtime_test.go` | acp | M0 U0.4.1 R6：★★ Fake **如实记录、绝不去重**：连发两次 `session/cancel` 就是 2 条；请求与通知可区分；原始 params 留存。Fake 若自己去重，U0.6.1 的幂等断言永远绿 |
+| `TestRuntime_CompletesAScriptedTurn` | `internal/acp/fake/runtime_test.go` | acp | 正常路径：脚本指定的 `sessionId` 被采用、事件按序推送、`stopReason` 原样带回。这是 R1–R6 的前置 |
+| `TestRuntime_ServeSpeaksTheSameProtocolAsTransport` | `internal/acp/fake/runtime_test.go` | acp | 子进程形态（`Serve`，给 e2e）与进程内形态（`Transport`，给单测）是同一份实现——不是的话「单测绿 + e2e 红」时你不知道该信谁 |

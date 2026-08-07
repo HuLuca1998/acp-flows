@@ -1316,7 +1316,7 @@ s := fake.NewScript("unit-012 取消幂等性与现场保留").
             ToolDone("call_001", fake.Diff("/w/crates/engine/src/cancel.rs", "", "pub async fn cancel(){}"))).
     Build()
 
-rt := fake.New(fake.Options{Script: s, Clock: testutil.FixedClock(t)})
+rt := fake.New(fake.Options{Script: s, Clock: testutil.FixedClock(testutil.T0)})
 ```
 
 **`testing-strategy.md` §3.5 里已经写死的预设必须存在，签名不许改：**
