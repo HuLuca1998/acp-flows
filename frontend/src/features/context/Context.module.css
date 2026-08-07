@@ -1,0 +1,23 @@
+/* 右栏（上下文面板）。设计规范 §06。 */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--space-2);
+  width: var(--layout-right-w);
+  padding: var(--space-3) 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-neutral-900);
+  background: var(--s-rail);
+}
+
+.head {
+  padding: var(--space-2) var(--space-4) 0;
+}
+
+.title {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}

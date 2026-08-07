@@ -1,0 +1,98 @@
+/* 左栏。设计规范 §06。尺寸与颜色一律 var()。 */
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  width: var(--layout-left-w);
+  padding: var(--space-3) var(--space-2);
+  overflow-y: auto;
+  background: var(--s-rail);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.navItem,
+.navItemActive {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-400);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  background: var(--s-inset);
+  color: var(--color-neutral-300);
+}
+
+/* 选中态：accent-900 底 + accent-300 字（设计规范 §05） */
+.navItemActive {
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3);
+}
+
+.sectionTitle {
+  padding: 0 var(--space-3);
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.sectionHead .sectionTitle {
+  padding: 0;
+}
+
+.sectionAction {
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-600);
+  font-family: var(--font-body);
+  font-size: 11px;
+  cursor: not-allowed;
+}
+
+.runtimeBar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-neutral-900);
+}
+
+.runtimeLabel {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.runtimeHint {
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}

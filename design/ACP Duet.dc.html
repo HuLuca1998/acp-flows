@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/nocturne-eeb4fef9-0b23-4b92-9bdd-c65d2266beb0/styles.css">
+<script src="_ds/nocturne-eeb4fef9-0b23-4b92-9bdd-c65d2266beb0/_ds_bundle.js"></script>
+<style>
+:root{--s-canvas:#0e0f18;--s-raised:var(--s-raised);--s-rail:var(--s-rail);--s-inset:var(--s-inset);--s-claude-edge:var(--s-claude-edge);--color-pass:var(--color-accent-300);--color-fail:oklch(0.66 0.125 25)}
+body{margin:0;background:var(--s-canvas);font-family:var(--font-body)}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(255,255,255,.07);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-text);color:var(--color-bg);border-radius:4px;text-decoration:none}
+.dv-tname{font:500 13px/1.2 Inter,system-ui,sans-serif;color:var(--color-text)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(233,233,237,.12);color:var(--color-text);border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 Inter,system-ui,sans-serif;color:rgba(233,233,237,.55)}
+.dv-card{background:var(--color-bg);border-radius:10px;box-shadow:0 0 0 1px var(--color-neutral-800),0 16px 40px rgba(0,0,0,.65);overflow:hidden}
+.dv-opt:target .dv-oid{background:var(--color-accent);color:var(--color-bg)}
+.dv-next{margin:24px 0 0;font:12px/1.6 Inter,system-ui,sans-serif;color:rgba(233,233,237,.5)}
+.dv-next a{text-decoration:none}
+a{color:var(--color-accent-400)}a:hover{color:var(--color-accent-300)}
+</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">三个骨架方案 · macOS 1600×1000 · 同一场景（unit-012「取消正在运行的 Agent turn」）</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>基线三栏 · 单一时间线，角色用色条 + 徽标区分；右上悬浮进度胶囊；右栏常驻注入清单</div>
+<div class="dv-card" style="width:1600px;height:1000px;display:flex;flex-direction:column">
+
+  <div style="height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--s-raised);border-bottom:1px solid var(--color-neutral-900)">
+    <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span></div>
+    <div style="width:1px;height:16px;background:var(--color-neutral-800);margin-left:6px"></div>
+    <span style="font-size:12.5px;color:var(--color-text);font-weight:500">取消运行中的 Agent turn</span>
+    <span style="font-size:11px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">acp-engine · work-08 · wt/work-08</span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--color-neutral-600)">⌘K</span>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <div style="display:{{ mL1 }};width:52px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;align-items:center;padding:14px 0;gap:6px">
+<span onClick="{{ tL1 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◇</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">▤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+<div style="flex:1"></div><span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⚙</span></div><div style="display:{{ fL1 }};width:252px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;padding:14px 10px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+        <span style="width:20px;height:20px;border-radius:5px;background:linear-gradient(140deg,var(--color-accent),var(--color-accent-700));display:block"></span>
+        <span style="font-size:13px;font-weight:500;color:var(--color-text)">Duet</span>
+        <div style="flex:1"></div>
+        <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+        <span onClick="{{ tL1 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">◇ 新建工作</div>
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">▤ 计划总览</div>
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">◧ 记忆与 Skill</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:0 8px">进行中</div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:var(--color-surface);box-shadow:inset 2px 0 0 var(--color-accent)">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent-400);flex:none"></span>
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12.5px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">取消运行中的 Agent turn</div>
+              <div style="font-size:10.5px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">executing · 3/7 单元</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--color-neutral-600);flex:none"></span>
+            <div style="min-width:0;flex:1">
+              <div style="font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ACP 事件流补齐推送通道</div>
+              <div style="font-size:10.5px;color:var(--color-neutral-700);font-family:ui-monospace,Menlo,monospace">waiting_user · D2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:0 8px">最近</div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div style="padding:6px 8px;font-size:12.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">会话池复用与超时策略</div>
+          <div style="padding:6px 8px;font-size:12.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">codex 权限档改为 session/set_mode</div>
+          <div style="padding:6px 8px;font-size:12.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">主管 AI 会话 id 丢失修复</div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:8px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span>Claude 0.63.0<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">就绪</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-neutral-300)"></span>Codex 1.1.7<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">运行中</span></div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column;background:var(--color-bg)">
+
+      <div style="position:absolute;top:14px;right:18px;z-index:5;width:296px;border-radius:10px;background:rgba(27,29,43,.94);box-shadow:0 0 0 1px var(--color-neutral-800),0 12px 32px rgba(0,0,0,.6);padding:11px 12px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11.5px;font-weight:500;color:var(--color-text)">计划 v5</span>
+          <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400);padding:1px 5px;border-radius:3px;background:var(--color-accent-900)">executing</span>
+          <div style="flex:1"></div>
+          <span style="font-size:11px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">3/7</span>
+          <span style="font-size:11px;color:var(--color-neutral-600)">⌄</span>
+        </div>
+        <div style="display:flex;gap:3px">
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-accent-400)"></span>
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-accent-400)"></span>
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-accent-400)"></span>
+          <span style="flex:1.3;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--color-accent-600) 40%,var(--color-neutral-800) 40%)"></span>
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-neutral-800)"></span>
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-neutral-800)"></span>
+          <span style="flex:1;height:3px;border-radius:2px;background:var(--color-neutral-800)"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-400)">
+          <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">unit-012</span>
+          <span style="color:var(--color-neutral-700)">·</span>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">取消幂等性与现场保留</span>
+          <div style="flex:1"></div>
+          <span style="font-size:10.5px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">2:14</span>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow:hidden;padding:26px 0 0;display:flex;flex-direction:column">
+        <div style="width:820px;margin:0 auto;display:flex;flex-direction:column;gap:26px">
+
+          <div style="display:flex;justify-content:flex-end;margin-top:84px">
+            <div style="max-width:560px;padding:10px 14px;border-radius:14px;background:var(--color-surface);font-size:13.5px;color:var(--color-text);line-height:1.6">用户能取消正在运行的 turn，取消后现场证据要保留。先别写代码，先把范围说清楚。</div>
+          </div>
+
+          <div style="display:flex;gap:12px">
+            <div style="width:22px;height:22px;flex:none;border-radius:6px;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font:600 9px ui-monospace,Menlo,monospace;color:var(--color-accent-400)">CL</div>
+            <div style="flex:1;min-width:0;box-shadow:inset 2px 0 0 rgba(145,132,217,.5);padding-left:12px;margin-left:-2px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:11.5px;font-weight:500;color:var(--color-accent-400)">Claude · 需求分析师</span>
+                <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">requirement v2 已冻结</span>
+              </div>
+              <div style="font-size:13.5px;color:var(--color-text);line-height:1.7">需求快照已更新：取消必须幂等，取消后 diff 与最后事件游标可读。<br>两个待确认事实——取消是否需要回滚已写入文件？是否允许在 <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">reviewing_unit</span> 状态下取消？</div>
+              <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:7px">
+                <span style="font-size:11.5px;padding:4px 10px;border-radius:6px;background:transparent;box-shadow:inset 0 0 0 1px var(--color-accent-700);color:var(--color-accent-300)">不回滚，仅停止</span>
+                <span style="font-size:11.5px;padding:4px 10px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">回滚到检查点</span>
+                <span style="font-size:11.5px;padding:4px 10px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">由用户逐次决定</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px">
+            <div style="width:22px;height:22px;flex:none;border-radius:6px;background:var(--color-neutral-900);box-shadow:inset 0 0 0 1px var(--color-neutral-700);display:flex;align-items:center;justify-content:center;font:600 9px ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">CX</div>
+            <div style="flex:1;min-width:0;box-shadow:inset 2px 0 0 rgba(207,211,229,.35);padding-left:12px;margin-left:-2px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:11.5px;font-weight:500;color:var(--color-neutral-300)">Codex · 实现工程师</span>
+                <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">unit-012 · attempt 2 · 契约 v3</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span>执行中 2:14</span>
+              </div>
+              <div style="border-radius:8px;box-shadow:inset 0 0 0 1px var(--color-neutral-900);background:var(--s-inset);overflow:hidden">
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid var(--color-surface)">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-500)">edit</span>
+                  <span style="font-size:12px;color:var(--color-neutral-300);font-family:ui-monospace,Menlo,monospace">crates/engine/src/cancel.rs</span>
+                  <div style="flex:1"></div>
+                  <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">+64</span>
+                  <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-fail)">−12</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid var(--color-surface)">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-500)">edit</span>
+                  <span style="font-size:12px;color:var(--color-neutral-300);font-family:ui-monospace,Menlo,monospace">crates/engine/tests/cancel_idempotent.rs</span>
+                  <div style="flex:1"></div>
+                  <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">+118</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 11px">
+                  <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--color-neutral-500)">bash</span>
+                  <span style="font-size:12px;color:var(--color-neutral-300);font-family:ui-monospace,Menlo,monospace">cargo test -p engine cancel</span>
+                  <div style="flex:1"></div>
+                  <span style="width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-accent-400)"></span>
+                  <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">运行中</span>
+                </div>
+              </div>
+              <div style="margin-top:9px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-600)">
+                <span style="font-family:ui-monospace,Menlo,monospace">注入</span>
+                <span style="padding:2px 7px;border-radius:4px;background:var(--color-surface);color:var(--color-neutral-400);font-size:11px;font-family:ui-monospace,Menlo,monospace">skill:rust-test-first@2.1</span>
+                <span style="padding:2px 7px;border-radius:4px;background:var(--color-surface);color:var(--color-neutral-400);font-size:11px;font-family:ui-monospace,Menlo,monospace">mem-203</span>
+                <span style="padding:2px 7px;border-radius:4px;background:var(--color-surface);color:var(--color-neutral-400);font-size:11px;font-family:ui-monospace,Menlo,monospace">mem-188</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(233,233,237,.16) 48px,rgba(233,233,237,.16) calc(100% - 48px),transparent)"></div>
+            <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">补充消息已入队 · 将在 unit-012 结束后评估影响</span>
+            <div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(233,233,237,.16) 48px,rgba(233,233,237,.16) calc(100% - 48px),transparent)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:0 0 18px">
+        <div style="width:820px;margin:0 auto">
+          <div style="border-radius:12px;background:var(--s-raised);box-shadow:0 0 0 1px var(--color-neutral-800);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--color-surface);border-bottom:1px solid var(--color-neutral-900)">
+              <span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span>
+              <span style="font-size:11px;color:var(--color-neutral-400)">1 条补充消息在队列中 · Codex 执行中不打断</span>
+              <div style="flex:1"></div>
+              <span style="font-size:11px;color:var(--color-accent-400)">立即打断</span>
+              <span style="font-size:11px;color:var(--color-neutral-600)">查看</span>
+            </div>
+            <div style="padding:13px 14px 9px;font-size:13.5px;color:var(--color-neutral-700)">补充说明、纠正范围，或直接提问…</div>
+            <div style="display:flex;align-items:center;gap:9px;padding:6px 10px 9px">
+              <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">工作树 wt/work-08</span>
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">权限 · 询问写入</span>
+              <div style="flex:1"></div>
+              <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">预算 4.2 / 8.0</span>
+              <span style="width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-accent-400)">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:18px;bottom:180px;display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:rgba(27,29,43,.94);box-shadow:0 0 0 1px var(--color-neutral-800),0 8px 22px rgba(0,0,0,.5)">
+        <span style="font-size:11px;color:var(--color-neutral-600)">显示</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:var(--color-accent-900);color:var(--color-accent-300)">全部</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;color:var(--color-neutral-500)">仅决策</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;color:var(--color-neutral-500)">仅证据</span>
+      </div>
+    </div>
+
+    <div style="display:{{ mR1 }};width:52px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);flex-direction:column;align-items:center;padding:14px 0;gap:6px">
+<span onClick="{{ tR1 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇥</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">▤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⌥</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⎘</span>
+<div style="flex:1"></div></div><div style="display:{{ fR1 }};width:314px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);padding:14px 12px;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11.5px;font-weight:500;color:var(--color-text)">本次注入</span>
+        <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">unit-012 · attempt 2</span>
+        <div style="flex:1"></div><span onClick="{{ tR1 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇥</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">Skill · 2</div>
+        <div style="padding:9px 10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+          <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:12px;color:var(--color-text)">rust-test-first</span><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">v2.1 · 项目</span></div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--color-neutral-600)"><span>命中 14 次</span><span style="width:56px;height:2px;background:var(--color-neutral-800);border-radius:2px;position:relative"><span style="position:absolute;inset:0 24% 0 0;background:var(--color-accent-600);border-radius:2px"></span></span><span style="color:var(--color-pass)">active</span></div>
+        </div>
+        <div style="padding:9px 10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+          <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:12px;color:var(--color-text)">acp-fake-runtime</span><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">v1.4 · 全局</span></div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--color-neutral-600)"><span>命中 3 次</span><span style="width:56px;height:2px;background:var(--color-neutral-800);border-radius:2px;position:relative"><span style="position:absolute;inset:0 76% 0 0;background:var(--color-accent-600);border-radius:2px"></span></span><span style="color:var(--color-pass)">active</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">记忆 · 3</div>
+        <div style="padding:9px 10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+          <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">mem-203</span><span style="font-size:10px;color:var(--color-neutral-600)">constraint · 项目</span></div>
+          <div style="margin-top:3px;font-size:12px;color:var(--color-neutral-400);line-height:1.5">集成测试使用临时 SQLite，不得读写真实数据库</div>
+        </div>
+        <div style="padding:9px 10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+          <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">mem-188</span><span style="font-size:10px;color:var(--color-neutral-600)">experience · 项目</span></div>
+          <div style="margin-top:3px;font-size:12px;color:var(--color-neutral-400);line-height:1.5">codex 默认权限档为 agent，需 session/set_mode 收权</div>
+        </div>
+        <div style="padding:9px 10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);opacity:.6">
+          <div style="display:flex;align-items:baseline;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">mem-141</span><span style="font-size:10px;color:var(--color-neutral-600)">fact · 跨项目</span></div>
+          <div style="margin-top:3px;font-size:12px;color:var(--color-neutral-500);line-height:1.5">用户偏好：迁移类改动必须给回滚方案</div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:11px;color:var(--color-neutral-400)">待写回候选 · 2</div>
+        <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">「取消需两段：先协议 cancel，再等 stopReason」</div>
+        <div style="display:flex;gap:7px"><span style="font-size:11px;padding:3px 10px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-accent-700);color:var(--color-accent-300)">审核</span><span style="font-size:11px;padding:3px 10px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-500)">忽略</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>克制叙述 · Claude 是唯一叙述者，Codex 执行折叠为任务卡；右上进度点开为计划 DAG 浮层；右栏收成图标条</div>
+<div class="dv-card" style="width:1600px;height:1000px;display:flex;flex-direction:column">
+
+  <div style="height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--s-raised);border-bottom:1px solid var(--color-neutral-900)">
+    <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span></div>
+    <div style="width:1px;height:16px;background:var(--color-neutral-800);margin-left:6px"></div>
+    <span style="font-size:12.5px;color:var(--color-text);font-weight:500">取消运行中的 Agent turn</span>
+    <span style="font-size:11px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">acp-engine · work-08</span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--color-neutral-600)">⌘K</span>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <div style="display:{{ mL2 }};width:52px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;align-items:center;padding:14px 0;gap:6px">
+<span onClick="{{ tL2 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◇</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">▤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+<div style="flex:1"></div><span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⚙</span></div><div style="display:{{ fL2 }};width:252px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;padding:14px 10px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+        <span style="width:20px;height:20px;border-radius:5px;background:linear-gradient(140deg,var(--color-accent),var(--color-accent-700));display:block"></span>
+        <span style="font-size:13px;font-weight:500;color:var(--color-text)">Duet</span>
+        <div style="flex:1"></div>
+        <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+        <span onClick="{{ tL2 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">◇ 新建工作</div>
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">▤ 计划总览</div>
+        <div style="display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;color:var(--color-neutral-400)">◧ 记忆与 Skill</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:0 8px">进行中</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:var(--color-surface);box-shadow:inset 2px 0 0 var(--color-accent)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent-400);flex:none"></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12.5px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">取消运行中的 Agent turn</div>
+            <div style="font-size:10.5px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">executing · 3/7 单元</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--color-neutral-600);flex:none"></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ACP 事件流补齐推送通道</div>
+            <div style="font-size:10.5px;color:var(--color-neutral-700);font-family:ui-monospace,Menlo,monospace">waiting_user · D2</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:8px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span>Claude 0.63.0<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">就绪</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-neutral-300)"></span>Codex 1.1.7<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">运行中</span></div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column;background:var(--color-bg)">
+
+      <div style="position:absolute;top:14px;right:16px;z-index:6;width:360px;display:flex;flex-direction:column;gap:8px">
+        <div style="border-radius:10px;background:rgba(27,29,43,.96);box-shadow:0 0 0 1px var(--color-accent-700),0 12px 32px rgba(0,0,0,.6);padding:11px 12px;display:flex;align-items:center;gap:10px">
+          <span style="position:relative;width:26px;height:26px;flex:none;border-radius:50%;background:conic-gradient(var(--color-accent-400) 0 43%,var(--color-neutral-800) 43%)"><span style="position:absolute;inset:4px;border-radius:50%;background:var(--s-raised)"></span></span>
+          <div style="min-width:0;flex:1">
+            <div style="font-size:11.5px;color:var(--color-text);font-weight:500">计划 v5 · 3/7 单元</div>
+            <div style="font-size:10.5px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">当前 unit-012 · 2:14</div>
+          </div>
+          <span style="font-size:11px;color:var(--color-accent-400)">收起 ⌃</span>
+        </div>
+        <div style="border-radius:10px;background:rgba(18,20,31,.98);box-shadow:0 0 0 1px var(--color-neutral-800),0 18px 44px rgba(0,0,0,.7);padding:12px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">子计划 DAG</span><div style="flex:1"></div><span style="font-size:10.5px;color:var(--color-neutral-600)">全屏 ↗</span></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900)">
+              <span style="width:14px;height:14px;flex:none;border-radius:50%;background:var(--color-accent-900);box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--color-accent-400)">✓</span>
+              <span style="font-size:11.5px;color:var(--color-neutral-500)">subplan-01 · ACP Runtime 抽象层</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">3/3</span>
+            </div>
+            <div style="width:1px;height:8px;background:var(--color-neutral-800);margin-left:16px"></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-accent-700)">
+              <span style="width:14px;height:14px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-accent-400)"></span>
+              <span style="font-size:11.5px;color:var(--color-text)">subplan-03 · 取消与现场保留</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">0/2</span>
+            </div>
+            <div style="padding-left:26px;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-300)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span><span style="font-family:ui-monospace,Menlo,monospace">unit-012</span> 取消幂等性 <span style="margin-left:auto;color:var(--color-neutral-600)">执行中</span></div>
+              <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-600)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-neutral-800)"></span><span style="font-family:ui-monospace,Menlo,monospace">unit-013</span> 取消后证据读取 <span style="margin-left:auto">契约未冻结</span></div>
+            </div>
+            <div style="width:1px;height:8px;background:var(--color-neutral-800);margin-left:16px"></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;opacity:.55">
+              <span style="width:14px;height:14px;flex:none;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span>
+              <span style="font-size:11.5px;color:var(--color-neutral-500)">subplan-04 · 恢复与检查点</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">0/2</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow:hidden;padding:26px 0 0">
+        <div style="width:660px;margin:0 0 0 96px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;justify-content:flex-end">
+            <div style="max-width:520px;padding:10px 14px;border-radius:14px;background:var(--color-surface);font-size:13.5px;color:var(--color-text);line-height:1.6">用户能取消正在运行的 turn，取消后现场证据要保留。</div>
+          </div>
+          <div>
+            <div style="font-size:13.5px;color:var(--color-text);line-height:1.75">需求快照冻结为 <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">requirement v2</span>，计划 v5 拆成 3 个子计划、7 个单元。我已把 unit-012 的契约冻结并交给实现工程师。</div>
+            <div style="margin-top:6px;font-size:10.5px;color:var(--color-neutral-700);font-family:ui-monospace,Menlo,monospace">Claude · 计划架构师 · 18s</div>
+          </div>
+
+          <div style="border-radius:10px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--s-raised);border-bottom:1px solid var(--color-neutral-900)">
+              <span style="width:20px;height:20px;flex:none;border-radius:5px;background:var(--color-neutral-900);box-shadow:inset 0 0 0 1px var(--color-neutral-700);display:flex;align-items:center;justify-content:center;font:600 8px ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">CX</span>
+              <span style="font-size:12.5px;color:var(--color-text);font-weight:500">unit-012 实现中</span>
+              <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">attempt 2 · 契约 v3</span>
+              <div style="flex:1"></div>
+              <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">2:14</span>
+              <span style="font-size:11px;color:var(--color-neutral-600)">展开 ⌄</span>
+            </div>
+            <div style="padding:11px 13px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-400)"><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700);width:34px">3 文件</span><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">+182</span><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-fail)">−12</span><span style="color:var(--color-neutral-700)">·</span><span>写入边界内</span></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-400)"><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700);width:34px">测试</span><span style="font-family:ui-monospace,Menlo,monospace">cargo test -p engine cancel</span><span style="width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-accent-400)"></span><span style="color:var(--color-neutral-600)">运行中</span></div>
+              <div style="height:2px;border-radius:2px;background:var(--color-surface);position:relative;margin-top:2px"><span style="position:absolute;inset:0 57% 0 0;background:var(--color-accent-600);border-radius:2px"></span></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:13.5px;color:var(--color-text);line-height:1.75">实现工程师报告触发了一个停止条件：<span style="color:var(--color-accent-300)">需要修改 <span style="font-family:ui-monospace,Menlo,monospace">EngineEvent</span> 的公开枚举</span>。这超出契约的写入边界，也改变外部行为——按决策等级属于 D2，需要你决定。</div>
+            <div style="margin-top:6px;font-size:10.5px;color:var(--color-neutral-700);font-family:ui-monospace,Menlo,monospace">Claude · 决策顾问 · 引用 unit-012 契约 v3 · forbidden_changes[1]</div>
+            <div style="margin-top:12px;border-radius:10px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-accent-700);padding:13px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-bg);background:var(--color-accent-400);padding:2px 6px;border-radius:3px">D2</span><span style="font-size:12px;color:var(--color-text);font-weight:500">扩展 EngineEvent 公开枚举</span><div style="flex:1"></div><span style="font-size:10.5px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">工作已暂停 · waiting_user</span></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;box-shadow:inset 0 0 0 1px var(--color-accent-700)"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">A</span><span style="font-size:12px;color:var(--color-text)">新增 <span style="font-family:ui-monospace,Menlo,monospace">Cancelled</span> 变体</span><span style="font-size:11px;color:var(--color-neutral-600)">向后兼容，需订阅端加分支</span><div style="flex:1"></div><span style="font-size:10px;padding:2px 7px;border-radius:3px;background:var(--color-accent-900);color:var(--color-accent-300)">推荐</span></div>
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">B</span><span style="font-size:12px;color:var(--color-neutral-400)">复用 <span style="font-family:ui-monospace,Menlo,monospace">Stopped{reason}</span></span><span style="font-size:11px;color:var(--color-neutral-600)">不动公开契约，语义变模糊</span></div>
+                <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"><span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">C</span><span style="font-size:12px;color:var(--color-neutral-400)">回退到 unit-011 检查点，改计划</span><span style="font-size:11px;color:var(--color-neutral-600)">丢弃当前 attempt</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:0 0 18px">
+        <div style="width:660px;margin:0 0 0 96px">
+          <div style="border-radius:12px;background:var(--s-raised);box-shadow:0 0 0 1px var(--color-neutral-800);padding:13px 14px 9px">
+            <div style="font-size:13.5px;color:var(--color-neutral-700)">回应决策，或补充要求…</div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:8px">
+              <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">权限 · 询问写入</span>
+              <div style="flex:1"></div>
+              <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">4.2 / 8.0</span>
+              <span style="width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-accent-400)">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:74px;bottom:100px;display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:rgba(27,29,43,.94);box-shadow:0 0 0 1px var(--color-neutral-800),0 8px 22px rgba(0,0,0,.5)">
+        <span style="font-size:11px;color:var(--color-neutral-600)">显示</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:var(--color-accent-900);color:var(--color-accent-300)">摘要</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;color:var(--color-neutral-500)">全部</span>
+      </div>
+    </div>
+
+    <div style="display:{{ fR2 }};width:290px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);padding:14px 12px;flex-direction:column;gap:13px">
+<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11.5px;font-weight:500;color:var(--color-text)">上下文</span><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">unit-012</span><div style="flex:1"></div><span onClick="{{ tR2 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇥</span></div>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">Skill · 2</div>
+<div style="padding:9px 10px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;align-items:baseline;gap:7px"><span style="font-size:12px;color:var(--color-text)">rust-test-first</span><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">v2.1 · 命中 14</span></div>
+<div style="padding:9px 10px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;align-items:baseline;gap:7px"><span style="font-size:12px;color:var(--color-text)">acp-fake-runtime</span><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">v1.4 · 命中 3</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">记忆 · 3</div>
+<div style="padding:9px 10px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.5">mem-203 · 集成测试使用临时 SQLite</div>
+<div style="padding:9px 10px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:12px;color:var(--color-neutral-400);line-height:1.5">mem-188 · codex 需 session/set_mode 收权</div>
+</div>
+<div style="flex:1"></div>
+</div>
+<div style="display:{{ mR2 }};width:52px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);padding:14px 0;flex-direction:column;align-items:center;gap:6px">
+<span onClick="{{ tR2 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+      <span style="width:32px;height:32px;border-radius:8px;background:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-accent-400)">▤</span>
+      <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+      <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⌥</span>
+      <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⎘</span>
+      <div style="flex:1"></div>
+      <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⚙</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>协作脊柱 · 中间一条时间轴，Claude 在左 / Codex 在右，用户消息横跨；右上分段进度条；右栏是证据栈入口</div>
+<div class="dv-card" style="width:1600px;height:1000px;display:flex;flex-direction:column">
+
+  <div style="height:40px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--s-raised);border-bottom:1px solid var(--color-neutral-900)">
+    <div style="display:flex;gap:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span></div>
+    <div style="width:1px;height:16px;background:var(--color-neutral-800);margin-left:6px"></div>
+    <span style="font-size:12.5px;color:var(--color-text);font-weight:500">取消运行中的 Agent turn</span>
+    <span style="font-size:11px;color:var(--color-neutral-600);font-family:ui-monospace,Menlo,monospace">acp-engine · work-08</span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--color-neutral-600)">⌘K</span>
+  </div>
+
+  <div style="flex:1;display:flex;min-height:0">
+
+    <div style="display:{{ mL3 }};width:52px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;align-items:center;padding:14px 0;gap:6px">
+<span onClick="{{ tL3 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◇</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">▤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+<div style="flex:1"></div><span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⚙</span></div><div style="display:{{ fL3 }};width:236px;flex:none;background:var(--s-rail);border-right:1px solid var(--color-neutral-900);flex-direction:column;padding:14px 10px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+        <span style="width:20px;height:20px;border-radius:5px;background:linear-gradient(140deg,var(--color-accent),var(--color-accent-700));display:block"></span>
+        <span style="font-size:13px;font-weight:500;color:var(--color-text)">Duet</span>
+        <div style="flex:1"></div>
+        <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+        <span onClick="{{ tL3 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇤</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:0 8px">工作</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;background:var(--color-surface);box-shadow:inset 2px 0 0 var(--color-accent)">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12.5px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">取消运行中的 Agent turn</div>
+            <div style="margin-top:4px;display:flex;gap:2px"><span style="flex:1;height:2px;background:var(--color-accent-400);border-radius:2px"></span><span style="flex:1;height:2px;background:var(--color-accent-400);border-radius:2px"></span><span style="flex:1;height:2px;background:var(--color-accent-400);border-radius:2px"></span><span style="flex:4;height:2px;background:var(--color-neutral-800);border-radius:2px"></span></div>
+          </div>
+        </div>
+        <div style="padding:7px 8px;border-radius:6px">
+          <div style="font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ACP 事件流补齐推送通道</div>
+          <div style="margin-top:4px;display:flex;gap:2px"><span style="flex:2;height:2px;background:var(--color-neutral-700);border-radius:2px"></span><span style="flex:5;height:2px;background:var(--color-neutral-900);border-radius:2px"></span></div>
+        </div>
+        <div style="padding:7px 8px;border-radius:6px">
+          <div style="font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">会话池复用与超时策略</div>
+          <div style="margin-top:4px;display:flex;gap:2px"><span style="flex:7;height:2px;background:var(--color-neutral-800);border-radius:2px"></span></div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:9px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">角色绑定</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400)"></span>需求 · 规划 · 审查<span style="margin-left:auto;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">claude</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400)"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-neutral-300)"></span>实现 · 测试<span style="margin-left:auto;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">codex</span></div>
+        <div style="font-size:10.5px;color:var(--color-neutral-700)">点击可改绑 Runtime、模型与推理强度</div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column;background:var(--color-bg)">
+
+      <div style="position:absolute;top:14px;right:18px;z-index:5;display:flex;align-items:center;gap:12px;padding:9px 13px;border-radius:999px;background:rgba(27,29,43,.94);box-shadow:0 0 0 1px var(--color-neutral-800),0 12px 32px rgba(0,0,0,.6)">
+        <span style="font-size:11px;color:var(--color-neutral-400);font-weight:500">计划 v5</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--color-accent-700)"></span>
+          <span style="width:14px;height:2px;background:var(--color-accent-700)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--color-accent-700)"></span>
+          <span style="width:14px;height:2px;background:var(--color-accent-700)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:var(--color-accent-700)"></span>
+          <span style="width:14px;height:2px;background:linear-gradient(90deg,var(--color-accent-700),var(--color-neutral-800))"></span>
+          <span style="width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--color-accent-400);background:rgba(181,171,252,.15)"></span>
+          <span style="width:14px;height:2px;background:var(--color-neutral-800)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span>
+          <span style="width:14px;height:2px;background:var(--color-neutral-800)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span>
+          <span style="width:14px;height:2px;background:var(--color-neutral-800)"></span>
+          <span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-neutral-800)"></span>
+        </div>
+        <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">unit-012 · 2:14</span>
+        <span style="font-size:11px;color:var(--color-accent-400)">⤢</span>
+      </div>
+
+      <div style="flex:1;overflow:hidden;padding:26px 0 0;position:relative">
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--color-neutral-900) 60px,var(--color-neutral-900) calc(100% - 60px),transparent)"></div>
+        <div style="position:relative;width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:22px">
+
+          <div style="display:flex;justify-content:center;margin-top:44px">
+            <div style="max-width:640px;padding:10px 16px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-800);font-size:13.5px;color:var(--color-text);text-align:center;line-height:1.6">用户能取消正在运行的 turn，取消后现场证据要保留。</div>
+          </div>
+
+          <div style="display:flex;gap:24px;align-items:flex-start">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">requirement v2 冻结</span><span style="font-size:11.5px;color:var(--color-accent-400);font-weight:500">Claude · 计划架构师</span></div>
+              <div style="max-width:420px;padding:11px 13px;border-radius:12px 12px 4px 12px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--s-claude-edge);font-size:13px;color:var(--color-text);line-height:1.65">计划 v5：3 个子计划、7 个单元。unit-012 契约 v3 已冻结——允许写入 <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">cancel 模块 + 测试</span>，禁止改动公开 schema。</div>
+            </div>
+            <span style="width:11px;height:11px;flex:none;margin-top:8px;border-radius:50%;background:var(--color-accent-400);box-shadow:0 0 0 4px var(--color-bg),0 0 0 5px var(--color-accent-700)"></span>
+            <div style="flex:1"></div>
+          </div>
+
+          <div style="display:flex;gap:24px;align-items:flex-start">
+            <div style="flex:1"></div>
+            <span style="width:11px;height:11px;flex:none;margin-top:8px;border-radius:50%;background:var(--color-neutral-300);box-shadow:0 0 0 4px var(--color-bg),0 0 0 5px var(--color-neutral-700)"></span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px"><span style="font-size:11.5px;color:var(--color-neutral-300);font-weight:500">Codex · 实现工程师</span><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">attempt 2 · 执行中</span></div>
+              <div style="max-width:440px;border-radius:12px 12px 12px 4px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--color-neutral-900);overflow:hidden">
+                <div style="padding:10px 12px;font-size:13px;color:var(--color-neutral-400);line-height:1.6">按契约实现两段取消：先发协议 cancel，再等 <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">stopReason</span>，游标落盘后返回。</div>
+                <div style="border-top:1px solid var(--color-surface);padding:8px 12px;display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500)"><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">edit</span><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">engine/src/cancel.rs</span><div style="flex:1"></div><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-pass)">+64</span><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-fail)">−12</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500)"><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">bash</span><span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-300)">cargo test cancel</span><div style="flex:1"></div><span style="width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--color-accent-400)"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:24px;align-items:flex-start">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">independent review</span><span style="font-size:11.5px;color:var(--color-accent-400);font-weight:500">Claude · 实现审查员</span></div>
+              <div style="max-width:420px;padding:11px 13px;border-radius:12px 12px 4px 12px;background:var(--s-raised);box-shadow:inset 0 0 0 1px var(--s-claude-edge);font-size:13px;color:var(--color-text);line-height:1.65;display:flex;flex-direction:column;gap:8px">
+                <span>attempt 1 的 diff 越出写入边界（改了 <span style="font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-300)">EngineEvent</span>），判定 <span style="color:var(--color-fail)">implementation_fix</span>，已触发 attempt 2。</span>
+                <span style="align-self:flex-end;font-size:11px;padding:3px 10px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-accent-700);color:var(--color-accent-300)">打开证据抽屉 ⤢</span>
+              </div>
+            </div>
+            <span style="width:11px;height:11px;flex:none;margin-top:8px;border-radius:50%;background:var(--color-accent-400);box-shadow:0 0 0 4px var(--color-bg),0 0 0 5px var(--color-accent-700)"></span>
+            <div style="flex:1"></div>
+          </div>
+
+          <div style="display:flex;justify-content:center">
+            <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700);background:var(--color-bg);padding:0 12px">补充消息已入队 · 将在 unit-012 结束后评估影响</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:0 0 18px">
+        <div style="width:820px;margin:0 auto">
+          <div style="border-radius:12px;background:var(--s-raised);box-shadow:0 0 0 1px var(--color-neutral-800);padding:13px 14px 9px">
+            <div style="font-size:13.5px;color:var(--color-neutral-700)">补充说明、纠正范围，或直接提问…</div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:8px">
+              <span style="font-size:15px;color:var(--color-neutral-600)">＋</span>
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">发给 · 自动路由</span>
+              <span style="font-size:11.5px;padding:3px 9px;border-radius:6px;box-shadow:inset 0 0 0 1px var(--color-neutral-800);color:var(--color-neutral-400)">不打断当前单元</span>
+              <div style="flex:1"></div>
+              <span style="font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">4.2 / 8.0</span>
+              <span style="width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-accent-400)">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;right:18px;bottom:110px;display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:rgba(27,29,43,.94);box-shadow:0 0 0 1px var(--color-neutral-800),0 8px 22px rgba(0,0,0,.5)">
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;background:var(--color-accent-900);color:var(--color-accent-300)">双轨</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;color:var(--color-neutral-500)">仅 Claude</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:999px;color:var(--color-neutral-500)">仅 Codex</span>
+      </div>
+    </div>
+
+    <div style="display:{{ mR3 }};width:52px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);flex-direction:column;align-items:center;padding:14px 0;gap:6px">
+<span onClick="{{ tR3 }}" style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇥</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">▤</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">◧</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⌥</span>
+<span style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-600)">⎘</span>
+<div style="flex:1"></div></div><div style="display:{{ fR3 }};width:288px;flex:none;background:var(--s-rail);border-left:1px solid var(--color-neutral-900);padding:14px 12px;flex-direction:column;gap:13px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11.5px;font-weight:500;color:var(--color-text)">证据栈</span><div style="flex:1"></div><span style="font-size:10.5px;color:var(--color-accent-400)">全屏 ⤢</span><span onClick="{{ tR3 }}" style="width:20px;height:20px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-neutral-600);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-400)">⇥</span></div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="padding:10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">ev-441</span><span style="font-size:11px;color:var(--color-neutral-400)">测试输出</span><div style="flex:1"></div><span style="font-size:10px;color:var(--color-pass);font-family:ui-monospace,Menlo,monospace">exit 0</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">test cancel::idempotent … ok<br>test cancel::cursor_readable … ok<br>2 passed; 0 failed</div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-accent-400)">ev-440</span><span style="font-size:11px;color:var(--color-neutral-400)">Git diff</span><div style="flex:1"></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">3 文件</span></div>
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.6"><span style="color:var(--color-pass)">+ pub async fn cancel(&amp;self) -&gt; Result&lt;()&gt; {</span><br><span style="color:var(--color-pass)">+   if self.cancelled.swap(true) { return Ok(()) }</span><br><span style="color:var(--color-fail)">- self.session.abort();</span></div>
+        </div>
+        <div style="padding:10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);opacity:.65">
+          <div style="display:flex;align-items:center;gap:7px"><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">ev-438</span><span style="font-size:11px;color:var(--color-neutral-500)">attempt 1 · 越界 diff</span><div style="flex:1"></div><span style="font-size:10px;color:var(--color-fail);font-family:ui-monospace,Menlo,monospace">已废弃</span></div>
+        </div>
+      </div>
+      <div style="height:1px;background:linear-gradient(to right,transparent,rgba(233,233,237,.16) 24px,rgba(233,233,237,.16) calc(100% - 24px),transparent)"></div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">验收标准 · 2/3</div>
+        <div style="display:flex;gap:8px;font-size:11.5px;color:var(--color-neutral-400);line-height:1.5"><span style="color:var(--color-pass)">✓</span>连续取消两次只发一次协议 cancel</div>
+        <div style="display:flex;gap:8px;font-size:11.5px;color:var(--color-neutral-400);line-height:1.5"><span style="color:var(--color-pass)">✓</span>取消后 diff 与事件游标可读</div>
+        <div style="display:flex;gap:8px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5"><span style="color:var(--color-neutral-700)">○</span>reviewing_unit 状态下取消被拒绝<span style="margin-left:auto;color:var(--color-neutral-700);font-family:ui-monospace,Menlo,monospace">无证据</span></div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="padding:10px;border-radius:8px;background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:11px;color:var(--color-neutral-600);line-height:1.6">证据由应用直接采集 Git diff 与命令结果，不采信 Agent 转述。</div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">下一步可以说：「深入做 <a class="dv-oid" href="#1a">1a</a>，把计划视图、单元契约、审查/证据抽屉、D2 弹窗、记忆与 Skill 管理都画出来」 · 「<a class="dv-oid" href="#1b">1b</a> 的折叠卡片放进 <a class="dv-oid" href="#1a">1a</a> 的骨架」 · 「补充消息入队再给我 3 种交互」</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { open: { L1: true, L2: true, L3: true, R1: true, R2: false, R3: true } };
+  renderVals() {
+    const v = {};
+    for (const k of Object.keys(this.state.open)) {
+      const on = this.state.open[k];
+      v['f' + k] = on ? 'flex' : 'none';
+      v['m' + k] = on ? 'none' : 'flex';
+      v['t' + k] = () => this.setState(s => ({ open: { ...s.open, [k]: !s.open[k] } }));
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@phosphor-icons/web": "^2.1.2",
     "@tanstack/react-query": "^5.62.0",
     "i18next": "^24.2.0",
     "openapi-fetch": "^0.13.8",

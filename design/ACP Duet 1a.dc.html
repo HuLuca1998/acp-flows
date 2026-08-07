@@ -36,9 +36,9 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
 <div style="width:1600px;height:1000px;border-radius:var(--radius-lg);background:var(--color-bg);box-shadow:var(--shadow-lg);overflow:hidden;display:flex;flex-direction:column;position:relative">
 
   <div style="height:42px;flex:none;display:flex;align-items:center;background:var(--s-raised);border-bottom:1px solid var(--color-neutral-900);z-index:6">
-    <div style="width:{{ leftBarW }};flex:none;display:flex;align-items:center;gap:4px;padding:0 10px 0 12px;border-right:1px solid var(--color-neutral-900);height:100%" data-comment-anchor="793d590603-div">
+    <div style="width:{{ leftBarW }};flex:none;display:flex;align-items:center;gap:4px;padding:0 10px 0 12px;border-right:1px solid var(--color-neutral-900);height:100%">
       <div style="display:flex;gap:8px;margin-right:8px"><span style="width:12px;height:12px;border-radius:50%;background:#ff5f57"></span><span style="width:12px;height:12px;border-radius:50%;background:#febc2e"></span><span style="width:12px;height:12px;border-radius:50%;background:#28c840"></span></div>
-      <span onClick="{{ toggleLeft }}" title="折叠侧边栏" data-tt="折叠侧边栏" style="flex:none;width:28px;height:24px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:{{ leftIconFg }};background:{{ leftIconBg }}" style-hover="background:var(--color-surface);color:var(--color-accent-300)"><i class="ph ph-sidebar-simple" style="font-size:16px;line-height:1" data-comment-anchor="d285dd0225-i"></i></span>
+      <span onClick="{{ toggleLeft }}" title="折叠侧边栏" data-tt="折叠侧边栏" style="flex:none;width:28px;height:24px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:{{ leftIconFg }};background:{{ leftIconBg }}" style-hover="background:var(--color-surface);color:var(--color-accent-300)"><i class="ph ph-sidebar-simple" style="font-size:16px;line-height:1"></i></span>
       
       <div style="flex:1"></div>
       <span onClick="{{ openRepo }}" title="新建工作" data-tt="新建工作" style="display:flex;flex:none;width:28px;height:24px;border-radius:var(--radius-sm);align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-500);cursor:pointer" style-hover="background:var(--color-surface);color:var(--color-accent-300)"><i class="ph ph-note-pencil" style="font-size:16px;line-height:1"></i></span>
@@ -125,7 +125,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
 
       <div style="flex:1"></div>
       <div onClick="{{ goSettings }}" style="padding:8px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0" style-hover="box-shadow:inset 0 0 0 1px var(--color-accent-700)">
-        <div data-comment-anchor="46ffb56348-span" style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">Runtime</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700)">Runtime</div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400);white-space:nowrap"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400);flex:none"></span>Claude 0.63.0<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">就绪</span></div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-400);white-space:nowrap"><span style="width:5px;height:5px;border-radius:50%;background:var(--color-neutral-300);flex:none"></span>Codex 1.1.7<span style="color:var(--color-neutral-700);margin-left:auto;font-family:ui-monospace,Menlo,monospace">运行中</span></div>
       </div>
@@ -136,7 +136,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
     <div style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column;background:var(--color-bg);border-left:1px solid var(--color-neutral-900)">
 
       <div style="display:{{ vChat }};flex:1;flex-direction:column;min-height:0">
-        <div style="flex:1;min-height:0;overflow-y:auto;padding:24px 0 8px" data-comment-anchor="d438d0a319-div">
+        <div style="flex:1;min-height:0;overflow-y:auto;padding:24px 0 8px">
           <div style="width:min(800px,100%);margin:0 auto;padding:0 24px;display:flex;flex-direction:column;gap:24px">
 
             <div style="display:flex;justify-content:flex-end;margin-top:84px">
@@ -330,7 +330,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
           </div>
         </div>
 
-        <div style="flex:none;padding:0 24px 18px" data-comment-anchor="58a51517b2-div">
+        <div style="flex:none;padding:0 24px 18px">
           <div style="width:min(800px,100%);margin:0 auto;position:relative">
             <div style="display:{{ queuePopover }};position:absolute;left:0;right:0;bottom:100%;margin-bottom:10px;z-index:8;border-radius:var(--radius-lg);background:var(--s-rail);box-shadow:var(--shadow-lg);padding:13px;flex-direction:column;gap:10px">
               <div style="display:flex;align-items:center;gap:8px">
@@ -358,7 +358,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
               </div>
             </div>
 
-            <div style="border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:var(--shadow-sm);position:relative" data-comment-anchor="58a51517b2-div">
+            <div style="border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:var(--shadow-sm);position:relative">
 
               <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--color-surface);border-bottom:1px solid var(--color-neutral-900);border-radius:var(--radius-lg) var(--radius-lg) 0 0">
                 <span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-400);flex:none"></span>
@@ -367,7 +367,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
                 <span onClick="{{ openQueue }}" style="font-size:11px;color:var(--color-accent-300);cursor:pointer;white-space:nowrap" style-hover="color:var(--color-accent-200)">处理方式</span>
               </div>
 
-              <div data-comment-anchor="db48197c9a-div" style="padding:11px 14px 9px;display:flex;align-items:flex-start;gap:10px">
+              <div style="padding:11px 14px 9px;display:flex;align-items:flex-start;gap:10px">
                 <div style="flex:1;min-width:0;font-size:13.5px;color:var(--color-neutral-500);line-height:1.6;min-height:22px">补充说明、纠正范围，或直接提问…</div>
                 <span style="font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-800);white-space:nowrap;padding-top:3px">Shift+Enter 换行</span>
               </div>
@@ -387,7 +387,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
                   <span onClick="{{ toggleFilter }}" title="时间线显示 · 事件过滤" data-tt="时间线显示 · 事件过滤" style="display:flex;flex:none;align-items:center;gap:6px;height:26px;padding:0 9px;border-radius:var(--radius-sm);font-size:12px;color:var(--color-neutral-500);cursor:pointer;color:{{ filterFg }};background:{{ filterBg }}" style-hover="background:var(--color-surface);color:var(--color-accent-300)"><i class="ph ph-funnel" style="font-size:15px;line-height:1"></i> <span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.8">{{ filterCount }}</span></span>
                   <span style="display:{{ filterPanel }};position:absolute;bottom:calc(100% + 10px);left:0;z-index:60;width:264px;max-height:296px;border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:var(--shadow-lg);padding:10px 7px 10px 11px;flex-direction:column;gap:6px;overflow:hidden">
                     <div style="display:flex;align-items:center;gap:8px"><span style="font-size:11.5px;font-weight:500;color:var(--color-text)">时间线显示</span><div style="flex:1"></div><span onClick="{{ presetAll }}" style="font-size:10.5px;color:var(--color-accent-300);cursor:pointer">全选</span><span onClick="{{ presetMin }}" style="font-size:10.5px;color:var(--color-neutral-600);cursor:pointer" style-hover="color:var(--color-accent-300)">极简</span></div>
-                    <div style="flex:1;min-height:0;overflow-y:auto;padding-right:5px;display:flex;flex-direction:column;gap:6px" data-comment-anchor="0fdbcc8d79-div">
+                    <div style="flex:1;min-height:0;overflow-y:auto;padding-right:5px;display:flex;flex-direction:column;gap:6px">
                       <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:0 7px">ACP 事件 · 来自 Runtime</div>
                       <div onClick="{{ tgMsg }}" style="display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:var(--radius-md);cursor:pointer" style-hover="background:var(--color-surface)"><span style="width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1.5px {{ kMsgB }};background:{{ kMsg }}"></span><div style="min-width:0;flex:1"><div style="font-size:12px;color:var(--color-neutral-400)">Agent 消息流</div><div style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">message_chunk</div></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">6</span></div><div onClick="{{ tgThink }}" style="display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:var(--radius-md);cursor:pointer" style-hover="background:var(--color-surface)"><span style="width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1.5px {{ kThinkB }};background:{{ kThink }}"></span><div style="min-width:0;flex:1"><div style="font-size:12px;color:var(--color-neutral-400)">思考摘要</div><div style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">agent_thought_chunk</div></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">4</span></div><div onClick="{{ tgTool }}" style="display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:var(--radius-md);cursor:pointer" style-hover="background:var(--color-surface)"><span style="width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1.5px {{ kToolB }};background:{{ kTool }}"></span><div style="min-width:0;flex:1"><div style="font-size:12px;color:var(--color-neutral-400)">工具调用</div><div style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">tool_call · update</div></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">17</span></div><div onClick="{{ tgPerm }}" style="display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:var(--radius-md);cursor:pointer" style-hover="background:var(--color-surface)"><span style="width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1.5px {{ kPermB }};background:{{ kPerm }}"></span><div style="min-width:0;flex:1"><div style="font-size:12px;color:var(--color-neutral-400)">权限请求</div><div style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">request_permission</div></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">2</span></div><div onClick="{{ tgStop }}" style="display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:var(--radius-md);cursor:pointer" style-hover="background:var(--color-surface)"><span style="width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1.5px {{ kStopB }};background:{{ kStop }}"></span><div style="min-width:0;flex:1"><div style="font-size:12px;color:var(--color-neutral-400)">轮次结束</div><div style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">stopReason</div></div><span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">5</span></div>
                       <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);padding:6px 7px 0">应用事件 · 来自控制层</div>
@@ -514,7 +514,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
         </div>
       </div>
 
-      <div style="display:{{ vMem }};flex:1;flex-direction:column;min-height:0;padding:22px 28px;gap:14px;overflow:hidden" data-comment-anchor="cbdb9c40d1-div">
+      <div style="display:{{ vMem }};flex:1;flex-direction:column;min-height:0;padding:22px 28px;gap:14px;overflow:hidden">
         <div style="display:flex;align-items:flex-end;gap:12px">
           <div><div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-700);margin-bottom:4px">L2 项目记忆 · L3 跨项目记忆</div><h4 style="margin:0;color:var(--color-text)">记忆</h4></div>
         </div>
@@ -737,7 +737,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
                 <div style="margin-top:8px;color:var(--color-neutral-700)">references 只在需要时载入上下文，不随 SKILL.md 常驻</div>
               </div>
 
-              <div style="display:{{ pAsset }};flex:1;min-height:0;padding:11px 13px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.8;color:var(--color-neutral-400);flex-direction:column;overflow:hidden" data-comment-anchor="35f1798ca1-div">
+              <div style="display:{{ pAsset }};flex:1;min-height:0;padding:11px 13px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.8;color:var(--color-neutral-400);flex-direction:column;overflow:hidden">
                 <div style="color:var(--color-neutral-300)">## 单元执行报告</div>
                 <div>- 契约版本 / 起始检查点 / diff hash</div>
                 <div>- 修改文件与实现摘要</div>
@@ -1138,7 +1138,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
         </div>
       </div>
 
-      <div style="display:{{ planPanel }};position:absolute;top:{{ planTop }};left:{{ planLeft }};z-index:9;width:300px;border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:var(--shadow-md);padding:11px 12px;flex-direction:column;gap:9px" data-comment-anchor="45ff5ab33c-div">
+      <div style="display:{{ planPanel }};position:absolute;top:{{ planTop }};left:{{ planLeft }};z-index:9;width:300px;border-radius:var(--radius-lg);background:var(--s-raised);box-shadow:var(--shadow-md);padding:11px 12px;flex-direction:column;gap:9px">
         <div onMouseDown="{{ startPlanDrag }}" style="display:flex;align-items:center;gap:8px;cursor:grab;user-select:none">
           <span style="font-size:10px;color:var(--color-neutral-700);letter-spacing:.1em">⠿</span>
           <span style="font-size:11.5px;font-weight:500;color:var(--color-text)">计划 v5</span>
@@ -1190,7 +1190,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
 
     <div onMouseDown="{{ startRightDrag }}" style="display:{{ rightFull }};width:5px;flex:none;cursor:col-resize;background:{{ rightHandleBg }};z-index:5" style-hover="background:var(--color-accent-700)"></div>
 
-    <div style="display:{{ rightFull }};width:{{ rightW }};flex:none;background:var(--s-rail);padding:12px;flex-direction:column;gap:11px;min-width:0" data-comment-anchor="4629918167-div">
+    <div style="display:{{ rightFull }};width:{{ rightW }};flex:none;background:var(--s-rail);padding:12px;flex-direction:column;gap:11px;min-width:0">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:11.5px;font-weight:500;color:var(--color-text)">工作区</span>
         <span style="font-size:10px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-600)">wt/work-08</span>
@@ -1277,7 +1277,7 @@ a{color:var(--color-accent-400);text-decoration:none}a:hover{color:var(--color-a
             <div style="flex:1"></div>
             <span  style="font-size:12px;padding:6px 14px;border-radius:var(--radius-md);box-shadow:inset 0 0 0 1px var(--color-accent-700);color:var(--color-accent-300);cursor:pointer;white-space:nowrap" style-hover="background:var(--color-accent-900);color:var(--color-accent-300)">选择文件夹…</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:5px;padding:9px 12px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)" data-comment-anchor="2587fa6b88-div">
+          <div style="display:flex;flex-direction:column;gap:5px;padding:9px 12px;border-radius:var(--radius-md);background:var(--s-inset);box-shadow:inset 0 0 0 1px var(--color-neutral-900);font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--color-neutral-500)">
             <div><span style="color:var(--color-pass)">✓</span> 检测到 .git · 默认分支 main · 无未提交改动</div>
             <div><span style="color:var(--color-neutral-600)">＋</span> 将创建 <span style="color:var(--color-text)">acp-engine/.acpflows/</span> <span style="color:var(--color-neutral-700)">（skills/ · memory/ · project.yaml）</span></div>
             <div><span style="color:var(--color-neutral-600)">＋</span> 将写入 <span style="color:var(--color-text)">.gitignore</span> <span style="color:var(--color-neutral-700)">忽略 .acpflows/runs/（运行记录不入库）</span></div>

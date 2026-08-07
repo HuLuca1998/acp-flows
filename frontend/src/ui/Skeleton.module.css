@@ -1,0 +1,51 @@
+/* 骨架占位。设计规范 §07。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: flex-start;
+  padding: var(--space-6);
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: var(--layout-main-w);
+}
+
+/* 灰条本身不承载任何信息——**故意的**。
+ * 它只表达「这里将来有内容」，不表达内容是什么。 */
+.bar {
+  height: 13px;
+  border-radius: var(--radius-sm);
+  background: var(--s-inset);
+}
+
+.bar[data-row='1'] {
+  width: 82%;
+}
+
+.bar[data-row='2'] {
+  width: 64%;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.badge {
+  margin: 0;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-neutral-800);
+  border-radius: var(--radius-sm);
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}

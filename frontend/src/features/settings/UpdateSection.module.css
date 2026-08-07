@@ -1,0 +1,60 @@
+/* 应用更新卡片。设计规范 §05。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-neutral-900);
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+}
+
+.heading {
+  margin: 0;
+  color: var(--color-neutral-300);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.current,
+.found,
+.notes,
+.upToDate {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.found {
+  color: var(--color-neutral-300);
+}
+
+/* 版本号是标识符，等宽显示（设计规范 §02） */
+.version {
+  margin-left: var(--space-2);
+  color: var(--color-neutral-300);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+/* 检查失败用失败色的**文字**，不是红底（设计规范 §05） */
+.error {
+  margin: 0;
+  color: var(--color-fail);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.available {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
