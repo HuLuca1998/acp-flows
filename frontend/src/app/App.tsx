@@ -46,10 +46,17 @@ export function App() {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.titlebar}>
+      {/* ★ data-tauri-drag-region：按住这一条能拖动窗口。
+          Overlay 窗口没有系统标题栏可抓，不标的话整个应用拖不动。
+
+          ★★ 注意：Tauri 检查的是 **mousedown 的目标元素本身**有没有这个属性，
+          **不会向上找父元素**。所以窗口栏里每一个非交互的子元素都要单独标，
+          否则会出现「按空白处能拖、按到文字上就拖不动」这种时灵时不灵的现象。
+          交互元素（按钮）**不要标** —— 标了点击会变成拖拽。 */}
+      <header className={styles.titlebar} data-tauri-drag-region>
         {/* macOS 交通灯的占位。真窗口里由系统绘制，Web 形态下留出等宽空间，
             否则从浏览器切到 App 时整条窗口栏会横向跳一下。 */}
-        <span className={styles.trafficLights} aria-hidden="true" />
+        <span className={styles.trafficLights} aria-hidden="true" data-tauri-drag-region />
 
         <Button
           icon="ph-sidebar-simple"
@@ -59,12 +66,14 @@ export function App() {
           onClick={() => setRailOpen(!railOpen)}
         />
 
-        <nav className={styles.breadcrumb} aria-label={t('nav.breadcrumb')}>
-          <span className={styles.crumbMuted}>{t('common.state.noProject')}</span>
+        <nav className={styles.breadcrumb} aria-label={t('nav.breadcrumb')} data-tauri-drag-region>
+          <span className={styles.crumbMuted} data-tauri-drag-region>
+            {t('common.state.noProject')}
+          </span>
         </nav>
 
         {/* 靠视口右缘：tooltip 必须右对齐，否则会把页面撑出横向滚动条 */}
-        <div className={styles.titlebarRight} data-tt-align="end">
+        <div className={styles.titlebarRight} data-tt-align="end" data-tauri-drag-region>
           <Button
             icon="ph-tree-structure"
             label={t('nav.togglePlan')}

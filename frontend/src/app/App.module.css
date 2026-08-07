@@ -23,9 +23,12 @@
 
 /* macOS 交通灯占位：真窗口里由系统绘制。
  * 留出等宽空间，否则从浏览器切到 App 时窗口栏会横向跳一下。 */
+
+/* Overlay 模式下系统在左上角画交通灯（红黄绿），这里给它让出位置。
+   宽度按 macOS 的实际占位取——少了会被盖住，多了窗口栏左边空一块。 */
 .trafficLights {
   flex-shrink: 0;
-  width: 52px;
+  width: 68px;
 }
 
 .breadcrumb {
@@ -41,6 +44,9 @@
 .crumbMuted {
   color: var(--color-neutral-600);
 }
+
+/* 拖拽由 data-tauri-drag-region 属性驱动（见 App.tsx），不是 CSS。
+   -webkit-app-region 是 Electron 的机制，Tauri 不认。 */
 
 .titlebarRight {
   display: flex;

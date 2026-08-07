@@ -1,0 +1,28 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Duet 主窗口的权限。**按最小必要授予** —— 每多一条就多一个攻击面。",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-focus",
+    "core:window:allow-start-dragging",
+    "dialog:default",
+    "opener:default",
+    "updater:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/duetd",
+          "sidecar": true,
+          "args": [
+            "--updater"
+          ]
+        }
+      ]
+    }
+  ]
+}

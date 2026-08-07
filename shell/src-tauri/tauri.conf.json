@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../../frontend/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "pnpm -C ../../frontend dev",
-    "beforeBuildCommand": "pnpm -C ../../frontend build"
+    "beforeDevCommand": "pnpm -C ../frontend dev",
+    "beforeBuildCommand": "pnpm -C ../frontend build"
   },
   "app": {
     "windows": [
@@ -17,14 +17,16 @@
         "height": 900,
         "minWidth": 1100,
         "minHeight": 700,
-        "decorations": false,
+        "decorations": true,
         "transparent": false,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
       "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:* ; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
-    }
+    },
+    "macOSPrivateApi": false
   },
   "bundle": {
     "active": true,
@@ -54,7 +56,7 @@
         "https://github.com/HuLuca1998/acp-flows/releases/latest/download/latest.json"
       ],
       "dialog": false,
-      "pubkey": "REPLACE_WITH_MINISIGN_PUBLIC_KEY"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM4RTQxNjgxNjQ3MUE3QzkKUldUSnAzRmtnUmJreUh0QVB3elhaZnNOYThCZVIxNk5ZSFFsRWRZNWJjRXdkSHg3cHJkU3FRcHUK"
     }
   }
 }
