@@ -157,3 +157,10 @@
 | `TestListProjects_EmptyIsArrayNotNull` | `internal/api/projects_test.go` | api | ★ 空列表是 `[]` 不是 `null`——「一个项目都没有」正是新用户第一次打开的状态 |
 | `TestRemoveProject_ReturnsNoContent` | `internal/api/projects_test.go` | api | 204 且真的调到用例 |
 | `TestProjects_WithoutServiceDoNotPanic` | `internal/api/projects_test.go` | api | 没配用例时不 panic 也不假装成功 |
+| `TestProcess_ClearsNestedSessionEnv` | `internal/acp/runtime/process_test.go` | acp | R1：清掉 `CLAUDECODE` 等嵌套标记（不清的话 claude-agent-acp 会误判嵌套而拒绝服务），但只删该删的 |
+| `TestProcess_CapturesStderr` | `internal/acp/runtime/process_test.go` | acp | R2：失败时把 stderr 附在错误里——只说「exit status 1」等于把唯一的线索丢了 |
+| `TestProcess_EscalatesToKill` | `internal/acp/runtime/process_test.go` | acp | ★ R3：用**忽略 SIGTERM** 的真进程验「宽限期后升级到 SIGKILL」；负例（不升级）会让测试挂到超时 |
+| `TestProcess_KillsGrandchildren` | `internal/acp/runtime/process_test.go` | acp | ★★ 杀的是**整个进程组**——ACP Runtime 是 node 启动器再 fork，只杀直接子进程的话孙进程会继续占着 worktree 改用户的文件；负例（去掉 Setpgid）立刻红 |
+| `TestProcess_LeavesNoZombie` | `internal/acp/runtime/process_test.go` | acp | R4：Wait 回收进程，不留僵尸（用 `ps` 的状态位判，signal 0 对僵尸也返回 nil） |
+| `TestProcess_StopIsIdempotent` | `internal/acp/runtime/process_test.go` | acp | 「停止」被连点两下不报错 |
+| `TestProcess_StartFailureNamesTheBinary` | `internal/acp/runtime/process_test.go` | acp | 启动失败时错误信息指出是哪个可执行文件 |
