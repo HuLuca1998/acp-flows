@@ -1,6 +1,6 @@
 # AGENTS.md · backend/internal/constant
 
-> **就近优先**。规则见 [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.2。
+> **就近优先**。规则见 [`../../../docs/rules/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.2。
 
 ## 负责什么
 
@@ -62,4 +62,4 @@ cd backend && go test ./internal/constant/... -count=1
   界面上（等宽显示、不翻译）。改一个值要同步改：`AGENTS.md` §8 术语表 +
   `api/openapi.yaml` + 前端 `constants/` + 数据库里的历史数据
 - **`AllXxx()` 返回内部切片会被调用方改坏。** 一律 `copy` 出副本
-- **枚举值存数据库时存字符串原值**，不存整数（见 `docs/database.md` §2）
+- **枚举值存数据库时存字符串原值**，不存整数（见 `docs/rules/database.md` §2）

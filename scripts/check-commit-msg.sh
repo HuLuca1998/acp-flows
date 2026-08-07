@@ -14,7 +14,7 @@ if [[ -z $base ]]; then
 fi
 
 TYPES='feat|fix|perf|refactor|test|docs|build|ci|chore'
-SCOPES='acp|domain|app|api|store|fsstore|git|gh|event|ui|shell|e2e|ci|docs|deps'
+SCOPES='acp|domain|app|api|store|fsstore|git|gh|event|ui|shell|e2e|ci|docs|plan|skills|deps'
 # 这些 type 的提交可以写「不适用」
 NO_TEST_TYPES='test|docs|chore|ci|build'
 

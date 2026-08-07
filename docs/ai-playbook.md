@@ -34,7 +34,7 @@
 Read docs/acp-integration.md
 
 # ✓ 先定位，再只读那一段
-grep -n "两段式取消" docs/acp-integration.md     # → 行号
+grep -n "两段式取消" docs/spec/acp-integration.md     # → 行号
 Read docs/acp-integration.md offset=420 limit=80
 ```
 

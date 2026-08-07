@@ -55,7 +55,7 @@ make -C ../../.. check-util-index
 
 ## 改这里之前必读
 
-- [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.3–§1.4
+- [`../../../docs/rules/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.3–§1.4
 
 ## 本域特有的坑
 

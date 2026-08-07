@@ -62,7 +62,7 @@ make -C ../.. check-test-index
 
 ## 改这里之前必读
 
-- [`../../docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) —— 尤其 §2 分层、§3 假测试图鉴
+- [`../../docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) —— 尤其 §2 分层、§3 假测试图鉴
 - `go-unit-test` skill —— 项目特化的测试约束
 
 ## 本域特有的坑

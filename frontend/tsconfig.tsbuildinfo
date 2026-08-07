@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/api/schema.contract.test.ts","./src/api/gen/schema.d.ts","./src/app/app.tsx","./src/constants/event.ts","./src/constants/state.ts","./src/i18n/index.ts","./src/ui/button.test.tsx","./src/ui/button.tsx","./tests/setup.ts","./vite.config.ts"],"version":"5.9.3"}

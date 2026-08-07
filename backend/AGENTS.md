@@ -70,18 +70,18 @@ make -C .. cover             # 覆盖率 + 门槛校验
 
 | 改什么 | 读什么 |
 |---|---|
-| **写任何代码** | [`../docs/coding-standards.md`](../docs/rules/coding-standards.md) —— 命名动词表、`model/` `constant/` `util/` 的准入规则 |
-| 领域模型、状态机 | [`../docs/domain-model.md`](../docs/spec/domain-model.md)、[`internal/domain/AGENTS.md`](internal/domain/AGENTS.md) |
-| ACP 协议、Runtime 适配 | [`../docs/acp-integration.md`](../docs/spec/acp-integration.md)、[`internal/acp/AGENTS.md`](internal/acp/AGENTS.md) |
+| **写任何代码** | [`../docs/rules/coding-standards.md`](../docs/rules/coding-standards.md) —— 命名动词表、`model/` `constant/` `util/` 的准入规则 |
+| 领域模型、状态机 | [`../docs/spec/domain-model.md`](../docs/spec/domain-model.md)、[`internal/domain/AGENTS.md`](internal/domain/AGENTS.md) |
+| ACP 协议、Runtime 适配 | [`../docs/spec/acp-integration.md`](../docs/spec/acp-integration.md)、[`internal/acp/AGENTS.md`](internal/acp/AGENTS.md) |
 | HTTP 接口 | [`../api/AGENTS.md`](../api/AGENTS.md) —— **先改 spec** |
-| 任何测试 | [`../docs/testing-strategy.md`](../docs/rules/testing-strategy.md) |
+| 任何测试 | [`../docs/rules/testing-strategy.md`](../docs/rules/testing-strategy.md) |
 
 ## 技术约定
 
 | 项 | 选择 | 理由 |
 |---|---|---|
 | Go 版本 | 与 `go.mod` 一致，不用未发布特性 | |
-| ORM | **GORM** | 生态最大；隐式行为多，规则见 `docs/database.md` §9 |
+| ORM | **GORM** | 生态最大；隐式行为多，规则见 `docs/rules/database.md` §9 |
 | 数据库 | **SQLite**，驱动 `github.com/glebarez/sqlite` | 纯 Go 无 CGO。**不做 MySQL**，见 `adr/0005` |
 | HTTP 路由 | 标准库 `net/http` + `ServeMux`（Go 1.22+ 模式匹配） | 少一个依赖 |
 | 日志 | 标准库 `log/slog`，结构化 | |

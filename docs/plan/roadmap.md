@@ -38,7 +38,7 @@
 **为什么 Fake Runtime 排第一**：它是所有上层测试的地基。地基歪了上面全歪。
 
 > ✅ **已用真机探针验证过一轮**（2026-08-07，codex-acp 1.1.7 / claude-agent-acp 0.63.0）。
-> 结论见 `docs/acp-field-notes.md` §7.1。剩余待验证项在 U0.3.2 的清单里。
+> 结论见 `docs/notes/acp-field-notes.md` §7.1。剩余待验证项在 U0.3.2 的清单里。
 
 ---
 

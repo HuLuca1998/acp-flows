@@ -9,7 +9,7 @@ Tauri v2（Rust）外壳。**只做四件事**：
 1. 无边框窗口 + 自绘 42px 窗口栏的拖拽区（`decorations: false`）
 2. 原生文件/文件夹选择器、在 Finder 中显示、用外部编辑器打开
 3. **sidecar 生命周期**：拉起 `duetd`、健康检查、崩溃重启、退出时优雅关闭
-4. **自动更新**（updater 插件），见 [`../docs/release-and-update.md`](../docs/spec/release-and-update.md)
+4. **自动更新**（updater 插件），见 [`../docs/spec/release-and-update.md`](../docs/spec/release-and-update.md)
 
 ## 不负责什么
 
@@ -62,9 +62,9 @@ make -C .. build-app        # 需 TAURI_SIGNING_PRIVATE_KEY
 
 ## 改这里之前必读
 
-- [`../docs/architecture.md`](../docs/spec/architecture.md) §2 进程模型、§6 壳的职责
-- [`../docs/release-and-update.md`](../docs/spec/release-and-update.md) —— 更新流程，尤其 `prepare` 那一步
-- [`../docs/coding-standards.md`](../docs/rules/coding-standards.md) §5 Rust 规范
+- [`../docs/spec/architecture.md`](../docs/spec/architecture.md) §2 进程模型、§6 壳的职责
+- [`../docs/spec/release-and-update.md`](../docs/spec/release-and-update.md) —— 更新流程，尤其 `prepare` 那一步
+- [`../docs/rules/coding-standards.md`](../docs/rules/coding-standards.md) §5 Rust 规范
 
 ## 本域特有的坑
 

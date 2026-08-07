@@ -5,6 +5,9 @@
 /frontend/node_modules/
 /shell/src-tauri/target/
 /shell/src-tauri/gen/
+# sidecar 二进制：12MB 的构建产物，由 scripts/build.sh 现编，不入库
+/shell/src-tauri/binaries/*
+!/shell/src-tauri/binaries/.gitkeep
 node_modules/
 *.app
 

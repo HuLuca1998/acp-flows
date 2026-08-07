@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-milestones check-toolchain check-index check-icons lint test cover ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -42,6 +42,14 @@ check-doc-links: ## 文档里的相对链接指向的文件真实存在
 .PHONY: check-doc-budget
 check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大文档读法块
 	@bash scripts/check-doc-budget.sh
+
+.PHONY: check-milestones
+check-milestones: ## 里程碑单元的四要素与验收标准断言是否齐备
+	@bash scripts/check-milestones.sh
+
+.PHONY: check-toolchain
+check-toolchain: ## ★ 工具链版本声明自洽（这类问题只在 CI 上出现）
+	@bash scripts/check-toolchain.sh
 
 .PHONY: docs-scaffold
 docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store
@@ -70,12 +78,11 @@ gen: ## 由 api/openapi.yaml 生成 Go 服务端接口与 TS 客户端（改完 
 
 .PHONY: check-gen
 check-gen: gen ## 校验生成物与 spec 一致（CI 用；有 diff 即失败）
-	@git diff --exit-code -- $(BACKEND)/internal/api/gen $(FRONTEND)/src/api/gen \
-		|| { echo "✗ 生成物与 api/openapi.yaml 不一致，请跑 make gen 并提交"; exit 1; }
+	@bash scripts/check-gen.sh
 
 # ══ 测试 ═══════════════════════════════════════════════════════
 .PHONY: test
-test: test-backend test-frontend ## 跑后端 + 前端全部测试
+test: test-backend test-frontend test-shell ## 跑后端 + 前端 + 外壳全部测试
 
 .PHONY: test-backend
 test-backend: ## Go 测试（含 -race）
@@ -88,7 +95,13 @@ endif
 .PHONY: cover
 cover: ## Go 覆盖率 + 门槛校验（domain 包 >= 90%）
 ifeq ($(call has,$(BACKEND)/go.mod),yes)
-	cd $(BACKEND) && go test ./... -coverprofile=coverage.out -covermode=atomic
+	@# ★ -coverpkg 不能省：没有它时「A 包的测试执行了 B 包的代码」不计入 B 的覆盖率。
+	@# 本仓库的 entity / mapper / migration 全部由 store 的测试驱动，
+	@# 不加 -coverpkg 会显示 0% —— 那是测量假象，会逼着人去写没有意义的测试。
+	cd $(BACKEND) && go test ./... -covermode=atomic -coverpkg=./internal/... -coverprofile=coverage.raw
+	@# 生成物由 openapi.yaml 决定，人改不了，不该进覆盖率门槛
+	@grep -v '/internal/api/gen/' $(BACKEND)/coverage.raw > $(BACKEND)/coverage.out
+	@rm -f $(BACKEND)/coverage.raw
 	@bash scripts/check-coverage.sh
 else
 	@echo "· 跳过 cover：$(BACKEND)/go.mod 尚未创建"
@@ -112,7 +125,7 @@ endif
 
 # ══ Lint ══════════════════════════════════════════════════════
 .PHONY: lint
-lint: lint-backend lint-frontend ## 全部 lint
+lint: lint-backend lint-frontend lint-shell ## 全部 lint
 
 .PHONY: lint-backend
 lint-backend: ## go vet + golangci-lint（含 depguard 分层约束）
@@ -137,6 +150,44 @@ ifeq ($(call has,$(FRONTEND)/package.json),yes)
 	cd $(FRONTEND) && pnpm lint && pnpm typecheck
 else
 	@echo "· 跳过 lint-frontend：$(FRONTEND)/package.json 尚未创建"
+endif
+
+# ★ shell 的 lint/test 在 CI 上是必跑的。本地不跑的话，
+# 「make check 全绿但 CI 红」就是结构性必然 —— 而那是最消耗人的状态。
+# Rust 工具链没装时跳过并说明，不让 make check 整个失效。
+#
+# ★ 都依赖 sidecar：tauri.conf.json 的 externalBin 声明了 binaries/duetd-<triple>，
+# 文件不在时 cargo build 直接失败，报的是
+# `resource path binaries/duetd-<triple> doesn't exist`。
+.PHONY: sidecar
+sidecar: ## 编出 Tauri 需要的 duetd sidecar（带 rust triple 后缀）
+	@bash scripts/build-sidecar.sh
+
+.PHONY: lint-shell
+lint-shell: ## cargo clippy（-D warnings）
+ifeq ($(call has,$(SHELLDIR)/src-tauri/Cargo.toml),yes)
+	@if command -v cargo >/dev/null 2>&1; then \
+		bash scripts/build-sidecar.sh; \
+		cd $(SHELLDIR)/src-tauri && cargo clippy --all-targets -- -D warnings; \
+	else \
+		echo "· 跳过 lint-shell（本机没有 Rust 工具链）"; \
+		echo "  装它：https://rustup.rs  ——  CI 上一定会跑，本地不跑等于把问题推给 CI"; \
+	fi
+else
+	@echo "· 跳过 lint-shell：$(SHELLDIR)/src-tauri/Cargo.toml 尚未创建"
+endif
+
+.PHONY: test-shell
+test-shell: ## cargo test
+ifeq ($(call has,$(SHELLDIR)/src-tauri/Cargo.toml),yes)
+	@if command -v cargo >/dev/null 2>&1; then \
+		bash scripts/build-sidecar.sh; \
+		cd $(SHELLDIR)/src-tauri && cargo test; \
+	else \
+		echo "· 跳过 test-shell（本机没有 Rust 工具链）"; \
+	fi
+else
+	@echo "· 跳过 test-shell：$(SHELLDIR)/src-tauri/Cargo.toml 尚未创建"
 endif
 
 # ══ 开发 ═══════════════════════════════════════════════════════

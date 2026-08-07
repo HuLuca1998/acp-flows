@@ -1,7 +1,7 @@
 # 测试索引 · frontend
 
 > **写任何新测试前，先在本表里按「行为」搜一遍。**
-> 规则见 [`../../docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
+> 规则见 [`../../docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
 > `make check-test-index` 会逐项比对，不一致即红。
 
 ## 登记规则
@@ -30,6 +30,7 @@ frontend/tests/
 | 测试文件 | 位置 | 覆盖的行为 |
 |---|---|---|
 | `Button.test.tsx` | `src/ui/` | 设计规范 §05/§08 的按钮**行为与可访问性契约**：可访问名称、点击回调、disabled 不触发、**纯图标按钮必须同时有 title 与 data-tt**、带快捷键时 tooltip 拼上快捷键、带文字的按钮不加 tooltip、type 默认 button 不误提交表单。<br>纯视觉规则（主按钮永不实心等）由 stylelint + 人工走查保证，不在这里测 |
+| `schema.contract.test.ts` | `src/api/` | ★ 生成物与 `api/openapi.yaml` 的**编译期**契约：六个端点齐备、枚举没退化成 `string`、`required` 没被丢、`Runtime.name` 不是封闭枚举（注册表可扩展）。<br>断言靠 `@ts-expect-error` —— 类型一放宽，tsc 就报「未使用的 directive」而**编译不过**。`vitest` 跑绿不代表通过，真正的门是 `make lint-frontend` |
 
 <!--
 登记示例：

@@ -6,7 +6,7 @@ description: 审查另一个 AI（或人）写的改动时使用。触发场景�
 # 独立审查
 
 > 规则：**实现方不得审查自己的 PR。** Claude 实现 → Codex 审查；Codex 实现 → Claude 审查。
-> 见 [`docs/git-workflow.md`](../../docs/rules/git-workflow.md) §3。
+> 见 [`docs/rules/git-workflow.md`](../../docs/rules/git-workflow.md) §3。
 
 ## 审查方的立场
 
@@ -46,7 +46,7 @@ gh pr checkout <n>
 - 有没有 mock 喂 mock（断言的是自己刚设的返回值）？
 - 边界、错误、幂等测了吗，还是只有 happy path？
 
-假测试图鉴见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §3。
+假测试图鉴见 [`docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §3。
 
 ### ③ 检查有没有为了变绿而动测试
 

@@ -1,0 +1,26 @@
+# oapi-codegen 配置 —— 生成 backend/internal/api/gen/api.gen.go
+#
+# 选 std-http-server 而不是 chi/echo/gin：本项目的 HTTP 层用标准库
+# （docs/spec/architecture.md §3），引一个 web 框架只为了生成代码不值得。
+#
+# 生成物**不许手改**。要改接口就改 api/openapi.yaml 再跑 make gen（铁律 2）。
+package: gen
+output: ../backend/internal/api/gen/api.gen.go
+
+generate:
+  # 服务端接口：实现它就等于实现了契约，漏一个方法编译不过
+  std-http-server: true
+  # 请求/响应类型
+  models: true
+  # 校验生成的 handler 与 spec 一致（嵌入 spec 供运行时校验用）
+  embedded-spec: true
+
+output-options:
+  # 用 nullable 而非指针表示可选，减少 nil 解引用
+  nullable-type: true
+
+compatibility:
+  # ★ 枚举常量一律带类型前缀：UpdateStatusStateIdle 而不是 Idle。
+  # 不加前缀时，两个不同枚举出现同名成员（`ready` 在 Work 状态与 prepare 结果里都有）
+  # 会直接编译冲突——而那是在增接口时才炸，离改动源头很远。
+  always-prefix-enum-values: true

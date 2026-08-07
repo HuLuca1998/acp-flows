@@ -3,7 +3,7 @@
 > **写任何新测试前，先在本表里按「行为」搜一遍。**
 > AI 反复写重复测试的根因是不知道已经测过什么——本表就是用来挡这个的。
 >
-> 规则见 [`../../docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
+> 规则见 [`../../docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
 > `make check-test-index` 会逐项比对，不一致即红。
 
 ## 登记规则
@@ -55,3 +55,17 @@
 | `TestSink_R4_FailureDoesNotPropagate` | `internal/platform/logging/logging_test.go` | platform | ★ 落库失败只降级为「只写 stderr」，绝不向上抛——日志系统挂掉不该让产品挂掉 |
 | `TestHandler_R5_ComponentLevelOverridesGlobal` | `internal/platform/logging/logging_test.go` | platform | 组件级别覆盖全局：全局 warn + `acp=trace` 时，acp 的 TRACE 落库、store 的 DEBUG 被挡 |
 | `TestHandler_R6_TraceNotOnStderr` | `internal/platform/logging/logging_test.go` | platform | ★ TRACE 永不进 stderr（报文全文会把生命周期日志淹掉），但必须落库 |
+| `TestLogSink_R1_PersistsAllFields` | `internal/store/log_sink_test.go` | store | ★ 关联字段（work_id/unit_id/attempt_id/trace_id）与 attrs JSON 都落库——丢了的话日志还在但「这个 Work 的全过程」查不出来 |
+| `TestLogSink_R2_CloseFlushesRemainder` | `internal/store/log_sink_test.go` | store | ★ Close 冲刷不满一批的剩余日志。不冲刷的话，**崩溃前最有价值的那几十条**全没 |
+| `TestLogSink_R3_WriteNeverBlocks` | `internal/store/log_sink_test.go` | store | ★ 灌 5 万条超出缓冲，Write 必须不阻塞（带 10s 超时——阻塞会表现为挂住而不是失败） |
+| `TestLogSink_R4_RetentionKeepsErrorsLonger` | `internal/store/log_sink_test.go` | store | ★ 保留策略：普通日志 7 天、ERROR 30 天。四个年龄×级别组合逐个断言留还是删 |
+| `TestLogSink_R5_RowCapDropsOldest` | `internal/store/log_sink_test.go` | store | ★ 超过条数上限时从**最旧**的删；断言留下的是最新那批（删错方向会把新日志删光） |
+| `TestLogSink_R6_UnmarshalableAttrsDoNotDropEntry` | `internal/store/log_sink_test.go` | store | attrs 序列化失败时保留整条并标 `__marshal_error`——message 往往正是排查要的 |
+| `TestLogSink_R7_InsertFailureIsSwallowed` | `internal/store/log_sink_test.go` | store | ★ 表被删后写入必然失败，仍不 panic、不阻塞、Close 不返回错误 |
+| `TestLogSink_R8_CloseIsIdempotent` | `internal/store/log_sink_test.go` | store | Close 重复调用不 panic（关闭路径上有多处兜底调用） |
+| `TestConn_R7_IncomingNotificationRoutedAndNotAnswered` | `internal/acp/jsonrpc/conn_test.go` | acp | ★ 反向通知路由到 handler 且**不回响应**。ACP 的 `session/update` 全是通知——这条断了症状是「界面什么都不显示」而不是报错 |
+| `TestConn_R8_NotificationHandlerErrorDoesNotKillConn` | `internal/acp/jsonrpc/conn_test.go` | acp | 通知处理出错不打断连接：紧接着的反向请求仍能正常回 |
+| `TestConn_R9_NotificationWithoutHandlerIsDropped` | `internal/acp/jsonrpc/conn_test.go` | acp | 没注册 handler 时通知静默丢弃，不产生任何回帧 |
+| `TestConn_R10_HandlerRPCErrorKeepsCode` | `internal/acp/jsonrpc/conn_test.go` | acp | ★ handler 返回 `*jsonrpc.Error` 时 code 原样传出。被包装成 -32603 的话，对方分不清「拒绝」与「我们崩了」 |
+| `TestConn_R11_HandlerPlainErrorBecomesInternalError` | `internal/acp/jsonrpc/conn_test.go` | acp | 普通 error 包装成 -32603 |
+| `TestConn_R12_UnknownResponseIDIsIgnored` | `internal/acp/jsonrpc/conn_test.go` | acp | 收到没发过的 id 的响应只告警不崩；真实 Runtime 出过这种时序错乱 |

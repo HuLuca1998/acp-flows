@@ -96,6 +96,10 @@ jobs:
       - name: 文档的上下文预算（L0 常驻 / L1 阶段 / L2 读法块）
         run: bash scripts/check-doc-budget.sh
 
+      # 里程碑是另一个 AI 的施工图，缺一个字段它就会改不该改的
+      - name: 里程碑单元四要素与验收断言齐备
+        run: bash scripts/check-milestones.sh
+
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
         run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
@@ -109,8 +113,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 版本写死：@latest 会让一个与本次改动无关的 PR 突然变红
       - name: spec 自身规范性
-        run: npx --yes @redocly/cli@latest lint api/openapi.yaml
+        run: npx --yes @redocly/cli@1.34.5 lint api/openapi.yaml
 
       - uses: actions/setup-go@v5
         if: needs.changes.outputs.has_backend == 'true'
@@ -118,11 +123,19 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      # 仓库根没有 package.json，不指 package_json_file 会报
+      # 「No pnpm version is specified」。版本真源是各子项目的 packageManager 字段。
       - uses: pnpm/action-setup@v4
         if: needs.changes.outputs.has_frontend == 'true'
+        with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
         if: needs.changes.outputs.has_frontend == 'true'
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
+
+      # ★ 必须装依赖：make gen 的 TS 那一半靠 pnpm exec openapi-typescript
+      - name: 装前端依赖
+        if: needs.changes.outputs.has_frontend == 'true'
+        run: cd frontend && pnpm install --frozen-lockfile
 
       - name: 生成物与 spec 一致
         if: needs.changes.outputs.has_backend == 'true' || needs.changes.outputs.has_frontend == 'true'
@@ -141,8 +154,15 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - uses: golangci/golangci-lint-action@v6
-        with: { working-directory: backend }
+      # ★ 两处都要对：
+      #   action 必须 ≥ v7（v6 不认 .golangci.yml 的 version: "2"）
+      #   golangci-lint 版本必须写死且用 ≥ go.mod 的 Go 构建，
+      #   否则报「the Go language version used to build golangci-lint is lower than
+      #   the targeted Go version」——而这条只在 CI 上出现，本地看不见
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: backend
+          version: v2.12.2
 
       - name: 单元测试（-race）
         run: make test-backend
@@ -162,8 +182,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
 
       - run: cd frontend && pnpm install --frozen-lockfile
 
@@ -185,6 +206,16 @@ jobs:
         with: { components: clippy }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: shell/src-tauri }
+
+      # ★ tauri.conf.json 的 externalBin 声明了 binaries/duetd-<triple>，
+      # 文件不在时**任何** cargo 命令都会失败（连 clippy 都跑不了），
+      # 报的是 `resource path binaries/duetd-<triple> doesn't exist`。
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: 编 duetd sidecar
+        run: bash scripts/build-sidecar.sh
 
       - run: cd shell/src-tauri && cargo clippy --all-targets -- -D warnings
       - run: cd shell/src-tauri && cargo test
@@ -226,8 +257,9 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - uses: pnpm/action-setup@v4
+        with: { package_json_file: e2e/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
 
       - run: make build
       - run: cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium

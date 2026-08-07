@@ -5,8 +5,8 @@ description: 测试前端界面时使用。触发场景：写或改 React 组件
 
 # 前端测试三层
 
-> 完整策略见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §6。
-> 设计合规规则见 [`docs/frontend-guide.md`](../../docs/spec/frontend-guide.md)。
+> 完整策略见 [`docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §6。
+> 设计合规规则见 [`docs/spec/frontend-guide.md`](../../docs/spec/frontend-guide.md)。
 
 选哪一层：
 
@@ -48,7 +48,7 @@ import { handlers } from '@/../tests/msw/handlers'   // 由 api/openapi.yaml 生
 
 ### 事件流测试
 
-13 类事件**每类至少一个渲染测试**（见 `docs/architecture.md` §4 的表）。
+13 类事件**每类至少一个渲染测试**（见 `docs/spec/architecture.md` §4 的表）。
 用 `tests/fixtures/` 里录制的事件序列 + Fake `EventSource`：
 
 ```ts

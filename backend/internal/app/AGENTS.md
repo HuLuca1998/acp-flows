@@ -1,6 +1,6 @@
 # AGENTS.md · backend/internal/app
 
-> **就近优先**。分层规则见 [`../../../docs/architecture.md`](../../../docs/spec/architecture.md) §3。
+> **就近优先**。分层规则见 [`../../../docs/spec/architecture.md`](../../../docs/spec/architecture.md) §3。
 
 ## 负责什么
 

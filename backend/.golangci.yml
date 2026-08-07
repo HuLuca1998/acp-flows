@@ -132,6 +132,11 @@ linters:
       # cmd/ 是唯一做依赖装配的地方，看得见所有具体类型是正常的
       - path: ^cmd/
         linters: [depguard]
+      # ★ 生成物豁免全部 linter：它由 api/openapi.yaml 决定，人改不了。
+      # 不豁免的话，一次 spec 改动引入新 import 会让 lint 在与改动无关的地方红，
+      # 而唯一的"修法"是手改生成物——那正是铁律 2 禁止的。
+      - path: internal/api/gen/
+        linters: [depguard, revive, errcheck, govet, staticcheck, unused, ineffassign]
 
 formatters:
   enable:

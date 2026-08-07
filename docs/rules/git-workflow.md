@@ -174,7 +174,7 @@ gh pr merge <n> --squash --delete-branch --admin                       # 再绕�
 | **合并 release-please 的 Release PR** | 发版对外不可撤回，属于 D3。见 [`adr/0002`](../adr/0002-release-and-auto-update.md) |
 | 删除远端分支以外的远端资源 | 不可逆 |
 | 改分支保护规则本身 | 会削弱所有后续的把关 |
-| `docs/open-questions.md` 里的任何一条 | AI 不许替这些拍板 |
+| `docs/plan/open-questions.md` 里的任何一条 | AI 不许替这些拍板 |
 
 ---
 

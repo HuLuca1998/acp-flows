@@ -12,18 +12,18 @@
 >
 > | 你要做的事 | 读哪一节 | 定位 |
 > |---|---|---|
-> | 用颜色 / 间距 / 字号 → 该写哪个令牌 | §1 §3 §4 §5 | `grep -n '^## 1\.\|^## 3\.' docs/frontend-guide.md` |
-> | 一个面板该用第几层底色 | §2 | `grep -n '^## 2\.' docs/frontend-guide.md` |
-> | 加图标 | §6 | `grep -n '^## 6\.' docs/frontend-guide.md` |
-> | **实现某个具体组件** | §7 查那一行即可 | `grep -n '组件名' docs/frontend-guide.md` |
-> | 页面骨架 / 三栏布局 | §8 | `grep -n '^## 8\.' docs/frontend-guide.md` |
-> | **写事件渲染器** | §9 ★ | `grep -n '^## 9\.' docs/frontend-guide.md` |
-> | hover / focus / disabled 怎么写 | §10 | `grep -n '^## 10\.' docs/frontend-guide.md` |
-> | 文案、状态词展示 | §11 | `grep -n '^## 11\.' docs/frontend-guide.md` |
-> | Tauri / Web 双形态差异 | §12 | `grep -n '^## 12\.' docs/frontend-guide.md` |
-> | **lint 报错了，想知道为什么** | §13 | `grep -n '^## 13\.' docs/frontend-guide.md` |
-> | 设计稿没有这个组件 | §14 §16 | `grep -n '^## 14\.\|^## 16\.' docs/frontend-guide.md` |
-> | 想确认某个写法是不是反例 | §15 | `grep -n '^## 15\.' docs/frontend-guide.md` |
+> | 用颜色 / 间距 / 字号 → 该写哪个令牌 | §1 §3 §4 §5 | `grep -n '^## 1\.\|^## 3\.' docs/spec/frontend-guide.md` |
+> | 一个面板该用第几层底色 | §2 | `grep -n '^## 2\.' docs/spec/frontend-guide.md` |
+> | 加图标 | §6 | `grep -n '^## 6\.' docs/spec/frontend-guide.md` |
+> | **实现某个具体组件** | §7 查那一行即可 | `grep -n '组件名' docs/spec/frontend-guide.md` |
+> | 页面骨架 / 三栏布局 | §8 | `grep -n '^## 8\.' docs/spec/frontend-guide.md` |
+> | **写事件渲染器** | §9 ★ | `grep -n '^## 9\.' docs/spec/frontend-guide.md` |
+> | hover / focus / disabled 怎么写 | §10 | `grep -n '^## 10\.' docs/spec/frontend-guide.md` |
+> | 文案、状态词展示 | §11 | `grep -n '^## 11\.' docs/spec/frontend-guide.md` |
+> | Tauri / Web 双形态差异 | §12 | `grep -n '^## 12\.' docs/spec/frontend-guide.md` |
+> | **lint 报错了，想知道为什么** | §13 | `grep -n '^## 13\.' docs/spec/frontend-guide.md` |
+> | 设计稿没有这个组件 | §14 §16 | `grep -n '^## 14\.\|^## 16\.' docs/spec/frontend-guide.md` |
+> | 想确认某个写法是不是反例 | §15 | `grep -n '^## 15\.' docs/spec/frontend-guide.md` |
 
 ---
 
@@ -783,7 +783,7 @@ export const EVENT_RENDERERS: { [T in EventType]: EventRenderer<T> } = {
 | # | 改哪 | 改什么 |
 |---|---|---|
 | 1 | `api/openapi.yaml` | `type` 枚举加值 + payload schema。**必须最先改**（铁律 2 契约先行），然后 `make gen` |
-| 2 | `docs/architecture.md` §4 | 事件表加一行（source / type / 展示形态） |
+| 2 | `docs/spec/architecture.md` §4 | 事件表加一行（source / type / 展示形态） |
 | 3 | `design/Duet Spec.dc.html` 第 07 节 | 加一行展示形态条目。**找不到条目就不许实现**（铁律 3） |
 | 4 | `src/features/conversation/events/` | 新组件文件 + `registry.ts` 登记 + `src/constants/event.ts` 加枚举值 |
 

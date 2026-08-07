@@ -1,10 +1,32 @@
 # M4 · 完整产品面
 
 > 体系与编号规则见 [`README.md`](README.md)。开工前必读
-> [`../frontend-guide.md`](../../spec/frontend-guide.md)（组件与设计合规，**§16 的缺口表挡着本里程碑一半的单元**）、
-> [`../i18n.md`](../../rules/i18n.md)（英文版的全部规则）、
-> [`../domain-model.md`](../../spec/domain-model.md) §12（D3 逐次授权）与
+> [`../../spec/frontend-guide.md`](../../spec/frontend-guide.md)（组件与设计合规，**§16 的缺口表挡着本里程碑一半的单元**）、
+> [`../../rules/i18n.md`](../../rules/i18n.md)（英文版的全部规则）、
+> [`../../spec/domain-model.md`](../../spec/domain-model.md) §12（D3 逐次授权）与
 > [`../open-questions.md`](../open-questions.md)。
+
+> **读法**：本文 ~8k token，**不要整篇读**。标准读法是三段：
+>
+> ```
+> ① 目标 + 完成标志 + 全局停止条件      必读
+> ② 子计划 DAG                         确认前置做完了
+> ③ 你自己那一个 S4.x                   只读这一节
+> ```
+>
+> ```bash
+> grep -n '^## S4' docs/plan/milestones/M4-product-surface.md
+> ```
+>
+> | 子计划 | 一句话 | 状态 |
+> |---|---|---|
+> | S4.1 ★ | 报表指标口径与聚合 | U4.1.2 ⛔ 被 OPEN-7 挡住 |
+> | S4.2 | 报表页（指标卡 · 驳回原因表 · 导出 CSV） | U4.2.2 图表 ⛔ 被 Q18 挡住 |
+> | S4.3 ★ | 凭据保管（令牌绝不进 Agent 上下文） | 可开工 |
+> | S4.4 ★ | 远端操作 = D3 逐次授权 | 依赖 S4.3 |
+> | S4.5 | 设置页全量 | 依赖 S4.2 / S4.4 |
+> | S4.6 | 英文版 `en-US` | **必须最后做** |
+> | ~~S4.7~~ | 启动恢复 —— **已挪到 M1 `U1.8.4`**（`adr/0006` Q40） | — |
 
 ## 目标
 
@@ -47,7 +69,7 @@ pnpm -C e2e test --grep 'push 逐次授权|English UI'
 M3 写 `features/{memory,skill}/`，后端交集只有 `api/openapi.yaml` 与
 `internal/store/migration/` 的编号。两者都要改 `openapi.yaml` 时**串行合并**。
 
-`S4.7`（启动恢复）依赖 M1 的 `GET /v1/system/resume`。
+启动恢复已挪进 M1（`U1.8.4`），M4 不再依赖它。
 
 ## 全局停止条件
 
@@ -69,8 +91,8 @@ M3 写 `features/{memory,skill}/`，后端交集只有 `api/openapi.yaml` 与
 ## 子计划 DAG
 
 ```
-S4.3 凭据保管 ★              S4.1 报表指标口径与聚合 ★         S4.7 启动恢复
-  │                            │                              （独立，依赖 M1）
+S4.3 凭据保管 ★              S4.1 报表指标口径与聚合 ★
+  │                            │
   ▼                            ▼
 S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
   └──────────────┬─────────────┘
@@ -80,9 +102,11 @@ S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
           S4.6 英文版 en-US
 ```
 
-**可并行**：`S4.3 → S4.4`、`S4.1 → S4.2`、`S4.7` 三条链互不相交，从第一天就能并行开。
-三条链在 `S4.5` 汇合（设置页要展示 GitHub 绑定），`S4.6` 必须最后做——
+**可并行**：`S4.3 → S4.4` 与 `S4.1 → S4.2` 两条链互不相交，从第一天就能并行开。
+两条链在 `S4.5` 汇合（设置页要展示 GitHub 绑定），`S4.6` 必须最后做——
 它要把前面所有界面的词条一次性补齐并校对。
+
+> 原来的第三条链「S4.7 启动恢复」已按 `adr/0006` Q40 挪进 M1（`U1.8.4`）。
 
 ---
 
@@ -190,6 +214,31 @@ S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
 
 **测试**：R1 是一条**防止绕过裁定**的断言，跟 M0 那些「故意制造违规确认检查会红」的检查同类。
 把它接进 `pnpm -C frontend lint` 的自定义规则，比写在文档里靠人记住可靠。
+
+### ○ U4.2.3 · 导出 CSV
+
+| | |
+|---|---|
+| `goal` | 报表页的「导出 CSV」可用：导出当前筛选范围（`近 30 天 · 全部项目` 一类）下的明细，Tauri 与 Web 两种形态走同一条下载路径 |
+| `allowed_changes` | `backend/internal/api/report/export.go` · `backend/internal/app/report/export_usecase.go` · `api/openapi.yaml` · `frontend/src/features/report/**` 的按钮接线 · `frontend/src/platform/download.ts` · 对应测试与索引 |
+| `forbidden_changes` | **前端不拼 CSV**——内容由后端产出（前端拼一份就是第二个真源，且转义规则必然与后端不一致）；不引入前端 CSV 库；不在导出里塞任何未经 `U4.1.2` 定义口径的指标 |
+| `stop_conditions` | **口径未裁定的指标一律不导出**（OPEN-7 / Q18）——导出一列口径不明的数字比不导出更糟，因为它会被拿去做决策；导出的列清单若在设计稿找不到，按 `frontend-guide.md` §16 登记缺口 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | CSV 由后端产出 | `grep -rn 'csv\|CSV' frontend/src` 不出现任何拼接逻辑；断言前端只发请求 + 触发下载 |
+| R2 | 导出范围与页面当前筛选一致 | 筛选到「近 7 天 · 项目 A」后导出，断言响应体行数与页面上的明细条数相等 |
+| R3 | ★ 转义正确：含逗号、双引号、换行、中文的字段不破坏结构 | 造一条驳回原因含 `他说,"不行"\n换行` 的记录，导出后用 CSV 解析器读回，断言字段逐字节相等 |
+| R4 | ★ 口径未裁定的指标**不出现在导出里** | 断言表头列集合等于「已裁定口径」白名单常量；加一个未裁定指标而不改白名单时测试必须红 |
+| R5 | 表头是机器可读的稳定列名，不随界面语言变 | 中英两版各导出一次，断言表头逐字节相同 |
+| R6 | Tauri 与 Web 走同一条下载路径 | 断言两种形态都调 `platform/download`，`grep` 断言 `features/report` 里不出现 `@tauri-apps` |
+| R7 | 大结果集不把整个表读进内存 | 造 10 万行，断言导出过程中进程内存增长有上界（流式写出），且响应带 `Content-Disposition` |
+| R8 | 全程不碰 `~/.acpflows` | 铁律 6 守卫断言 |
+
+> R4 与 U4.2.1 的 R4 是同一条原则的两面：**界面上不显示口径不明的数字，
+> 导出里更不能有**——CSV 会被下载、转发、贴进汇报，脱离了「口径待定」的上下文。
 
 ---
 
@@ -416,35 +465,15 @@ R6 把这条约束从「记得别写」变成「写了就红」。
 
 ---
 
-## S4.7 · 启动时从检查点恢复
+## S4.7 · 启动时从检查点恢复 —— **已挪到 M1**
 
-**阶段交付物**：`duetd` 启动后能列出并恢复上次未完成的工作。
-
-> 依赖 M1 的 `GET /v1/system/resume`（1.8）与 M2 的 Checkpoint。
-> **这个子计划与 M4 其余部分零文件重叠，可独立并行。**
-
-### ○ U4.7.1 · 启动恢复未完成的工作
-
-| | |
-|---|---|
-| `goal` | 启动时扫描非终态 Work，逐个校验 worktree 与 Checkpoint 一致性，可恢复的列出、不可恢复的给出原因 |
-| `allowed_changes` | `backend/internal/app/system/resume_usecase.go` 及其测试 · `backend/internal/domain/model/checkpoint.go` 的校验方法 · `frontend/src/features/settings/update/ResumeList.tsx` · `backend/tests/integration/resume_test.go` |
-| `forbidden_changes` | 不自动恢复——恢复必须由用户发起；不修改 worktree 内容；不伪造「会话仍连续」（对应 M0 U0.5.2 R5 / `acp-field-notes.md` H-4） |
-| `stop_conditions` | 恢复需要重建已经不存在的 ACP 会话而 `session/load` 失败 —— 降级路径必须显式标记，不许假装连续 |
-
-**验收标准**
-
-| # | 标准 | 断言 |
-|---|---|---|
-| R1 | worktree HEAD 与 `commit_hash` 不一致时 `Resume()` 返回错误（INV-CKP-4） | 夹具里手动 `git reset` 后断言 `ErrCheckpointMismatch`，错误含两个 hash |
-| R2 | 恢复由用户发起，启动时**不自动恢复** | 启动后断言全部 Work 仍为 `paused`，且未起任何 Runtime 子进程 |
-| R3 | 不可恢复的 Work 给出可读原因 | 三种场景（worktree 被删 / HEAD 漂移 / Checkpoint 的 commit 不可解析）各断言一个错误码 |
-| R4 | **恢复失败时不伪造「会话仍连续」** | 断言降级路径显式标记为「新会话」，且该标记出现在事件流里 |
-| R5 | 恢复后 `seq` 不回退、不重复 | 断言恢复后首个事件的 `seq` 大于恢复前的最大值 |
-| R6 | 响应通过 `openapi.yaml` schema 校验 | `kin-openapi`，接进 `backend/tests/contract/` |
-
-**测试**：R4 直接对应前一个项目的 **H-4**——界面从 DB 渲染出历史，
-但 ACP 会话早就不在了，用户以为 Agent 记得。
+> `adr/0006` **Q40** 裁定：原 `U4.7.1` → **[`M1 的 U1.8.4`](M1-release-and-update.md)**。
+>
+> 理由：它依赖 M1 自己的 `/system/resume`（U1.8.3）与 Checkpoint 最小版（U1.7.3），
+> 放在 M4 会让它在整个里程碑里一直是一条孤立的并行链——
+> **依赖都在 M1，交付却排在 M4，中间那段时间它既做不了也验不了。**
+>
+> 本节保留是为了让照着旧编号来找的人能找到去处。M4 不再有 S4.7。
 
 ---
 

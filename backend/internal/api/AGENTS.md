@@ -35,7 +35,7 @@ writeProblem(w, 404, "not_found", "Resource not found")
 | `title` / `detail` | 只给开发者，**界面不展示** |
 | `params` | 前端词条插值 |
 
-**后端绝不返回中文文案给界面展示**，见 [`../../../docs/i18n.md`](../../../docs/rules/i18n.md) §3。
+**后端绝不返回中文文案给界面展示**，见 [`../../../docs/rules/i18n.md`](../../../docs/rules/i18n.md) §3。
 新增错误码要同时加进 `openapi.yaml` 与两个 locale 文件。
 
 ## 检查命令

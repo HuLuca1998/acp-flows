@@ -318,3 +318,147 @@ func TestConn_PropagatesRemoteError(t *testing.T) {
 		t.Errorf("错误信息丢了远端的 message: %v", err)
 	}
 }
+
+// ── 反向通知（对方 → 我们）────────────────────────────────────
+//
+// ★ 这条链路承载 ACP 的 `session/update` —— **全部流式事件都是通知**。
+// 它断了的症状不是报错，而是「界面什么都不显示」，
+// 而 Call/Notify 的测试全绿——所以必须单独钉死。
+
+// R7 ★ 收到通知时路由到 handler，且**不回响应**。
+//
+// 通知没有 id，按 JSON-RPC 规范不得回复。回了会让对方的
+// 「无人认领的响应」告警一直响，严重时把它的 pending 表搞乱。
+func TestConn_R7_IncomingNotificationRoutedAndNotAnswered(t *testing.T) {
+	type call struct {
+		method string
+		params string
+	}
+	got := make(chan call, 4)
+
+	p := newPeer(t, jsonrpc.HandlerFunc(
+		func(_ context.Context, method string, params json.RawMessage) (any, error) {
+			got <- call{method: method, params: string(params)}
+			return "这个返回值必须被丢掉", nil
+		}))
+
+	p.write(t, `{"jsonrpc":"2.0","method":"session/update","params":{"sessionUpdate":"agent_message_chunk"}}`)
+
+	select {
+	case c := <-got:
+		if c.method != "session/update" {
+			t.Errorf("method = %q, want session/update", c.method)
+		}
+		if !strings.Contains(c.params, "agent_message_chunk") {
+			t.Errorf("params 没传到 handler: %s", c.params)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("通知没有被路由到 handler —— 整个事件流会是死的")
+	}
+
+	// 不能有任何回帧。给足时间让错误的实现把响应写出来。
+	select {
+	case m := <-p.frames:
+		t.Fatalf("通知被回了响应，违反 JSON-RPC 规范: %v", m)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+// R8 · handler 处理通知出错时不能打断连接。
+//
+// 一条通知处理失败就断连，等于让一个渲染不了的事件干掉整轮会话。
+func TestConn_R8_NotificationHandlerErrorDoesNotKillConn(t *testing.T) {
+	p := newPeer(t, jsonrpc.HandlerFunc(
+		func(_ context.Context, method string, _ json.RawMessage) (any, error) {
+			if method == "session/update" {
+				return nil, errors.New("渲染不了这个事件")
+			}
+			return "ok", nil
+		}))
+
+	p.write(t, `{"jsonrpc":"2.0","method":"session/update","params":{}}`)
+
+	// 连接仍然可用：紧接着发一个反向请求，必须能正常回
+	p.write(t, `{"jsonrpc":"2.0","id":7,"method":"fs/read_text_file","params":{}}`)
+	m := p.readFrame(t)
+	if m["error"] != nil {
+		t.Fatalf("出错通知之后的请求也失败了: %v", m["error"])
+	}
+	if m["result"] != "ok" {
+		t.Errorf("result = %v, want ok —— 通知处理出错不该影响后续请求", m["result"])
+	}
+}
+
+// R9 · 没注册 handler 时通知被静默丢弃，不崩、不回复。
+func TestConn_R9_NotificationWithoutHandlerIsDropped(t *testing.T) {
+	p := newPeer(t, nil)
+
+	p.write(t, `{"jsonrpc":"2.0","method":"session/update","params":{}}`)
+
+	select {
+	case m := <-p.frames:
+		t.Fatalf("没有 handler 时通知不该产生任何回帧: %v", m)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+// R10 ★ handler 返回 *jsonrpc.Error 时，code 与 message 原样传给对方。
+//
+// 权限裁决走的就是这条：拒绝时要回一个带确定 code 的错误，
+// 被包装成 -32603 internal error 的话，对方无法区分「拒绝」与「我们崩了」。
+func TestConn_R10_HandlerRPCErrorKeepsCode(t *testing.T) {
+	p := newPeer(t, jsonrpc.HandlerFunc(
+		func(context.Context, string, json.RawMessage) (any, error) {
+			return nil, &jsonrpc.Error{Code: -32001, Message: "permission denied"}
+		}))
+
+	p.write(t, `{"jsonrpc":"2.0","id":3,"method":"fs/write_text_file","params":{}}`)
+	m := p.readFrame(t)
+
+	e, ok := m["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("没有 error 字段: %v", m)
+	}
+	if code, _ := e["code"].(float64); int(code) != -32001 {
+		t.Errorf("code = %v, want -32001 —— 被包装掉了，对方分不清拒绝与崩溃", e["code"])
+	}
+	if msg, _ := e["message"].(string); msg != "permission denied" {
+		t.Errorf("message = %q, want permission denied", msg)
+	}
+}
+
+// R11 · handler 返回普通 error 时包装成 -32603，不泄漏内部细节以外的东西。
+func TestConn_R11_HandlerPlainErrorBecomesInternalError(t *testing.T) {
+	p := newPeer(t, jsonrpc.HandlerFunc(
+		func(context.Context, string, json.RawMessage) (any, error) {
+			return nil, errors.New("boom")
+		}))
+
+	p.write(t, `{"jsonrpc":"2.0","id":4,"method":"fs/read_text_file","params":{}}`)
+	m := p.readFrame(t)
+
+	e, ok := m["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("没有 error 字段: %v", m)
+	}
+	if code, _ := e["code"].(float64); int(code) != jsonrpc.CodeInternalError {
+		t.Errorf("code = %v, want %d", e["code"], jsonrpc.CodeInternalError)
+	}
+}
+
+// R12 · 收到没发过的 id 的响应时只告警，不崩、不影响后续。
+//
+// 真实 Runtime 出过这种事（重发、时序错乱）。崩掉的话整轮会话没了。
+func TestConn_R12_UnknownResponseIDIsIgnored(t *testing.T) {
+	p := newPeer(t, jsonrpc.HandlerFunc(
+		func(context.Context, string, json.RawMessage) (any, error) { return "ok", nil }))
+
+	p.write(t, `{"jsonrpc":"2.0","id":9999,"result":{"whatever":true}}`)
+
+	// 连接仍可用
+	p.write(t, `{"jsonrpc":"2.0","id":1,"method":"fs/read_text_file","params":{}}`)
+	m := p.readFrame(t)
+	if m["result"] != "ok" {
+		t.Errorf("无人认领的响应之后连接不可用了: %v", m)
+	}
+}

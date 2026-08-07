@@ -1,8 +1,8 @@
 # M3 · 记忆与 Skill
 
 > 体系与编号规则见 [`README.md`](README.md)。开工前必读
-> [`../domain-model.md`](../../spec/domain-model.md) §14 §15（规格）、
-> [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §4（**隔离与注入的已跑通方案**）与
+> [`../../spec/domain-model.md`](../../spec/domain-model.md) §14 §15（规格）、
+> [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) §4（**隔离与注入的已跑通方案**）与
 > [`../open-questions.md`](../open-questions.md)（P2 / P3 里有多条挡着本里程碑）。
 
 > **读法**：本文 ~10k token，**不要整篇读**。标准读法是三段：
@@ -14,7 +14,7 @@
 > ```
 >
 > ```bash
-> grep -n '^## S3' docs/milestones/M3-memory-and-skill.md
+> grep -n '^## S3' docs/plan/milestones/M3-memory-and-skill.md
 > ```
 >
 > | 子计划 | 一句话 |
@@ -364,7 +364,7 @@ S3.3 跨项目记忆 L3                           │
 
 ## S3.5 · Skill 注入通道与隔离开关 ★
 
-> **本子计划的方案已经在真机上跑通，直接照抄 [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §4，
+> **本子计划的方案已经在真机上跑通，直接照抄 [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) §4，
 > 不要重新设计。** 那一节里的每条结论都是 B 级实测（`claude-agent-acp 0.63.0` ·
 > `codex-acp 1.1.7`），偏离它就是把已经付过学费的坑再踩一遍。
 
@@ -528,6 +528,38 @@ R7 直接对应 `acp-field-notes.md` §1 的那条教训——**界面说了一�
 | R4 | 四类文件分区展示，`scripts/` 标注需权限放行 | 断言四个分区标题存在；断言 `scripts/` 分区带权限提示文本 |
 | R5 | `hit_count` 与 `命中 46` 一类的等宽数据不走 i18n（`i18n.md` §5 例外） | 断言该处未调 `t()`，且用 `--font-mono` |
 | R6 | 词条中英同进同退 | `make check-i18n` 绿 |
+
+### ○ U3.7.3 · 导出 YAML · 在 Finder 中显示 · 在编辑器打开 ★
+
+| | |
+|---|---|
+| `goal` | 设计稿上三个「离开应用」的动作可用：记忆页「导出 YAML」、Skill 页「在 Finder 中显示」与「在编辑器打开」。**Web 形态下三者行为各不相同**，见下 |
+| `allowed_changes` | `frontend/src/platform/**`（`reveal` / `openInEditor` / `download` 三个能力）· `frontend/src/features/{memory,skill}/**` 的按钮接线 · `shell/src-tauri/src/**`（原生揭示与打开）· `backend/internal/api/**` 的导出端点 · `api/openapi.yaml` · 对应测试与 `frontend/tests/INDEX.md` |
+| `forbidden_changes` | **前端不拼 YAML 字符串**——导出内容由后端产出，前端只负责触发下载（前端拼一份等于第二个真源）；不在 `features/` 里直接调 Tauri API（一律经 `platform/`）；不引入前端 YAML 库 |
+| `stop_conditions` | Web 形态下「在 Finder 中显示」没有等价物——**若设计稿未说明该隐藏还是禁用，停下来问**，不要自己选一个；导出文件名与字段口径若在设计稿找不到，按 `frontend-guide.md` §16 登记缺口 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 导出的 YAML 由**后端**产出 | `grep -rn 'yaml\|YAML' frontend/src` 不出现任何序列化逻辑；断言前端只发请求 + 触发下载 |
+| R2 | 导出内容与记忆页当前的筛选条件一致 | 筛选到 `active` 后导出，断言响应体只含 `active` 的条目 |
+| R3 | ★ 导出的 YAML 与库里的记忆**逐字段一致** | 后端测试：造 3 条记忆 → 导出 → 反序列化 → 断言字段逐一相等（不是只断言"非空"） |
+| R4 | ★ 三个动作全部经 `platform/`，`features/` 里不出现 Tauri API | `grep -rn '@tauri-apps' frontend/src/features` 结果为空，接进 lint |
+| R5 | ★ Tauri 形态：「在 Finder 中显示」调原生揭示，**不是打开文件** | Rust 侧测试：断言调用的是 reveal 而非 open；断言传入路径存在性校验失败时返回错误而不是静默 |
+| R6 | ★ Web 形态：`reveal` / `openInEditor` 不可用时按裁定处理，**不静默失败** | 断言 Web 适配器要么让按钮不渲染、要么禁用并给出原因文本；断言不存在"点了没反应"的分支 |
+| R7 | 导出走浏览器下载，不经 Tauri 特有通道 | 断言两种形态下都用同一条 `download` 路径（Web 版是 AI 的自测通道，不能只在壳里能用） |
+| R8 | 路径来自后端，前端不拼 | 断言 Skill 的本地路径取自接口响应，`grep` 断言前端无路径拼接 |
+| R9 | 按钮文案写清后果，词条中英同进同退 | 断言可访问名不是空动词；`make check-i18n` 绿 |
+| R10 | 全程不碰 `~/.acpflows` | 铁律 6 守卫断言 |
+
+> **为什么这三个动作放在一个单元**：它们共用同一件事——
+> **穿过平台适配层离开应用**。分开做会造出三份各自为政的适配代码，
+> 而 Web 形态的降级策略必须是一致的（`architecture.md` §2 的硬约束：
+> 壳不得通过 IPC 绕过 HTTP，Web 版是 AI 的自测通道）。
+>
+> R6 是本单元最容易被糊弄的一条：「Web 上点了没反应」是最坏的结果，
+> 比「按钮不存在」糟得多。
 
 ---
 
