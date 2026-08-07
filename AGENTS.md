@@ -397,6 +397,7 @@ pnpm -C e2e test
 | **写任何用户可见文案**（中英双语） | [`docs/i18n.md`](docs/i18n.md) |
 | Claude 与 Codex 怎么分工协作 | [`docs/ai-workflow.md`](docs/ai-workflow.md) |
 | 想知道某个技术选型为什么这么定 | [`docs/adr/`](docs/adr/) |
+| **做发布 / CI / 任何"以前做过"的事** | ★ 先去看 `~/work/ai-workflows` —— 同一作者的前一个项目，形态相同。**它是 A 级证据，优先级仅次于官方规范**。`adr/0007` 就是这样发现自己方案有 6 处不如它 |
 | 排里程碑、判断某功能是不是现在做 | [`docs/roadmap.md`](docs/roadmap.md) |
 
 ---

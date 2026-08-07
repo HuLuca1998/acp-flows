@@ -98,7 +98,12 @@ Co-Authored-By: ...
 ```
 ① 开分支  →  ② 干活（测试先行）  →  ③ 本地 make check 全绿
    →  ④ 开 PR  →  ⑤ CI 全绿  →  ⑥ 独立 AI 审查通过  →  ⑦ squash merge
+   →  ⑧ make tidy
 ```
+
+**第 ⑧ 步不能省。** 不清理的后果是累积性的：`git branch` 越列越长，
+下一轮 AI 分不清哪个还在用；残留 worktree 占磁盘且全是死链接；
+远端已删的 `origin/*` 引用让补全变成噪音。
 
 ### PR 必须包含
 
@@ -225,9 +230,11 @@ git worktree add .worktree/feat-acp-session-cancel -b feat/acp-session-cancel
 
 ```bash
 make wt NAME=feat/acp-session-cancel     # 建 worktree + 分支 + 装依赖
-make wt-clean                            # 清理所有已合并分支的 worktree
-git worktree list                        # 看当前有哪些
+make wt-list                             # 看当前有哪些
+make tidy                                # 清理已合并的 worktree + 分支 + 远端残留引用
 ```
+
+**`make tidy` 只清已合并的**，未合并的会保留并列出来——不会误删你正在做的东西。
 
 ---
 

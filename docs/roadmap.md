@@ -52,10 +52,10 @@
 |---|---|---|
 | 1.1 | CI 四个 job | `docs` `contract` `backend` `frontend` 全绿，且能真的拦住违规 |
 | 1.2 | `main` 分支保护 | 直接 push 被拒；PR 必须过 CI；仅 squash；线性历史 |
-| 1.3 | release-please | 合 PR 后自动开 Release PR + 维护 CHANGELOG 与 `tauri.conf.json` 版本号 |
+| 1.3 | 手动触发发版（**不用 release-please**） | `gh workflow run release -f version=X.Y.Z`；版本号发布时 jq 注入，仓库里始终 0.0.0。见 `adr/0007` |
 | 1.4 | Tauri 壳最小可用 | 无边框窗口 + 42px 自绘窗口栏 + sidecar 拉起 `duetd` |
 | 1.5 | 构建与 **minisign 签名** | tag 触发，产出 universal `.app`/`.dmg` + `.sig` + `latest.json`，发布到 GitHub Release |
-| 1.6 | 客户端检测更新 | 设置页显示当前版本/新版本/更新说明/体积；「自动检查更新（**不自动安装**）」开关 |
+| 1.6 | 客户端检测更新 | **进设置页时检查，不轮询**；显示当前版本/新版本/更新说明/体积。见 `adr/0007` |
 | 1.7 | **`POST /v1/system/update/prepare`** | 无进行中工作时直接放行；有工作时暂停 + 落检查点；Runtime 无响应时返回 `blocked` 且**不落检查点** |
 | 1.8 | 一键更新并重启 + 恢复 | `prepare` → 下载 → 装 → 重启 → `GET /v1/system/resume` 列出可恢复工作 |
 | 1.9 | Runtime 更新（第二条线） | 从 npm 装 `claude-agent-acp` / `codex-acp` 到多版本目录，探针全过才允许切换 |

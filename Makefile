@@ -157,9 +157,9 @@ dev-app: ## Tauri 壳联调（需要 Rust 工具链）
 wt: ## 建并行工作区： make wt NAME=feat/acp-session-cancel
 	@bash scripts/worktree.sh add "$(NAME)"
 
-.PHONY: wt-clean
-wt-clean: ## 清理已合并分支的 worktree
-	@bash scripts/worktree.sh clean
+.PHONY: tidy
+tidy: ## ★ 合并 PR 后必跑：清理已合并的分支、worktree、远端残留引用
+	@bash scripts/tidy.sh
 
 .PHONY: wt-list
 wt-list: ## 列出当前所有 worktree

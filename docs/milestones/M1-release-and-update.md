@@ -1,5 +1,10 @@
 # M1 · 发布与自动更新
 
+> ⚠️ **本章的 S1.2（分支保护）与 S1.5（构建签名发布）已被
+> [`../adr/0007`](../adr/0007-release-revision-from-prior-art.md) 修订**：
+> 触发方式改为 `workflow_dispatch` on main、弃用 release-please、
+> 检查时机改为进设置页时检查。开工前先读那份 ADR。
+>
 > 体系与编号规则见 [`README.md`](README.md)。动手前必读
 > [`../release-and-update.md`](../release-and-update.md)（规格）、
 > [`../adr/0002-release-and-auto-update.md`](../adr/0002-release-and-auto-update.md)（已定的决策，不重新讨论）、
