@@ -138,3 +138,7 @@
 | `TestProject_PathIsNormalized` | `internal/domain/model/project_test.go` | domain | `/a/b`、`/a/b/`、`/a/./b`、`/a/c/../b` 规整成同一个 Path——否则用户从 Finder 拖两次会看到两条一样的记录 |
 | `TestProject_RenameDoesNotTouchPath` | `internal/domain/model/project_test.go` | domain | ★ 改显示名**不动 path**——两者跟着一起变的话 Duet 会去操作一个不存在的目录 |
 | `TestProject_RenameRejectsBlank` | `internal/domain/model/project_test.go` | domain | 空白名被拒且不落地（界面上会显示成一行空白，看起来像记录丢了） |
+| `TestAdd_WritesNothingIntoUserProject` | `internal/app/project/service_test.go` | app | ★★ 添加项目往用户目录写**零个字节**——用真 git 仓库 + 真 gitx 实现验，假实现什么都不写、那条断言会永远绿 |
+| `TestAdd` | `internal/app/project/service_test.go` | app | git 仓库记下默认分支；**普通目录也能加**并给出 `git init`（拒绝的话用户得先去命令行）；路径不存在报错且不落库；相对路径报错 |
+| `TestAdd_IsIdempotent` | `internal/app/project/service_test.go` | app | 同一目录的不同写法只落一条——用户从 Finder 拖两次很常见，列表里冒出两条一样的会让人以为点错了 |
+| `TestRemove_DoesNotDeleteUserFiles` | `internal/app/project/service_test.go` | app | ★ 移除只取消登记，用户目录原封不动——这是「移除」与「删除」的全部区别 |
