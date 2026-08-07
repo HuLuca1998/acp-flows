@@ -62,12 +62,18 @@ func (r *memWorks) ListWorks(context.Context) ([]*model.Work, error) {
 	return append([]*model.Work(nil), r.items...), nil
 }
 
+// FindWork 返回**重建出来的新对象**，不是仓储里那个指针。
+//
+// ★ 真 store 每次都经 mapper.WorkToModel 重建（行 → 模型），
+// 直接交出指针的话这个替身比真实现「更共享」：后台 goroutine 改它，
+// 请求 goroutine 读它，测出来的竞态在生产里根本不存在——
+// 假警报和漏报一样有害。
 func (r *memWorks) FindWork(_ context.Context, id string) (*model.Work, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, w := range r.items {
 		if w.ID() == id {
-			return w, nil
+			return model.NewWorkAt(w.ID(), w.State()), nil
 		}
 	}
 	return nil, model.ErrNotFound

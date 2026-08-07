@@ -92,12 +92,18 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 	}
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
 
-	s.runTurn(ctx, id, worktree, prompt)
-
-	return View{
+	// ★ **先把视图取出来，再开后台那一轮。** 反过来的话，
+	// 后台 goroutine 可能已经把 w 推到 failed，而这边还在读 w.State()——
+	// 两个 goroutine 同时碰一个领域对象，race detector 会红，
+	// 而在用户那儿的表现是返回的状态时对时不对。
+	view := View{
 		ID: id, State: w.State(),
 		Project: project, Worktree: worktree, Prompt: prompt,
-	}, nil
+	}
+
+	s.runTurn(ctx, id, worktree, prompt)
+
+	return view, nil
 }
 
 // runTurn 在后台把需求送给 AI，跑完一轮。
