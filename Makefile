@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -60,6 +60,10 @@ check-commits: ## ★ 本分支相对 main 的提交信息格式（含「先红�
 .PHONY: check-wip
 check-wip: ## ★ 挡住半成品：只有测试没有实现的包
 	@bash scripts/check/check-wip.sh
+
+.PHONY: check-merge
+check-merge: ## ★ 与 main 合并之后还能不能编译（本地绿 CI 红的常见来源）
+	@bash scripts/check/check-merge-result.sh
 
 .PHONY: check-toolchain
 check-toolchain: ## ★ 工具链版本声明自洽（这类问题只在 CI 上出现）
