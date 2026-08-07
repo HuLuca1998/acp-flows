@@ -63,13 +63,11 @@ if [[ -n $missing_script ]]; then say "文档提到但不存在的脚本" "$miss
 
 # ── 已完成的里程碑单元不许引用不存在的东西 ────────────────────
 # 标记为 ✓ 的单元代表「已交付」，它 allowed_changes 里的路径必须真的存在。
-done_missing=$(grep -rlE '^### ✓ U' docs/plan/milestones/*.md 2>/dev/null | while read -r f; do
-  awk '/^### ✓ U/{u=$0; keep=1} /^### [○◐⊘]/{keep=0} keep && /allowed_changes/{print FILENAME"\t"u"\t"$0}' "$f"
-done | grep -oE '`[a-z][a-zA-Z0-9_/.@-]+`' | tr -d '`' | sort -u | while read -r p; do
-  [[ $p == *"*"* ]] && continue                    # 通配路径不检查
-  [[ $p =~ \.(go|ts|tsx|sh|yaml|yml|json|md)$ ]] || continue
-  [[ -e $p ]] || echo "$p"
-done || true)
+#
+# ★ 判定在 lib/done_unit_paths.py，**不在这里**。原来是一行 awk，
+# 而 macOS 自带的 BSD awk 匹配不了正则里的 ✓ ○ ◐ ⊘（多字节按字节处理），
+# 于是本地永远绿、只有 CI 会红。详见那个 python 文件顶部。
+done_missing=$(python3 "$(dirname "$0")/lib/done_unit_paths.py" || true)
 if [[ -n $done_missing ]]; then say "已完成（✓）的里程碑单元引用了不存在的路径" "$done_missing"; fi
 
 if [[ $fail -eq 1 ]]; then
