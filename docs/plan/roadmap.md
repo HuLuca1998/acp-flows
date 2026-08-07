@@ -3,8 +3,12 @@
 > 判断「某功能现在该不该做」看这份。**分章在 [`milestones/`](milestones/)**，
 > 拆到可执行的单元与可断言的验收标准。
 >
-> **当前状态（2026-08-07）**：M0 完成 6/18 个单元，脚手架四件套已跑通。
+> **当前状态（2026-08-07）**：M0 完成 6/19 个单元。
+> **全部工程门禁已可信**：`make check` 与 CI 全绿（含 e2e），
+> 契约代码生成已接入，覆盖率三个门槛全过。
 > 剩余关键路径是 **Fake ACP Runtime**（S0.4）—— 整套测试策略的支点，未开工。
+>
+> 开工前先看 [`../ai-playbook.md`](../ai-playbook.md) §2 的路由表。
 
 ---
 
@@ -31,7 +35,7 @@
 | ○ | S0.7 | 12 项能力探针与 Runtime 注册表、多版本并存 |
 | ○ | S0.8 | claude / codex adapter 差异内化 + 跨实现一致性契约测试 |
 | ◐ | S0.9 | 领域模型：**Work 九态状态机已完成**（25 条迁移）；PlanVersion / UnitContract 未做 |
-| ◐ | S0.10 | **`duetd serve` 已完成**（回环鉴权 + SQLite + 迁移）；OpenAPI 代码生成未接入、SSE 未做 |
+| ◐ | S0.10 | **`duetd serve` 已完成**（回环鉴权 + SQLite + 迁移 + 日志落库）；**OpenAPI 代码生成已接入**（oapi-codegen + openapi-typescript，含编译期契约断言）；SSE 未做 |
 
 单元级的五段契约与可断言验收标准见 [`milestones/M0-acp-foundation.md`](milestones/M0-acp-foundation.md)。
 
