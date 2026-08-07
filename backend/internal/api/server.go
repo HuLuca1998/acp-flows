@@ -4,7 +4,7 @@
 //
 // 目标形态是 handler 接口由 api/openapi.yaml 生成（铁律 2），当前是 M0 的
 // 最小骨架，只有 /v1/system/version，供 make dev-web 冒烟。
-// 生成器接入见 docs/plan/milestones/M0-acp-foundation.md U0.10.1。
+// 生成器接入见 docs/plan/roadmap.md 的「已经就绪的地基」（原单元 U0.10.1，编号已废弃）。
 package api
 
 import (

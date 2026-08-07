@@ -1,8 +1,9 @@
 package fake_test
 
-// M0 U0.4.1 · Fake Runtime 脚本回放与时序控制
+// Fake Runtime 脚本回放与时序控制
 //
-// 验收标准 R1–R6 见 docs/plan/milestones/M0-acp-foundation.md § S0.4 U0.4.1，
+// 原单元编号 U0.4.1，2026-08-07 里程碑重建后废弃。
+// Fake 是 M2/M3 全部测试的地基，见 docs/plan/roadmap.md 的「已经就绪的地基」，
 // 详细设计见 docs/spec/acp-integration.md §12。
 //
 // ★ Fake 是所有上层测试的地基。它自己必须自证 —— 地基歪了上面全歪。
@@ -301,7 +302,7 @@ func TestRuntime_R5_NeverStopsLeavesPromptPending(t *testing.T) {
 // R6：记录收到的全部请求，**且绝不去重**。
 //
 // ★ 最容易写反的一条。Fake 若自己去重，「连续取消两次只发一次协议请求」
-// （U0.6.1 R1）就永远绿 —— 去重是**被测代码**的职责，不是 Fake 的。
+// （M3 的 U3.2.1 R1）就永远绿 —— 去重是**被测代码**的职责，不是 Fake 的。
 // 这正是「测试制造虚假安全感」的典型。
 func TestRuntime_R6_RecordsEveryRequestWithoutDeduping(t *testing.T) {
 	script := fake.NewScript("R6 记录").Session("sess_fake_0001").
@@ -524,7 +525,7 @@ func scriptedUpdates(t *testing.T) []struct {
 				Type: "select", CurrentValue: json.RawMessage(`"medium"`),
 			}}}},
 		{protocol.UpdateSessionInfoUpdate, protocol.SessionInfoUpdate{
-			SessionUpdate: protocol.UpdateSessionInfoUpdate, Title: "U0.4.1 Fake Runtime"}},
+			SessionUpdate: protocol.UpdateSessionInfoUpdate, Title: "Fake Runtime 脚本回放"}},
 		{protocol.UpdateUsageUpdate, protocol.UsageUpdate{
 			SessionUpdate: protocol.UpdateUsageUpdate, Used: 48213, Size: 200000}},
 	}

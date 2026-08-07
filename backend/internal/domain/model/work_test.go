@@ -1,7 +1,7 @@
 package model_test
 
-// U0.9.1 · Work 状态机
-// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.9 U0.9.1
+// Work 状态机（原 U0.9.1，编号已废弃）
+// 原单元编号 U0.9.1（已废弃）。Work 状态机服务于 M2/M3/M4，见 docs/plan/roadmap.md
 //
 // 这些测试先于实现写就，先跑一次确认是红的（铁律 1）。
 

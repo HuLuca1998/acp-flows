@@ -1,8 +1,8 @@
 package api_test
 
-// M0 U0.10.1 · duetd serve + 本地回环鉴权
+// duetd serve + 本地回环鉴权（原 U0.10.1，编号已废弃）
 //
-// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.10 U0.10.1。
+// 原单元编号 U0.10.1（已废弃）。见 docs/plan/roadmap.md 的「已经就绪的地基」。
 // 这些测试先于实现写就。
 
 import (

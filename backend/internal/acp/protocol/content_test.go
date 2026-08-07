@@ -1,11 +1,11 @@
 package protocol_test
 
-// M0 U0.2.3 · protocol 线格式包 —— 内容块
+// protocol 线格式包 —— 内容块（原 U0.2.3，编号已废弃）
 //
 // 这里的构造函数是 Fake Runtime 的 builder DSL（acp-integration.md §12.4）直接要用的：
 //   .Say("msg_1", "…")                    → TextBlock
 //   .ToolDone("call_001", fake.Diff(…))   → DiffContent
-// 先在本包定型并测住，U0.4.1 就不必回头改这个包。
+// 先在本包定型并测住，Fake Runtime 那个单元就不必回头改这个包。
 
 import (
 	"encoding/json"

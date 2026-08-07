@@ -105,18 +105,34 @@ for u in sorted(dupes):
 RULING_DIRS = [pathlib.Path("docs/adr"), pathlib.Path("docs/plan")]
 UNIT_REF = re.compile(r"`?(U\d+\.\w+\.\d+)`?")
 
+RETIRED_MARKERS = ("原 ", "原编号", "~~", "已挪", "废弃")
+
 for d in RULING_DIRS:
     for path in sorted(d.rglob("*.md")):
         if path.parent.name == "milestones" and path.name.startswith("M"):
             continue                      # 里程碑自身在上面已经逐单元查过
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if "原 " in line or "~~" in line or "已挪" in line:
-                continue                  # 回溯引用，指向旧编号是正常的
+        lines = path.read_text(encoding="utf-8").splitlines()
+
+        # 文件级的「已废弃」声明：某个编号只要在**本文件任何一行**被标注为废弃，
+        # 就整份文件放行它。
+        #
+        # ★ 为什么按文件而不是按行：ADR 是历史决策记录，**原文不许改**
+        # （docs/adr 的规则），废弃说明只能补在下方。逐行判断会让
+        # 「裁定原文那一行」永远红，逼着人去改历史。
+        # 这条豁免不会放过真正的遗漏——遗漏的编号不会有人给它写废弃说明。
+        retired = set()
+        for line in lines:
+            if any(k in line for k in RETIRED_MARKERS):
+                retired.update(UNIT_REF.findall(line))
+
+        for line in lines:
+            if any(k in line for k in RETIRED_MARKERS):
+                continue
             # 「`U4.7.1` → `U1.8.4`」的箭头左侧是被取代的旧编号，允许不存在；
             # 但箭头右侧必须存在，否则裁定就是空的。
             checked = re.sub(r"`?U\d+\.\w+\.\d+`?\s*(→|->)\s*", "", line)
             for uid in UNIT_REF.findall(checked):
-                if uid not in unit_ids:
+                if uid not in unit_ids and uid not in retired:
                     problems.append(
                         f"{path}: 提到 {uid}，但里程碑里没有这个单元——"
                         f"裁定没有落进计划")

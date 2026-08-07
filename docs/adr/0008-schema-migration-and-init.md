@@ -4,7 +4,7 @@
 - **日期**：2026-08-07
 - **相关**：[`0002`](0002-release-and-auto-update.md)（自动更新）· [`0005`](0005-persistence.md)（只用 SQLite）
 - **落地**：[`../rules/database.md`](../rules/database.md) §5 · [`../spec/architecture.md`](../spec/architecture.md) §6 ·
-  [`../plan/milestones/M1-release-and-update.md`](../plan/milestones/M1-release-and-update.md)
+  [`../plan/milestones/M1-install-and-update.md`](../plan/milestones/M1-install-and-update.md)
 
 ## 背景
 

@@ -148,8 +148,8 @@ func (s *UpdateService) Check(ctx context.Context) (UpdateStatus, error) {
 // Prepare 判断现在更新会不会打断用户。
 //
 // ★ **失败安全**：只要有一个非终态工作就 blocked，查询失败也 blocked。
-// 这是简化版（M1 U1.7.1）——完整语义是「两段式取消 → 落检查点 → paused」，
-// 要等 M0 的 U0.6.1。在那之前**宁可拦住更新，也不能丢用户的工作**：
+// 这是简化版——完整语义是「两段式取消 → 落检查点 → paused」，
+// 要等 M3 的 U3.2.1 与 M4 的 U4.1.2。在那之前**宁可拦住更新，也不能丢用户的工作**：
 // 「更新不丢工作」是这个产品能被信任的前提。
 func (s *UpdateService) Prepare(ctx context.Context) (PrepareResult, error) {
 	works, err := s.works.ListWorks(ctx)

@@ -1,8 +1,8 @@
 package protocol_test
 
-// M0 U0.2.3 · protocol 线格式包 —— session/update 变体
+// protocol 线格式包 —— session/update 变体（原 U0.2.3，编号已废弃）
 //
-// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.2 U0.2.3。
+// 原单元编号 U0.2.3（已废弃）。能力归属见 docs/plan/roadmap.md 的「已经就绪的地基」。
 //
 // ★ 本文件的判别值全集来自 **官方 schema 源码**（A 级证据）：
 //   @agentclientprotocol/sdk@1.3.0 的 dist/schema/types.gen.d.ts（PROTOCOL_VERSION = 1）

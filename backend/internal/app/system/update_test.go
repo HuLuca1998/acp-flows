@@ -2,7 +2,7 @@ package system_test
 
 // M1 · 一键更新：检查与准备
 //
-// 验收标准见 docs/plan/milestones/M1-release-and-update.md S1.6 / S1.7。
+// 验收标准见 docs/plan/milestones/M1-install-and-update.md S1.1（更新界面与流程）。
 //
 // ★ 这一层的失败模式是**静默**的：判错了不报错，只是用户永远收不到更新，
 // 或者更新时丢掉正在跑的工作。所以每条错误路径都要有断言。
@@ -198,7 +198,7 @@ func TestPrepare_NoActiveWorkIsReady(t *testing.T) {
 //
 // M1 里程碑写死了这条：「先放行、以后再补暂停逻辑」会在中间那段时间里
 // 真实地丢掉用户几十分钟的工作，而「更新不丢工作」正是这个产品能被信任的前提。
-// 完整的「暂停 + 落检查点」要等 M0 的两段式取消（U1.7.2）。
+// 完整的「暂停 + 落检查点」要等 M3 的两段式取消与 M4 的 U4.1.2。
 func TestPrepare_AnyActiveWorkBlocks(t *testing.T) {
 	active := []constant.WorkState{
 		constant.WorkStateExecuting,

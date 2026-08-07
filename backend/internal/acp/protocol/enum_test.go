@@ -1,9 +1,9 @@
 package protocol_test
 
-// M0 U0.2.3 · protocol 线格式包 —— 枚举穷举
+// protocol 线格式包 —— 枚举穷举（原 U0.2.3，编号已废弃）
 //
 // 取值全集来自 @agentclientprotocol/sdk@1.3.0 的 dist/schema/types.gen.d.ts。
-// 验收标准 R3 见 docs/plan/milestones/M0-acp-foundation.md § S0.2 U0.2.3。
+// 原单元编号 U0.2.3（已废弃）。能力归属见 docs/plan/roadmap.md 的「已经就绪的地基」。
 
 import (
 	"encoding/json"

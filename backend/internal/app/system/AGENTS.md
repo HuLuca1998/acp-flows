@@ -29,7 +29,7 @@ cd backend && go test ./internal/app/... -count=1 -race
 
 ## 改这里之前必读
 
-- [`M1-release-and-update.md`](../../../../docs/plan/milestones/M1-release-and-update.md) S1.6 / S1.7
+- [`M1-install-and-update.md`](../../../../docs/plan/milestones/M1-install-and-update.md) S1.1（更新界面与流程）
 - [`adr/0007`](../../../../docs/adr/0007-release-revision-from-prior-art.md) 修订 3 —— **进设置页时检查，不轮询**
 
 ## 本域特有的坑

@@ -110,11 +110,11 @@
 
 | 章 | 做什么 | 状态 |
 |---|---|---|
-| [`M0`](plan/milestones/M0-acp-foundation.md) | ACP 地基：协议层、Fake Runtime、工程门禁 | **进行中** |
-| [`M1`](plan/milestones/M1-release-and-update.md) | 发布与客户端自动更新 | 待开始 |
-| [`M2`](plan/milestones/M2-golden-path.md) | 主链路垂直切片（端到端跑通一条真实工作流） | 待开始 |
-| [`M3`](plan/milestones/M3-memory-and-skill.md) | 记忆与 Skill 三层 | 待开始 |
-| [`M4`](plan/milestones/M4-product-surface.md) | 产品化界面与报表 | 待开始 |
+| [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新（V1–V3） | **进行中** |
+| [`M2`](plan/milestones/M2-talk-and-observe.md) | 能提需求，看得见 AI 在干什么（V4–V6） | 待开始 |
+| [`M3`](plan/milestones/M3-control.md) | 能管住 AI：动文件先问、随时能喊停（V7 V8） | 待开始 |
+| [`M4`](plan/milestones/M4-trust.md) | 值得信任：恢复、计划、证据、决策（V9–V12） | 待开始 |
+| [`M5`](plan/milestones/M5-polish.md) | 越用越顺手：记忆、报表、英文（V13–V15） | 待开始 |
 
 ### 顶层三份
 
