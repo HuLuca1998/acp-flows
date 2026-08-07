@@ -68,6 +68,11 @@
 
 .path {
   margin: 0;
+
+  /* ★ min-width: 0 不能省。父是 flex column，子项默认 min-width: auto，
+     一条长路径会把卡片整个撑宽，ellipsis 也就永远不生效。
+     实测窄视口下溢出 280px。 */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

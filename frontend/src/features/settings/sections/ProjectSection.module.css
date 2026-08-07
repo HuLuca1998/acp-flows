@@ -1,0 +1,147 @@
+/* 项目管理。照 design/ACP Duet 1a.dc.html 的「项目管理」分区。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* 设计稿：inset 描边的次要按钮，hover 时点亮强调色 */
+.addButton,
+.removeButton {
+  flex: none;
+  padding: 4px 11px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-400);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.addButton:hover,
+.removeButton:hover {
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+}
+
+.manual {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+
+  /* ★ min-width: 0 不能省。flex 子项默认 min-width: auto，
+     输入框会被它的默认尺寸撑开，把整行顶出容器。 */
+  min-width: 0;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  /* 容器再窄也不撑破：定宽列加起来仍可能超出，那时让**表格自己**横向滚动，
+     而不是把整页顶出滚动条。表格内部滚是可用的，整页滚不是。 */
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.headRow,
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  /* 各列加起来的最小宽度；低于它就由 .table 横向滚动 */
+  min-width: 380px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+}
+
+.headRow {
+  color: var(--color-neutral-700);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.row {
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  color: var(--color-neutral-400);
+  font-size: 12.5px;
+}
+
+/* ★ 只有路径列自适应，其余定宽。
+ *
+ * 设计稿给的是一组定宽（120/210/100/92/100），照抄的话在窄一点的窗口里
+ * 总宽会超出内容区——实测溢出 661px。设计稿画的是宽窗口下的样子，
+ * 定宽值是那一屏的结果，不是约束本身。
+ *
+ * 路径是这几列里唯一长度不可控的，让它吸收剩余宽度并省略。 */
+.colName {
+  flex: none;
+  width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colPath {
+  flex: 1;
+
+  /* min-width: 0 不能省。flex 子项默认 min-width: auto，
+     一条长路径会把整行撑开，text-overflow 也就永远不生效。 */
+  min-width: 0;
+
+  /* 长路径省略而不是换行：换行会让每行高度不一样，表格看起来是乱的 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colBranch {
+  flex: none;
+  width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colAction {
+  flex: none;
+}
+
+/* 路径与分支名是标识符，等宽显示（设计规范 §02） */
+.mono {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.empty,
+.error {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
+}

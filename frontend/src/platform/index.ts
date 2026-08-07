@@ -12,6 +12,11 @@ export const RELEASES_URL = 'https://github.com/HuLuca1998/acp-flows/releases/la
 export type Capabilities = {
   /** 能不能就地自更新（下载 → 安装 → 重启）。浏览器里恒为 false。 */
   canSelfUpdate: boolean
+  /**
+   * 能不能弹出系统对话框选文件夹并拿到**绝对路径**。浏览器里恒为 false——
+   * `showDirectoryPicker` 出于安全只给句柄不给路径。
+   */
+  canPickDirectory: boolean
 }
 
 /**
@@ -23,7 +28,8 @@ export type Capabilities = {
  */
 export function capabilities(): Capabilities {
   const w = globalThis as { __TAURI_INTERNALS__?: unknown }
-  return { canSelfUpdate: w.__TAURI_INTERNALS__ !== undefined }
+  const inShell = w.__TAURI_INTERNALS__ !== undefined
+  return { canSelfUpdate: inShell, canPickDirectory: inShell }
 }
 
 /** 下载进度回调。`total` 为 0 表示服务端没给 Content-Length。 */
@@ -74,4 +80,27 @@ export async function downloadAndInstall(onProgress?: ProgressHandler): Promise<
   })
 
   await relaunch()
+}
+
+/**
+ * 让用户选一个本地文件夹，返回它的**绝对路径**；用户取消时返回 null。
+ *
+ * ★ **只有 Tauri 形态能拿到真实路径。** 浏览器里 `showDirectoryPicker`
+ * 出于安全只给句柄不给路径——拿不到路径，后端就无从登记。
+ * 所以这里在 Web 形态下返回 `null`，由界面降级成「手动粘贴路径」。
+ *
+ * 装作能选、然后拿一个假路径去请求，会让用户在后端拿到「路径不存在」，
+ * 而他明明刚从对话框里选过——那种错误没人能自己解决。
+ */
+export async function pickDirectory(): Promise<string | null> {
+  if (!capabilities().canPickDirectory) {
+    return null
+  }
+
+  // 动态 import：浏览器形态下这个模块不会被加载进首屏包
+  const { open } = await import('@tauri-apps/plugin-dialog')
+  const picked = await open({ directory: true, multiple: false })
+
+  // 取消时返回 null；multiple: false 时不会是数组，但类型上仍要收窄
+  return typeof picked === 'string' ? picked : null
 }

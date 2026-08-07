@@ -1,3 +1,4 @@
+import type { Project } from '@/models/project'
 import type { Runtime } from '@/models/runtime'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 
@@ -34,4 +35,24 @@ export async function prepareUpdate(): Promise<UpdatePrepareResult> {
 export async function listRuntimes(): Promise<Runtime[]> {
   const body = unwrap(await api.GET('/runtimes'))
   return body.runtimes
+}
+
+/** 已添加的本地项目。 */
+export async function listProjects(): Promise<Project[]> {
+  const body = unwrap(await api.GET('/projects'))
+  return body.projects
+}
+
+/**
+ * 把一个本地文件夹加进来。
+ *
+ * ★ 这个动作**往用户的项目目录里写零个字节**，只登记路径。
+ */
+export async function addProject(path: string): Promise<Project> {
+  return unwrap(await api.POST('/projects', { body: { path } }))
+}
+
+/** 移除项目。**只取消登记，不删用户的文件。** */
+export async function removeProject(id: string): Promise<void> {
+  unwrap(await api.DELETE('/projects/{id}', { params: { path: { id } } }))
 }

@@ -34,11 +34,23 @@ test.describe('布局不变量', () => {
   // 第一版就是这么写的，把导航栏宽度改成 2000px 都测不红。
   // 所以要逐个元素问「你自己溢出了吗」。
   test('设置页在窄窗口下不出横向滚动条，切换分区也不出', async ({ page }) => {
-    /** 页面上**任何**元素自己横向溢出都算数，不只是根元素。 */
+    /**
+     * 找出**会把父容器撑破**的元素。
+     *
+     * ★ 必须跳过自己声明了 overflow 的元素。设了 `overflow: hidden` +
+     * `text-overflow: ellipsis` 的元素，`scrollWidth` 本来就是完整内容宽度——
+     * 那正是省略号生效的表现，不是 bug。不跳过的话，每加一个带省略号的
+     * 长路径都会让这条测试变红，而它其实工作得好好的。
+     *
+     * 判据是「内容溢出**且**没有做任何 overflow 处理」——只有这种才会
+     * 一路传播上去，最终表现为整页的横向滚动条。
+     */
     async function widestOverflow(p: import('@playwright/test').Page) {
       return p.evaluate(() => {
         let worst = { tag: '', by: 0 }
         for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+          const ox = getComputedStyle(el).overflowX
+          if (ox !== 'visible') continue // hidden / auto / scroll 都由元素自己兜住了
           const by = el.scrollWidth - el.clientWidth
           // clientWidth 为 0 的不参与布局（隐藏、内联），跳过
           if (el.clientWidth > 0 && by > worst.by) {
