@@ -130,7 +130,7 @@ jobs:
         with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
         if: needs.changes.outputs.has_frontend == 'true'
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
 
       # ★ 必须装依赖：make gen 的 TS 那一半靠 pnpm exec openapi-typescript
       - name: 装前端依赖
@@ -184,7 +184,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
 
       - run: cd frontend && pnpm install --frozen-lockfile
 
@@ -259,7 +259,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { package_json_file: e2e/package.json }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: '**/pnpm-lock.yaml' }
 
       - run: make build
       - run: cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium

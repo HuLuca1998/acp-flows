@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-milestones check-toolchain check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-milestones check-toolchain check-index check-icons lint test cover ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -95,7 +95,13 @@ endif
 .PHONY: cover
 cover: ## Go 覆盖率 + 门槛校验（domain 包 >= 90%）
 ifeq ($(call has,$(BACKEND)/go.mod),yes)
-	cd $(BACKEND) && go test ./... -coverprofile=coverage.out -covermode=atomic
+	@# ★ -coverpkg 不能省：没有它时「A 包的测试执行了 B 包的代码」不计入 B 的覆盖率。
+	@# 本仓库的 entity / mapper / migration 全部由 store 的测试驱动，
+	@# 不加 -coverpkg 会显示 0% —— 那是测量假象，会逼着人去写没有意义的测试。
+	cd $(BACKEND) && go test ./... -covermode=atomic -coverpkg=./internal/... -coverprofile=coverage.raw
+	@# 生成物由 openapi.yaml 决定，人改不了，不该进覆盖率门槛
+	@grep -v '/internal/api/gen/' $(BACKEND)/coverage.raw > $(BACKEND)/coverage.out
+	@rm -f $(BACKEND)/coverage.raw
 	@bash scripts/check-coverage.sh
 else
 	@echo "· 跳过 cover：$(BACKEND)/go.mod 尚未创建"
