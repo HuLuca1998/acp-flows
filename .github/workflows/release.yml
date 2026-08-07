@@ -1,95 +1,211 @@
 name: release
 
-# tag 触发：构建 → minisign 签名 → 生成 latest.json → 发布 GitHub Release。
-# 完整链路见 docs/release-and-update.md。
+# 只手动触发，且**只在 main 上跑**。两个理由（前一个项目 ai-workflows 实测，
+# 见 docs/adr/0007）：
 #
-# ⚠️ TAURI_SIGNING_PRIVATE_KEY 丢失 = 所有已安装客户端再也收不到更新
-#    （公钥硬编码在旧版本里）。必须离线备份，不能只存在 GitHub Secrets。
+# 1. **缓存能命中**：GitHub Actions 的缓存有 ref 作用域——一个 run 只能读
+#    「自己这个 ref」和「默认分支」的缓存。用 tag 触发时，每个 tag 写的缓存
+#    只对自己可见，下一次发版换了 tag 就读不到，等于每次发版从零编译整个
+#    依赖树（实测 6 分钟）。在 main 上跑，作用域一直是 main。
+# 2. **省额度**：macOS runner 按 10 倍计费，而绝大多数提交没人会去装。
+#
+# tag 由 tauri-action 在发布时创建，不需要预先打。
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: '正式版版本号，如 0.2.0。留空则发预发布快照（不会成为 latest）'
+        type: string
+        default: ''
+      dry_run:
+        description: '只构建不发布（验证流水线本身）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build:
-    name: build (${{ matrix.target }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: true
-      matrix:
-        # 两个 target 都在 macos-14（arm64）上构建：Rust 交叉编译到 x86_64-apple-darwin
-        # 只需 rustup target add，Go 侧 CGO_ENABLED=0 更是零成本。
-        # 用两个不同架构的 runner 反而更慢更贵，且 x64 runner 排队更久。
-        include:
-          - target: aarch64-apple-darwin
-            runner: macos-14
-          - target: x86_64-apple-darwin
-            runner: macos-14
+  # ── 版本解析与幂等检查放 Linux（1 倍计费）────────────────────
+  # 重发一个已存在的版本时，macOS runner 根本不会启动。
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      exists: ${{ steps.existing.outputs.exists }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # release notes 要读 git log
+
+      # 版本策略：
+      #   填了 version → 正式版，标记 latest，成为已安装用户的更新目标
+      #   留空        → 预发布快照，不会成为 latest
+      - name: 解析版本
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          sha="${GITHUB_SHA:0:7}"
+          if [[ -n "${INPUT_VERSION:-}" ]]; then
+            version="${INPUT_VERSION#v}"
+            if [[ ! $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "✗ 版本号格式不对: $version（应为 X.Y.Z）" >&2
+              exit 1
+            fi
+            prerelease=false
+          else
+            version="0.0.0-snapshot.$(date -u +%Y%m%d).${sha}"
+            prerelease=true
+          fi
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+          echo "→ $version（prerelease=$prerelease）"
+
+      - name: 幂等检查
+        id: existing
+        run: |
+          set -euo pipefail
+          if gh release view "${{ steps.meta.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::${{ steps.meta.outputs.tag }} 已存在，跳过构建（流水线是幂等的）"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 不把坏版本推给用户，比早十分钟发布重要。
+      - name: 发布门禁
+        if: steps.existing.outputs.exists != 'true'
+        run: make check-docs && make check-doc-commands && make check-index
+
+      - name: 生成 release notes
+        if: steps.existing.outputs.exists != 'true'
+        run: bash scripts/release-notes.sh "${{ steps.meta.outputs.tag }}" > notes.md
+
+      - uses: actions/upload-artifact@v4
+        if: steps.existing.outputs.exists != 'true'
+        with: { name: release-notes, path: notes.md, retention-days: 1 }
+
+  # ── 构建与发布 ───────────────────────────────────────────────
+  build:
+    name: build
+    needs: plan
+    if: needs.plan.outputs.exists != 'true'
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: release-notes }
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+        with: { targets: aarch64-apple-darwin,x86_64-apple-darwin }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: shell/src-tauri }
 
-      # duetd 作为 Tauri sidecar，文件名必须带 target triple 后缀（Tauri 约定）
-      - name: 编译 duetd 与前端 dist
-        run: bash scripts/build.sh --target ${{ matrix.target }}
+      # 版本号只在发布时注入，仓库里始终是 0.0.0 ——
+      # 避免每次发版都产生一次「bump version」提交（adr/0007 修订 2）。
+      - name: 注入版本号
+        run: |
+          set -euo pipefail
+          conf=shell/src-tauri/tauri.conf.json
+          tmp=$(mktemp)
+          jq --arg v "${{ needs.plan.outputs.version }}" '.version = $v' "$conf" > "$tmp"
+          mv "$tmp" "$conf"
+          jq -r '.version' "$conf"
 
-      - name: 构建并签名 Duet.app
+      # duetd 作为 Tauri sidecar，文件名必须带 target triple 后缀
+      - name: 编译 duetd 与前端 dist
+        run: |
+          bash scripts/build.sh --target aarch64-apple-darwin
+          bash scripts/build.sh --target x86_64-apple-darwin
+
+      - name: 检测 Apple 证书
+        id: signing
         env:
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "${CERT:-}" ]; then
+            echo "apple=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apple=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::未配置 Apple 证书：产物做 ad-hoc 签名，安装时跑 scripts/install-app.sh"
+          fi
+
+      # ★ 必须是两个互斥的步骤，不能靠 tauri-action 自己判空。
+      # GitHub Actions 无法条件性地「不设置」一个 env——secret 不存在时它是
+      # 空字符串，tauri-action 会拿空串去导入钥匙串，报
+      # `failed to import keychain certificate`。（adr/0007 修订 4，实测踩过）
+
+      - name: 构建并发布（含 Apple 签名与公证）
+        if: ${{ !inputs.dry_run && steps.signing.outputs.apple == 'true' }}
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Apple 代码签名与公证：secrets 存在时才启用。
-          # 当前策略是 ad-hoc 签名，首次安装需用户手动放行。见 docs/adr/0002。
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: cd shell && pnpm install --frozen-lockfile && pnpm tauri build --target ${{ matrix.target }}
-
-      - uses: actions/upload-artifact@v4
         with:
-          name: bundle-${{ matrix.target }}
-          path: shell/src-tauri/target/${{ matrix.target }}/release/bundle/
-          retention-days: 1
+          projectPath: shell
+          tagName: ${{ needs.plan.outputs.tag }}
+          releaseName: ${{ needs.plan.outputs.tag }}
+          releaseBodyPath: notes.md
+          releaseDraft: false
+          prerelease: ${{ needs.plan.outputs.prerelease }}
+          includeUpdaterJson: true
+          args: --target universal-apple-darwin
 
-  publish:
-    name: publish
-    needs: build
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with: { path: artifacts }
-
-      - name: 合成 universal 包
-        run: bash scripts/make-universal.sh artifacts dist
-
-      - name: 生成 latest.json（Tauri updater 清单）
-        run: bash scripts/make-updater-manifest.sh dist "${GITHUB_REF_NAME#v}"
-
-      - name: 发布 GitHub Release
+      - name: 构建并发布（ad-hoc 签名，未公证）
+        if: ${{ !inputs.dry_run && steps.signing.outputs.apple != 'true' }}
+        uses: tauri-apps/tauri-action@v0
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --notes-file dist/RELEASE_NOTES.md \
-            dist/*.dmg dist/*.tar.gz dist/*.sig dist/latest.json
+          GITHUB_TOKEN: ${{ github.token }}
+          # 更新包仍然签名——那用的是我们自己的 minisign 密钥，与 Apple 证书无关。
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # ★ ad-hoc 签名（identity "-"）：免费、不需要任何 Apple 账号。
+          # Apple Silicon 要求 arm64 可执行文件必须有签名——只靠链接器那份
+          # linker-signed 不覆盖 bundle，Gatekeeper 会直接判「已损坏」。
+          # 加上这行才退化成正常的「未认证开发者」提示，那一层由
+          # scripts/install-app.sh 解除隔离标记来过。（adr/0007 修订 5，实测踩过）
+          APPLE_SIGNING_IDENTITY: '-'
+        with:
+          projectPath: shell
+          tagName: ${{ needs.plan.outputs.tag }}
+          releaseName: ${{ needs.plan.outputs.tag }}
+          releaseBodyPath: notes.md
+          releaseDraft: false
+          prerelease: ${{ needs.plan.outputs.prerelease }}
+          includeUpdaterJson: true
+          args: --target universal-apple-darwin
+
+      - name: 仅构建（dry run）
+        if: ${{ inputs.dry_run }}
+        run: cd shell && pnpm install --frozen-lockfile && pnpm tauri build --target universal-apple-darwin

@@ -1,6 +1,10 @@
 # 发布与自动更新
 
 > **M1 优先级最高的功能。** 设计稿里已经画完（设置 → 应用更新），照着实现即可。
+>
+> ⚠️ **本文的触发方式、版本号来源、检查时机三项已被
+> [`adr/0007`](adr/0007-release-revision-from-prior-art.md) 修订** ——
+> 按前一个项目 `ai-workflows` 的实证改过。下面的内容已同步。
 > 关键约束来自设计稿的一句话：**「更新前会暂停所有工作并保存检查点，重启后从检查点恢复。」**
 > 这句话意味着更新不是"下载装包重启"，而是一次**跨前后端的领域操作**。
 
@@ -54,20 +58,41 @@ E2E（Playwright）在 `main` 上跑，不阻塞 PR —— 它慢，且依赖构
 
 ---
 
-## 3. 版本推导：release-please
+## 3. 发版：手动触发，双通道
 
-`.github/workflows/release-please.yml` 监听 `main`。
+**不用 release-please**（`adr/0007` 修订 2）。发布只手动触发，且只在 `main` 上跑：
 
-- 读 `main` 上自上次 release 以来的 conventional commits
-- 按 [`git-workflow.md`](git-workflow.md) §2 的表推导版本号
-- 自动维护 `CHANGELOG.md` 与 `shell/src-tauri/tauri.conf.json` 里的 `version`
-- 开一个 `chore(release): vX.Y.Z` 的 PR
+```bash
+gh workflow run release -f version=0.2.0   # 正式版
+gh workflow run release                    # 预发布快照
+```
 
-**这个 Release PR 由人类合并。** 合并即打 tag，触发 `release.yml`。
-理由：发版对外不可撤回，属于 D3。这是整条流水线上唯一需要人点的地方。
+| 填了 version | 版本号 | Release 类型 | 谁会收到 |
+|---|---|---|---|
+| 是（`0.2.0`） | `0.2.0`，tag 由流水线创建 | **latest** | 所有已安装用户 |
+| 留空 | `0.0.0-snapshot.<日期>.<短 sha>` | **prerelease** | 只有手动下载的人 |
 
-> 版本号是 **`tauri.conf.json` 说了算**，`package.json` / `go.mod` 不参与。
-> 任何人不得手改版本号。
+更新端点指向 `releases/latest/download/latest.json`——
+**prerelease 不会成为 latest，所以快照不会推给已安装用户**。
+
+### 为什么不用 tag 触发（前一个项目实测）
+
+**GitHub Actions 的缓存有 ref 作用域**：tag 触发时缓存写在 `refs/tags/vX.Y.Z` 名下，
+下次发版换了 tag 就读不到，等于每次从零编译整个依赖树（实测 6 分钟）。
+在 `main` 上跑，作用域一直是 `main`。
+
+顺带省额度：macOS runner 按 10 倍计费。
+
+### 版本号只在发布时注入
+
+仓库里的 `tauri.conf.json` 的 `version` **始终是 `0.0.0`**，
+发布时用 `jq` 注入——避免每次发版都产生一次「bump version」提交。
+
+release notes 由 `scripts/release-notes.sh` 从 conventional commits 生成，
+写进 GitHub Release 正文。**`CHANGELOG.md` 这个文件不再维护**——
+GitHub Release 页面就是变更日志。
+
+**「人手动触发并填版本号」就是那个 D3 人工闸门。**
 
 ---
 
@@ -101,8 +126,18 @@ macos-14 ─┬─ 构建 aarch64-apple-darwin ─┐
 | **minisign**（Tauri updater） | 保证更新包没被篡改，客户端强制校验 | **立刻做，必须做**。私钥在 GitHub Secrets，公钥硬编码进 `tauri.conf.json` |
 | **Apple 代码签名 + 公证** | 让 Gatekeeper 放行 | **暂不做**（ad-hoc 签名）。首次安装需用户手动放行 |
 
-Apple 公证的开关在 workflow 里已预留（`APPLE_*` secrets 存在时才执行），
-将来买了开发者账号只需填 secrets，不改流水线。见 [`adr/0002`](adr/0002-release-and-auto-update.md)。
+Apple 公证的开关在 workflow 里已预留，将来买了开发者账号只需填 secrets，不改流水线。
+
+**两个实测踩过的坑**（`adr/0007` 修订 4、5）：
+
+1. **必须写成两个互斥的构建步骤**，不能靠 `tauri-action` 判空——
+   GitHub Actions 无法条件性地「不设置」一个 env，空的 `APPLE_CERTIFICATE`
+   会让它报 `failed to import keychain certificate`
+2. **ad-hoc 签名必须显式设 `APPLE_SIGNING_IDENTITY: '-'`** ——
+   Apple Silicon 要求 arm64 可执行文件必须有签名，只靠链接器那份不覆盖 bundle，
+   Gatekeeper 会判「**已损坏**」而不是「未认证开发者」。前者用户会以为下载坏了
+
+配套 `scripts/install-app.sh` 解除隔离标记，把「未认证开发者」那层也过掉。
 
 ### Secrets 清单
 
@@ -113,8 +148,29 @@ Apple 公证的开关在 workflow 里已预留（`APPLE_*` secrets 存在时才�
 | `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` | 代码签名证书 | ⬜ 待定 |
 | `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` | 公证 | ⬜ 待定 |
 
-> **minisign 私钥丢失 = 所有已安装的客户端再也收不到更新**（公钥硬编码在旧版本里）。
-> 生成后立刻离线备份，不要只存在 GitHub Secrets 里。
+### 为什么必须有私钥
+
+**这不是我们加的需求，是 Tauri updater 的强制机制**：构建时用私钥签更新包，
+运行时客户端用内嵌的公钥校验，**签名不匹配就拒绝安装**。
+它防的是有人替换 Release 上的更新包或中间人劫持下载。
+
+### 私钥存三处（`adr/0007`）
+
+| 位置 | 用途 |
+|---|---|
+| GitHub Secret `TAURI_SIGNING_PRIVATE_KEY` | CI 签名 |
+| 本地 `~/.duet-updater/updater.key` | 生成时的备份 |
+| **密码管理器**（另存一份） | 前两处同时丢失时的最后防线 |
+
+```bash
+cd shell
+pnpm exec tauri signer generate -w ~/.duet-updater/updater.key --password ""
+gh secret set TAURI_SIGNING_PRIVATE_KEY --body "$(cat ~/.duet-updater/updater.key)"
+# 把输出的公钥写回 shell/src-tauri/tauri.conf.json 的 plugins.updater.pubkey
+```
+
+> ⚠️ **私钥丢失 = 所有已安装客户端再也收不到更新**（公钥硬编码在旧版本里）。
+> 只能让用户手动重新下载安装。`~/.duet-updater/` 要加进隔离守卫的受保护列表。
 
 ### latest.json
 
@@ -196,16 +252,21 @@ GET /v1/system/resume
 
 设置里的开关「启动时恢复 · 从检查点恢复未完成的工作」控制是自动恢复还是只提示。
 
-### 「自动检查更新（不自动安装）」
+### 检查时机：进设置页时检查，**不轮询**（`adr/0007` 修订 3）
 
-设计稿写死了这个语义，**不要做成自动安装**：
-
-- 后台每 6 小时检查一次 + 启动时检查一次
-- 发现新版本 → 设置页出角标 + 一条 `app` 事件
+- **用户进入设置页时**才检查
+- **不做后台轮询**、不在启动时检查
 - **绝不自动下载、绝不自动安装、绝不自动重启**
-- 用户关掉这个开关后完全静默
 
-理由：这个 App 在跑长任务写用户的代码。任何未经确认的重启都可能丢失几十分钟的工作。
+前一个项目的理由：「轮询对一个常驻工具是持续的网络与注意力开销，收益极低」。
+
+Duet 更极端——它会挂在等审批上几小时。后台轮询发现新版本后，
+不打断用户就没有任何用处；打断又违反「不打断执行中的单元」。
+
+> 这同时消掉了「发现新版本要不要发一条事件」这个问题——**不需要事件**
+> （`adr/0006` Q33）。
+
+本地构建（版本号是 `0.0.0` 或含 `dev`）**跳过检查**。
 
 ---
 

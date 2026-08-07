@@ -17,10 +17,11 @@ import (
 //
 // 相对于用户家目录。新增受保护路径时同时补 guard_test.go 的用例。
 var forbiddenUnderHome = []string{
-	".acpflows", // 全局数据目录：DB、凭据、runtime 注册表
-	".duet",     // worktree 根目录
-	".claude",   // Claude Code 的机器级配置与会话历史
-	".codex",    // codex 的机器级配置
+	".acpflows",     // 全局数据目录：DB、凭据、runtime 注册表
+	".duet",         // worktree 根目录
+	".claude",       // Claude Code 的机器级配置与会话历史
+	".codex",        // codex 的机器级配置
+	".duet-updater", // minisign 私钥备份（adr/0007）——丢了就再也推不了更新
 }
 
 // UserHomeForTest 返回用户家目录，取不到时跳过当前测试。
