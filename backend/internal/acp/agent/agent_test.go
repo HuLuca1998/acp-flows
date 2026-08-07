@@ -378,3 +378,56 @@ func TestRun_InvalidCwdEmitsNothing(t *testing.T) {
 		t.Errorf("这一轮没开始却发了 %d 条事件", n)
 	}
 }
+
+// ★★ 我们加的元信息**不许和 ACP 自己的字段撞名**。
+//
+// 真机上撞到的：翻译层往 payload 里塞了 `kind`（ACP 判别值），
+// 而 ACP 的 tool_call 载荷**本来就有一个 kind**（工具种类：read/edit/execute）。
+// 结果同一个键有时是 "tool_call_update"、有时是 "read"，前端没法可靠使用——
+// 表现是四条工具调用卡片长得一模一样，看不出 AI 在读哪个文件。
+func TestRun_DoesNotClobberAgentFields(t *testing.T) {
+	rt := newFake(t, &fake.Script{
+		Name: "clobber",
+		Turns: []fake.Turn{{
+			Steps: []fake.Step{{Emit: emit(t, protocol.UpdateToolCall, map[string]any{
+				// ACP 的 tool_call 自带这些字段，一个都不能被我们覆盖
+				"kind":       "read",
+				"title":      "Read README.md",
+				"toolCallId": "toolu_01",
+				"status":     "in_progress",
+			})}},
+			StopReason: protocol.StopReasonEndTurn,
+		}},
+	})
+	sink := &recordingSink{}
+
+	if err := agent.Run(context.Background(), agent.Spec{
+		Transport: rt.Transport(), Cwd: t.TempDir(),
+		WorkID: "work-01", Prompt: "做点事", Sink: sink,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, e := range sink.snapshot() {
+		if e.Type != "tool_call" {
+			continue
+		}
+		for _, f := range []struct{ key, want string }{
+			{"kind", "read"},
+			{"title", "Read README.md"},
+			{"toolCallId", "toolu_01"},
+			{"status", "in_progress"},
+		} {
+			if got := e.Payload[f.key]; got != f.want {
+				t.Errorf("payload[%q] = %v, 想要 %q——Agent 的字段被我们的元信息覆盖了，"+
+					"前端拿不到真实内容", f.key, got, f.want)
+			}
+		}
+		// 我们自己的判别值要在**独立的键**上，前端靠它区分 tool_call 与 tool_call_update
+		if got := e.Payload["acp_kind"]; got != string(protocol.UpdateToolCall) {
+			t.Errorf("acp_kind = %v, 想要 %q", got, protocol.UpdateToolCall)
+		}
+		return
+	}
+	t.Error("一条 tool_call 都没有")
+}

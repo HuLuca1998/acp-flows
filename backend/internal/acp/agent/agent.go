@@ -180,12 +180,16 @@ func translate(workID string, ev session.Event) (WorkEvent, bool) {
 		return WorkEvent{}, false
 	}
 
-	payload := map[string]any{"kind": string(ev.Kind)}
-	if ev.Text != "" {
-		payload["text"] = ev.Text
-	}
-	// ★ 原始载荷原样带上：前端认得的字段自己取，认不得的也能在排查时看到全貌。
-	// 解成具体变体再拼回去的话，每加一个字段就要改这里。
+	payload := map[string]any{}
+
+	// ★ 原始载荷**先铺进去**，我们的元信息后放且用带前缀的键。
+	//
+	// 反过来做会出事：ACP 的 tool_call 载荷自带一个 `kind`（工具种类
+	// read/edit/execute），我们的判别值也叫 kind，于是同一个键有时是
+	// "tool_call_update"、有时是 "read"，前端没法可靠使用——
+	// 真机上的表现是四条工具调用卡片长得一模一样，看不出 AI 在读哪个文件。
+	//
+	// 原样带上而不是解成具体变体再拼回去：那样每加一个字段就要改这里。
 	if len(ev.Raw) > 0 {
 		var raw map[string]any
 		if err := json.Unmarshal(ev.Raw, &raw); err == nil {
@@ -196,6 +200,12 @@ func translate(workID string, ev session.Event) (WorkEvent, bool) {
 				payload[k] = v
 			}
 		}
+	}
+
+	// ↓ 我们加的东西，一律 acp_ 前缀，永远不会和 Agent 的字段撞名
+	payload["acp_kind"] = string(ev.Kind)
+	if ev.Text != "" {
+		payload["text"] = ev.Text
 	}
 
 	return WorkEvent{

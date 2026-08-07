@@ -231,6 +231,7 @@
 | `TestRun_SkipsSessionMetadata` | `internal/acp/agent/agent_test.go` | acp | 会话元数据（用量、可用命令）不上时间线，只留 `turn_end`——塞进去会淹掉真正的进展 |
 | `TestRun_PrependsSystemPromptOnce` | `internal/acp/agent/agent_test.go` | acp | M2 U2.2.2 R3 欠账：系统提示词只在**第一轮**拼上去，每轮都发的话几十轮后上下文全是重复的同一段话 |
 | `TestRun_InvalidCwdEmitsNothing` | `internal/acp/agent/agent_test.go` | acp | cwd 非法时一个事件都不发——那意味着这一轮压根没开始 |
+| `TestRun_DoesNotClobberAgentFields` | `internal/acp/agent/agent_test.go` | acp | ★★ 我们加的元信息一律 `acp_` 前缀，**不覆盖 Agent 自己的字段**——真机撞到：翻译层的 `kind` 顶掉了 ACP tool_call 自带的 `kind`（工具种类），前端拿到的值时对时不对，表现是四条工具调用卡片长得一模一样 |
 | `TestProcessRunner_NoRuntimeReady` | `internal/acp/agent/runner_test.go` | acp | ★ 一个 Runtime 都没就绪时错误里带**补救办法**（`npm i -g ...`）——这句话会出现在时间线的失败事件里，是用户唯一能看到的线索 |
 | `TestProcessRunner_ReportsAgentStderr` | `internal/acp/agent/runner_test.go` | acp | ★ Agent 起来又立刻退出时把它的 stderr 带回来（「not authenticated」）——不带的话真正的原因躺在一个没人读的管道里 |
 | `TestProcessRunner_PublishesToBus` | `internal/acp/agent/runner_test.go` | acp | 事件发到**总线**（那是它去到界面的唯一通路）；对手方是 `t.TempDir()` 里按 ACP 规范说话的 shell 脚本，不是 Fake——要验的正是进程怎么拉起来 |
