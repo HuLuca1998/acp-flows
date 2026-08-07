@@ -84,46 +84,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 已添加的本地项目 */
-        get: operations["listProjects"];
-        put?: never;
-        /**
-         * 把一个本地代码文件夹加进来
-         * @description ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-         *     顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-         *     加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
-         */
-        post: operations["addProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** 移除项目（只取消登记，**不删用户的文件**） */
-        delete: operations["removeProject"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/runtimes": {
         parameters: {
             query?: never;
@@ -238,27 +198,6 @@ export interface components {
             /** Format: date-time */
             paused_at?: string;
         };
-        Project: {
-            /** @example proj-01 */
-            id: string;
-            /** @description 目录名，展示用；用户可改而不影响 path */
-            name: string;
-            /** @description 本地绝对路径 */
-            path: string;
-            /**
-             * @description ★ 不是 git 仓库**也允许添加**，只是标出来。
-             *     直接拒绝的话，用户得先去命令行 `git init` 才能用这个产品——
-             *     而他很可能正是不想碰命令行才来用的。
-             */
-            is_git_repo: boolean;
-            /** @description 仓库的默认分支；非 git 仓库时缺省 */
-            default_branch?: string;
-            /** @description 需要用户做点什么时给出的整条命令，与 Runtime.remedy 同一套做法 */
-            remedy?: {
-                /** @example git init */
-                command?: string;
-            };
-        };
         Runtime: {
             /**
              * @description Runtime 标识，来自注册表；不是封闭枚举
@@ -352,8 +291,6 @@ export interface components {
         };
     };
     parameters: {
-        /** @description 项目标识，形如 `proj-01` */
-        ProjectID: string;
         /**
          * @description Runtime 标识。**不是封闭枚举** —— Runtime 是注册表（见 docs/adr/0006 Q13），
          *     加第 3 个 runtime 只加一个包 + 登记一行，不改契约。
@@ -448,81 +385,6 @@ export interface operations {
                     };
                 };
             };
-        };
-    };
-    listProjects: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        projects: components["schemas"]["Project"][];
-                    };
-                };
-            };
-        };
-    };
-    addProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /**
-                     * @description 本地绝对路径
-                     * @example /Users/me/work/my-app
-                     */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 已添加 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            default: components["responses"]["Problem"];
-        };
-    };
-    removeProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description 项目标识，形如 `proj-01` */
-                id: components["parameters"]["ProjectID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 已移除 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            default: components["responses"]["Problem"];
         };
     };
     listRuntimes: {

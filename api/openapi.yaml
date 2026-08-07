@@ -31,8 +31,6 @@ tags:
     description: 版本、更新、恢复
   - name: runtime
     description: ACP Runtime 探测与管理
-  - name: project
-    description: 本地项目的添加、列出与移除
 
 paths:
   # ── 系统 ────────────────────────────────────────────────────
@@ -101,63 +99,6 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/ResumableWork' }
 
-  # ── Project ─────────────────────────────────────────────────
-  /projects:
-    get:
-      tags: [project]
-      operationId: listProjects
-      summary: 已添加的本地项目
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [projects]
-                properties:
-                  projects:
-                    type: array
-                    items: { $ref: '#/components/schemas/Project' }
-    post:
-      tags: [project]
-      operationId: addProject
-      summary: 把一个本地代码文件夹加进来
-      description: |
-        ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-        顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-        加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [path]
-              properties:
-                path:
-                  type: string
-                  description: 本地绝对路径
-                  examples: ['/Users/me/work/my-app']
-      responses:
-        '201':
-          description: 已添加
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Project' }
-        default: { $ref: '#/components/responses/Problem' }
-
-  /projects/{id}:
-    delete:
-      tags: [project]
-      operationId: removeProject
-      summary: 移除项目（只取消登记，**不删用户的文件**）
-      parameters:
-        - $ref: '#/components/parameters/ProjectID'
-      responses:
-        '204': { description: 已移除 }
-        default: { $ref: '#/components/responses/Problem' }
-
   # ── Runtime ─────────────────────────────────────────────────
   /runtimes:
     get:
@@ -202,15 +143,6 @@ components:
         无 token 一律 401 —— 防止本机其他程序静默驱动 Agent 写用户的代码。
 
   parameters:
-    ProjectID:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        pattern: '^proj-[0-9A-Za-z]+$'
-      description: 项目标识，形如 `proj-01`
-
     RuntimeName:
       name: name
       in: path
@@ -316,35 +248,6 @@ components:
         checkpoint_id: { type: string }
         unit_id: { type: string }
         paused_at: { type: string, format: date-time }
-
-    # ── Project ───────────────────────────────────────────────
-    Project:
-      type: object
-      required: [id, name, path, is_git_repo]
-      properties:
-        id: { type: string, examples: ['proj-01'] }
-        name:
-          type: string
-          description: 目录名，展示用；用户可改而不影响 path
-        path:
-          type: string
-          description: 本地绝对路径
-        is_git_repo:
-          type: boolean
-          description: |
-            ★ 不是 git 仓库**也允许添加**，只是标出来。
-            直接拒绝的话，用户得先去命令行 `git init` 才能用这个产品——
-            而他很可能正是不想碰命令行才来用的。
-        default_branch:
-          type: string
-          description: 仓库的默认分支；非 git 仓库时缺省
-        remedy:
-          type: object
-          description: 需要用户做点什么时给出的整条命令，与 Runtime.remedy 同一套做法
-          properties:
-            command:
-              type: string
-              examples: ['git init']
 
     # ── Runtime ───────────────────────────────────────────────
     Runtime:
