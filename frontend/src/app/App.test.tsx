@@ -1,9 +1,28 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
 import { hasContextPanel, NAV_PAGES, navPageById, normalizePageId } from './pages'
+
+const listProjects = vi.fn()
+const listWorks = vi.fn()
+const startWork = vi.fn()
+const listRuntimes = vi.fn()
+
+vi.mock('@/api/system', () => ({
+  listProjects: (...a: unknown[]): unknown => listProjects(...a),
+  listWorks: (...a: unknown[]): unknown => listWorks(...a),
+  startWork: (...a: unknown[]): unknown => startWork(...a),
+  listRuntimes: (...a: unknown[]): unknown => listRuntimes(...a),
+}))
+
+beforeEach(() => {
+  listProjects.mockReset().mockResolvedValue([])
+  listWorks.mockReset().mockResolvedValue([])
+  startWork.mockReset().mockResolvedValue({ id: 'work-01', state: 'clarifying' })
+  listRuntimes.mockReset().mockResolvedValue([])
+})
 
 // M0 U0.1.1 / U0.1.2 · 窗口布局与左栏导航
 //
@@ -165,4 +184,46 @@ describe('页面标识规整', () => {
       expect(normalizePageId(p.id)).toBe(p.id)
     }
   })
+})
+
+// ── 真机走查补的：窗口栏别再说谎 ────────────────────────────
+
+describe('窗口栏面包屑', () => {
+  // ★★ 有项目时显示**项目名**，不是「还没有项目」。
+  //
+  // 真机撞到的：后端明明有 proj-01，顶栏却一直写着
+  // 「还没有项目 —— 项目管理即将上线」。两句话都不对：项目有了，
+  // 项目管理也早就在设置页上线了。
+  it('有项目时显示项目名', async () => {
+    listProjects.mockResolvedValue([
+      { id: 'proj-01', name: 'my-app', path: '/Users/me/work/my-app', is_git_repo: true },
+    ])
+    render(<App />)
+
+    expect(await screen.findByText('my-app')).toBeInTheDocument()
+    expect(screen.queryByText(/还没有项目/)).not.toBeInTheDocument()
+  })
+
+  // 没项目时引导他去加，**不说「即将上线」**——那功能已经上线了。
+  it('没项目时引导去设置页添加', async () => {
+    listProjects.mockResolvedValue([])
+    render(<App />)
+
+    // ★ 断言的是**这句文案本身**，不是「页面上没有『即将上线』」——
+    // 左栏那几个功能确实还没做，它们说「即将上线」是对的。
+    const hint = await screen.findByText(/还没有项目/)
+    expect(
+      hint.textContent,
+      '项目管理早就在设置页上线了，顶栏还在说「即将上线」',
+    ).not.toMatch(/即将上线/)
+  })
+
+  // ★ 没有第三条「查询失败时窗口栏照常在」。
+  //
+  // 造负例时发现它证明不了任何事：`project` 的初始值就是 null，
+  // 失败路径与「还没查回来」路径在页面上完全一样——把 catch 删掉，
+  // 它照样绿。留着就是一条恒真断言（testing-strategy.md §3.2）。
+  //
+  // 「不让窗口白掉」这个保证靠的是 App.tsx 里那个 catch 本身，
+  // 理由写在它旁边。
 })

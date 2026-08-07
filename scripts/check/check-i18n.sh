@@ -19,8 +19,16 @@ if ! command -v python3 >/dev/null; then
   echo "✗ 需要 python3" >&2; exit 1
 fi
 
-python3 - "$ZH" "$EN" <<'PY'
+# ★ 先跑 key 提取器自己的负例集：一条抓不到东西的检查比没有检查更糟。
+python3 "$(dirname "$0")/lib/i18n_keys_test.py" || exit 1
+
+python3 - "$ZH" "$EN" "$(dirname "$0")/lib" <<'PY'
 import json, re, sys, pathlib
+
+# key 提取逻辑在 lib/i18n_keys.py，它有自己的负例集（i18n_keys_test.py）。
+# 放在那儿是为了能对检查本身造负例——原来内嵌在这里的正则漏过一次。
+sys.path.insert(0, sys.argv[3])
+import i18n_keys
 
 zh_path, en_path = sys.argv[1], sys.argv[2]
 fail = False
@@ -66,26 +74,24 @@ if src.exists():
     used, required, dynamic = set(), set(), []
     for f in list(src.rglob("*.ts")) + list(src.rglob("*.tsx")):
         if "/i18n/" in str(f): continue
+        # 注释的剥离在 lib/i18n_keys.py 里做——注释里的反例示例
+        # （t(`error.${code}`) 这种教学用法）不是违规。
         raw = f.read_text(errors="ignore")
-        # 注释不会被求值，注释里的反例示例（t(`error.${code}`) 这种教学用法）
-        # 不是违规。不跳过的话，写文档教下一个人怎么做反而会让检查变红。
-        text = "\n".join(
-            ln for ln in raw.splitlines()
-            if not ln.lstrip().startswith(("//", "*", "/*"))
-        )
         # ★ 两个方向要**分开判定**，合成一个会丢掉其中一个：
         #
-        # ① t('x') 里的字面量**一定**是 i18n key —— 缺词条就该红。
-        required |= set(re.findall(r"""\bt\(\s*['"]([a-zA-Z0-9_.]+)['"]""", text))
+        # ① t(...) 里的点分字面量**一定**是 i18n key —— 缺词条就该红。
+        #    取的是整个实参，不是「紧跟在 t( 后面的那个」：
+        #    t(x?.key ?? 'a.b') 与 t(c ? 'a.b' : 'c.d') 都要算上。
+        #    只认紧跟形式的旧正则漏过一次，代价是 `page.chat.title`
+        #    七个字直接显示在界面上（lib/i18n_keys.py 的文件头有始末）。
+        required |= i18n_keys.required_keys(raw)
         #
         # ② 其余点分字面量（hintKey="x" / 注册表 titleKey / 错误码映射的值）
         #    只用来标记「这个 key 有人用」。它们无法与普通字符串区分，
         #    所以不能反过来要求「必须存在于词条表」——那会把
         #    'application/json' 之类的字符串误判成缺失的词条。
-        literals = set(re.findall(r"""['"]([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)['"]""", text))
-        used |= literals & set(zh)
-        # 动态拼 key：t('a.' + x) / t(`a.${x}`)
-        if re.search(r"""\bt\(\s*(['"][^'"]*['"]\s*\+|`[^`]*\$\{)""", text):
+        used |= i18n_keys.mentioned_keys(raw) & set(zh)
+        if i18n_keys.has_dynamic_key(raw):
             dynamic.append(str(f))
 
     report("代码里用到但词条不存在", required - set(zh))
