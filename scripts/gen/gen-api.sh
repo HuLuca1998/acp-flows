@@ -62,3 +62,10 @@ if [[ $fail -eq 1 ]]; then
 fi
 
 echo "✓ 生成完成。生成物不许手改；要改接口就改 $SPEC 再跑一次。"
+echo
+# ★ 生成物有**两份**，分别在前后端。真踩过（PR #22）：
+# `git add -- api/ backend/` 把前端那份漏了，本地 make check 全绿
+# （工作区里两份都是新的），只有 CI 从 git 检出重新生成才发现不一致。
+echo "★ 提交时**两份都要带上**——漏一份的话本地看不出来，只有 CI 会红："
+echo "    backend/internal/api/gen/api.gen.go"
+echo "    frontend/src/api/gen/schema.d.ts"
