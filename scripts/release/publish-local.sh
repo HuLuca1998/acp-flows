@@ -95,6 +95,22 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null
 bash scripts/release/build.sh --target aarch64-apple-darwin
 bash scripts/release/build.sh --target x86_64-apple-darwin --skip-frontend
 
+# ★ 还要用 lipo 合出第三个。**两个单架构的 sidecar 是不够的。**
+#
+# 打 universal 包时 Tauri 的 externalBin 找的是
+# `binaries/duetd-universal-apple-darwin`，找不到就在**编译完之后**才报
+#   `Failed to copy external binaries: resource path ... doesn't exist`
+# ——Rust 都编完了才失败，在 10 倍计费的 runner 上格外贵。
+#
+# 原来的 CI 也漏了这一步，只是三次发版没有一次走到 bundle 阶段，
+# 于是这个坑一直没暴露。本机 dry-run 第一次跑就撞上了。
+BIN=shell/src-tauri/binaries
+lipo -create \
+  "$BIN/duetd-aarch64-apple-darwin" \
+  "$BIN/duetd-x86_64-apple-darwin" \
+  -output "$BIN/duetd-universal-apple-darwin"
+echo "✓ duetd-universal-apple-darwin: $(lipo -archs "$BIN/duetd-universal-apple-darwin")"
+
 # ── 3. 打包 + 签名 ───────────────────────────────────────────
 # ad-hoc 签名（identity "-"）：免费、不需要 Apple 账号。
 # Apple Silicon 要求 arm64 可执行文件必须有签名，否则 Gatekeeper 直接

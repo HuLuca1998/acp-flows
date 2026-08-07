@@ -185,6 +185,42 @@ APPLE_SIGNING_IDENTITY: '-'
 
 ---
 
+## 修订 7 · 发版从 GitHub Actions 挪回本机（2026-08-08）★
+
+**这条推翻的是修订 1 的执行位置，不是它的结论。**
+「手动触发、只从 `main` 发」仍然成立；变的只是「在哪台机器上编」。
+
+macOS runner 按 **10 倍**计费，而 universal 包要编两个架构的 Rust。
+0.0.1 真发版试了三次，两次挂在环境上：
+
+| 次 | 挂在哪 | 原因 |
+|---|---|---|
+| 1 | build，Rust 编了 3 分钟之后 | `Swatinem/rust-cache` 恢复 `~/.rustup`，把 toolchain 装好的 `x86_64` target 覆盖掉 |
+| 2 | plan 门禁 | 一次 `git add -A` 把没写完的单元带上了 `main` |
+| 3 | — | 用户叫停，改本机 |
+
+每一次都是十几分钟额度换回一条错误信息，而这两个错在本机都是几秒钟就能看见的。
+
+现在：
+
+```bash
+bash scripts/release/publish-local.sh 0.0.1             # 正式版
+bash scripts/release/publish-local.sh 0.0.1 --dry-run   # 只构建不发布
+```
+
+`release.yml` 已 `gh workflow disable`，**文件保留不删**——本机脚本的每一步
+都与它一一对应，将来恢复 CI 发版时那就是参照，恢复只需
+`gh workflow enable release.yml`（私钥仍在 Secrets 里）。
+
+上面修订 1–6 的技术结论**全部仍然有效**，本机脚本逐条照做了：
+发布时注入版本号并保证还原（修订 2）、ad-hoc 签名显式 `-`（修订 5）、
+产物齐备在脚本里断言（原 CI 的最后一步）。
+
+**代价说清楚**：发版从此依赖某一台开发机的环境。所以脚本把全部前置检查
+放在编译之前——缺私钥、tag 重了、工作区不干净都立刻报出来，而不是编完才发现。
+
+---
+
 ## 保持不变的部分
 
 ADR 0002 的这些结论**经前一个项目验证是对的**，不改：
