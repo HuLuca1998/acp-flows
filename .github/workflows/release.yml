@@ -147,6 +147,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: shell/src-tauri }
 
+      # ★ 真踩过（2026-08-08，0.0.1 首次发版失败）：上面 rust-toolchain 的
+      # targets 参数已经声明了两个架构，构建时却报
+      #   `Target x86_64-apple-darwin is not installed
+      #    (installed targets: aarch64-apple-darwin)`
+      # rust-cache 会缓存并恢复 ~/.rustup，把刚装好的 target 覆盖掉。
+      # 显式补一次是幂等的，几秒钟，换掉一次「编译三分钟后才失败」。
+      #
+      # universal-apple-darwin 是**两个真实架构的合并**，两个都得在。
+      - name: 补齐 rust target（rust-cache 会覆盖掉 toolchain 的 targets）
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
       # 版本号只在发布时注入，仓库里始终是 0.0.0 ——
       # 避免每次发版都产生一次「bump version」提交（adr/0007 修订 2）。
       - name: 注入版本号

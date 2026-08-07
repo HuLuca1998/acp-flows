@@ -39,9 +39,16 @@
 | | |
 |---|---|
 | `goal` | 用户能选一个本地代码文件夹加进来，且 Duet 的任何产物都不污染他的项目 |
-| `allowed_changes` | `backend/internal/app/project/**` · `backend/internal/gitx/**` · `frontend/src/features/project/**` |
+| `allowed_changes` | `api/openapi.yaml` 的 `/projects` · `backend/internal/domain/model/project.go` · `backend/internal/app/project/**` · `backend/internal/store/**` 的项目仓储 · `backend/internal/api/**` 的 `/projects` · `backend/internal/gitx/**` · `frontend/src/features/project/**` |
 | `forbidden_changes` | 往用户项目目录写任何 Duet 自己的文件；碰 `~/.acpflows` 之外的全局路径 |
 | `stop_conditions` | 选中的目录不是 git 仓库而产品语义未定 |
+
+> **2026-08-08 修正 `allowed_changes`。** 原来只写了 app / gitx / 前端三处，
+> 但 `/projects` 端点、`Project` 领域模型、落库仓储**都还不存在**——
+> 而 R1 要求「重启 duetd 后项目仍在」，那必须落库。
+> 照原范围开工的话，第一步「改 openapi 再 make gen」就已经越界了（铁律 2）。
+>
+> **开工前先 `ls` 一眼你要改的东西在不在**，别信里程碑说的范围就是全部。
 
 **验收标准**
 
