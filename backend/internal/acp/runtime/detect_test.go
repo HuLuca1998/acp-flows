@@ -61,7 +61,9 @@ func TestDetect(t *testing.T) {
 	tests := []struct {
 		name string
 		// setup 造出这次要检测的环境；返回空字符串表示不造任何可执行文件
-		setup      func(t *testing.T, dir string)
+		setup func(t *testing.T, dir string)
+		// spec 微调这次用的规格；nil 表示用 codexSpec() 原样
+		spec       func(runtime.Spec) runtime.Spec
 		timeout    time.Duration
 		wantStatus runtime.Status
 		wantRemedy string
@@ -120,6 +122,106 @@ esac
 			wantRemedy: "",
 		},
 		{
+			// ★ 真实的坑：`claude auth status` **未登录时也返回 exit 0**，
+			// 结论藏在 JSON 的 loggedIn 字段里。只看退出码就会把没登录的
+			// claude 报成 ready，用户要到真正提需求时才撞墙。
+			name: "auth 命令退出码是 0，但输出说没登录 → not_authenticated",
+			setup: func(t *testing.T, dir string) {
+				fakeBin(t, dir, "codex", `
+case "$1" in
+  --version) echo "codex-cli 0.63.0" ;;
+  login)     echo '{"loggedIn": false}'; exit 0 ;;
+esac
+`)
+			},
+			spec: func(s runtime.Spec) runtime.Spec {
+				s.AuthOKSubstring = `"loggedIn": true`
+				return s
+			},
+			wantStatus: runtime.StatusNotAuthenticated,
+			wantRemedy: "codex login",
+		},
+		{
+			// codex 把登录结论写在 **stderr**（实测：`Logged in using an API key`）。
+			// 只读 stdout 的话这条子串永远匹配不上，已登录会被报成没登录。
+			name: "登录结论写在 stderr 也要认",
+			setup: func(t *testing.T, dir string) {
+				fakeBin(t, dir, "codex", `
+case "$1" in
+  --version) echo "codex-cli 0.63.0" ;;
+  login)     echo "Logged in using an API key" >&2; exit 0 ;;
+esac
+`)
+			},
+			spec: func(s runtime.Spec) runtime.Spec {
+				s.AuthOKSubstring = "Logged in"
+				return s
+			},
+			wantStatus: runtime.StatusReady,
+		},
+		{
+			// ★ acp-field-notes §5 坑 1：Claude Code 给子进程注入 CLAUDECODE
+			// 等标记，claude-agent-acp 继承到之后会误判自己跑在另一个 agent
+			// 内部而**拒绝服务**。开发时 duetd 正是由 Claude Code 拉起的。
+			name: "EnvRemove 里的变量必须对子进程不可见",
+			setup: func(t *testing.T, dir string) {
+				t.Setenv("CLAUDECODE", "1")
+				fakeBin(t, dir, "codex", `
+case "$1" in
+  --version)
+    if [ -n "$CLAUDECODE" ]; then echo "refusing to run inside an agent" >&2; exit 1; fi
+    echo "codex-cli 0.63.0" ;;
+  login) exit 0 ;;
+esac
+`)
+			},
+			spec: func(s runtime.Spec) runtime.Spec {
+				s.EnvRemove = []string{"CLAUDECODE"}
+				return s
+			},
+			wantStatus:  runtime.StatusReady,
+			wantVersion: "codex-cli 0.63.0",
+		},
+		{
+			// ★ 适配器与 CLI 是两个可执行文件：能不能跑看 claude-agent-acp，
+			// 登没登录归 claude 管。AuthBin 就是为这件事存在的。
+			name: "登录态查的是 AuthBin，不是 Bin",
+			setup: func(t *testing.T, dir string) {
+				fakeBin(t, dir, "codex", `
+case "$1" in
+  --version) echo "codex-cli 0.63.0" ;;
+  # 适配器自己没有 login 子命令：真被拿去查登录态就会走到这里
+  *) echo "unknown command" >&2; exit 127 ;;
+esac
+`)
+				fakeBin(t, dir, "codex-cli", `echo "Logged in"; exit 0`)
+			},
+			spec: func(s runtime.Spec) runtime.Spec {
+				s.AuthBin = "codex-cli"
+				s.AuthOKSubstring = "Logged in"
+				return s
+			},
+			wantStatus: runtime.StatusReady,
+		},
+		{
+			// 装了适配器却没装 CLI：跑得起来但一定没登录。
+			// 保守判成 not_authenticated 并给出登录命令，而不是 ready。
+			name: "AuthBin 没装 → not_authenticated",
+			setup: func(t *testing.T, dir string) {
+				fakeBin(t, dir, "codex", `
+case "$1" in
+  --version) echo "codex-cli 0.63.0" ;;
+esac
+`)
+			},
+			spec: func(s runtime.Spec) runtime.Spec {
+				s.AuthBin = "codex-cli" // 不造这个文件
+				return s
+			},
+			wantStatus: runtime.StatusNotAuthenticated,
+			wantRemedy: "codex login",
+		},
+		{
 			name: "文件在但不可执行 → probe_failed",
 			setup: func(t *testing.T, dir string) {
 				// 造一个没有执行位的同名文件：装了一半 / 权限被改坏的真实情形
@@ -147,7 +249,11 @@ esac
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			got := runtime.Detect(ctx, codexSpec(), timeout)
+			spec := codexSpec()
+			if tt.spec != nil {
+				spec = tt.spec(spec)
+			}
+			got := runtime.Detect(ctx, spec, timeout)
 
 			if got.Status != tt.wantStatus {
 				t.Errorf("Status = %q, 想要 %q（detail: %s）", got.Status, tt.wantStatus, got.Detail)
