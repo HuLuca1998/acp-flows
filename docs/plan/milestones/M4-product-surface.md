@@ -26,7 +26,7 @@
 > | S4.4 ★ | 远端操作 = D3 逐次授权 | 依赖 S4.3 |
 > | S4.5 | 设置页全量 | 依赖 S4.2 / S4.4 |
 > | S4.6 | 英文版 `en-US` | **必须最后做** |
-> | S4.7 | 启动时从检查点恢复 | 独立，依赖 M1 |
+> | ~~S4.7~~ | 启动恢复 —— **已挪到 M1 `U1.8.4`**（`adr/0006` Q40） | — |
 
 ## 目标
 
@@ -69,7 +69,7 @@ pnpm -C e2e test --grep 'push 逐次授权|English UI'
 M3 写 `features/{memory,skill}/`，后端交集只有 `api/openapi.yaml` 与
 `internal/store/migration/` 的编号。两者都要改 `openapi.yaml` 时**串行合并**。
 
-`S4.7`（启动恢复）依赖 M1 的 `GET /v1/system/resume`。
+启动恢复已挪进 M1（`U1.8.4`），M4 不再依赖它。
 
 ## 全局停止条件
 
@@ -91,8 +91,8 @@ M3 写 `features/{memory,skill}/`，后端交集只有 `api/openapi.yaml` 与
 ## 子计划 DAG
 
 ```
-S4.3 凭据保管 ★              S4.1 报表指标口径与聚合 ★         S4.7 启动恢复
-  │                            │                              （独立，依赖 M1）
+S4.3 凭据保管 ★              S4.1 报表指标口径与聚合 ★
+  │                            │
   ▼                            ▼
 S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
   └──────────────┬─────────────┘
@@ -102,9 +102,11 @@ S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
           S4.6 英文版 en-US
 ```
 
-**可并行**：`S4.3 → S4.4`、`S4.1 → S4.2`、`S4.7` 三条链互不相交，从第一天就能并行开。
-三条链在 `S4.5` 汇合（设置页要展示 GitHub 绑定），`S4.6` 必须最后做——
+**可并行**：`S4.3 → S4.4` 与 `S4.1 → S4.2` 两条链互不相交，从第一天就能并行开。
+两条链在 `S4.5` 汇合（设置页要展示 GitHub 绑定），`S4.6` 必须最后做——
 它要把前面所有界面的词条一次性补齐并校对。
+
+> 原来的第三条链「S4.7 启动恢复」已按 `adr/0006` Q40 挪进 M1（`U1.8.4`）。
 
 ---
 
@@ -463,35 +465,15 @@ R6 把这条约束从「记得别写」变成「写了就红」。
 
 ---
 
-## S4.7 · 启动时从检查点恢复
+## S4.7 · 启动时从检查点恢复 —— **已挪到 M1**
 
-**阶段交付物**：`duetd` 启动后能列出并恢复上次未完成的工作。
-
-> 依赖 M1 的 `GET /v1/system/resume`（1.8）与 M2 的 Checkpoint。
-> **这个子计划与 M4 其余部分零文件重叠，可独立并行。**
-
-### ○ U4.7.1 · 启动恢复未完成的工作
-
-| | |
-|---|---|
-| `goal` | 启动时扫描非终态 Work，逐个校验 worktree 与 Checkpoint 一致性，可恢复的列出、不可恢复的给出原因 |
-| `allowed_changes` | `backend/internal/app/system/resume_usecase.go` 及其测试 · `backend/internal/domain/model/checkpoint.go` 的校验方法 · `frontend/src/features/settings/update/ResumeList.tsx` · `backend/tests/integration/resume_test.go` |
-| `forbidden_changes` | 不自动恢复——恢复必须由用户发起；不修改 worktree 内容；不伪造「会话仍连续」（对应 M0 U0.5.2 R5 / `acp-field-notes.md` H-4） |
-| `stop_conditions` | 恢复需要重建已经不存在的 ACP 会话而 `session/load` 失败 —— 降级路径必须显式标记，不许假装连续 |
-
-**验收标准**
-
-| # | 标准 | 断言 |
-|---|---|---|
-| R1 | worktree HEAD 与 `commit_hash` 不一致时 `Resume()` 返回错误（INV-CKP-4） | 夹具里手动 `git reset` 后断言 `ErrCheckpointMismatch`，错误含两个 hash |
-| R2 | 恢复由用户发起，启动时**不自动恢复** | 启动后断言全部 Work 仍为 `paused`，且未起任何 Runtime 子进程 |
-| R3 | 不可恢复的 Work 给出可读原因 | 三种场景（worktree 被删 / HEAD 漂移 / Checkpoint 的 commit 不可解析）各断言一个错误码 |
-| R4 | **恢复失败时不伪造「会话仍连续」** | 断言降级路径显式标记为「新会话」，且该标记出现在事件流里 |
-| R5 | 恢复后 `seq` 不回退、不重复 | 断言恢复后首个事件的 `seq` 大于恢复前的最大值 |
-| R6 | 响应通过 `openapi.yaml` schema 校验 | `kin-openapi`，接进 `backend/tests/contract/` |
-
-**测试**：R4 直接对应前一个项目的 **H-4**——界面从 DB 渲染出历史，
-但 ACP 会话早就不在了，用户以为 Agent 记得。
+> `adr/0006` **Q40** 裁定：原 `U4.7.1` → **[`M1 的 U1.8.4`](M1-release-and-update.md)**。
+>
+> 理由：它依赖 M1 自己的 `/system/resume`（U1.8.3）与 Checkpoint 最小版（U1.7.3），
+> 放在 M4 会让它在整个里程碑里一直是一条孤立的并行链——
+> **依赖都在 M1，交付却排在 M4，中间那段时间它既做不了也验不了。**
+>
+> 本节保留是为了让照着旧编号来找的人能找到去处。M4 不再有 S4.7。
 
 ---
 

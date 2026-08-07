@@ -591,6 +591,35 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 > R8 对应 `open-questions.md` 的 **Q4d**：规范硬要求，设计稿完全没提。
 > **漏了会导致每次取消都超时、`prepare` 永远返回 `blocked`、自动更新彻底不可用。**
 
+### ○ U1.7.3 · Checkpoint 最小实现（`adr/0006` Q35）
+
+| | |
+|---|---|
+| `goal` | `Checkpoint` 聚合的最小可用版：**commit hash + Work 状态快照 + 事件游标**三样。证据关联留给 M2 |
+| `allowed_changes` | `backend/internal/domain/model/checkpoint.go` 及其测试 · `backend/internal/constant/checkpoint.go` · `backend/internal/store/entity/checkpoint.go` · `backend/internal/store/mapper/checkpoint.go` · `backend/internal/store/checkpoint_repo.go` · `backend/internal/store/migration/NNNN_create_checkpoints.sql` · `backend/internal/app/port/checkpoint.go` |
+| `forbidden_changes` | **不做证据关联**（`evidence_refs` 那一组字段属于 M2 S2.7，本单元连列都不加）；`domain` 不得 import 任何内部包，不得出现 `context.Context` / `time.Now()`；不提供任何删除 Checkpoint 的路径 |
+| `stop_conditions` | 需要在 Checkpoint 上挂证据才能让 `prepare` 闭环 —— 说明最小版切错了，**停下来上报**，不要顺手把 M2 的范围拉进来 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 三样缺一即创建失败 | 三个用例（缺 commit hash / 缺状态快照 / 缺事件游标）各断言对应错误，错误信息含缺失字段名 |
+| R2 | ★ `commit_hash` 必须是 40 位十六进制，短 hash 与分支名都拒绝 | 表驱动：40 位 ✓ · 7 位短 hash ✗ · `main` ✗ · 空 ✗ |
+| R3 | ★ 状态快照存的是**创建时**的 Work 状态，之后 Work 变了它不跟着变 | 落检查点 → 改 Work 状态 → 断言检查点里的快照仍是旧值（不是引用） |
+| R4 | 事件游标单调：同一 Work 的后一个检查点游标 ≥ 前一个 | 造两个检查点，断言 `seq` 不回退；构造回退用例断言报错 |
+| R5 | Checkpoint 没有物理删除路径（与 INV-MEM-6 同源） | 反射断言导出方法名集合里不含 `Delete` / `Remove` / `Purge` 前缀 |
+| R6 | 存进去再取出来三样字段不丢 | 临时 SQLite 往返，逐字段断言相等 |
+| R7 | 覆盖率 ≥ 90%（`domain` 部分） | `make cover` |
+
+> **为什么最小版排在 U1.7.2 之前无法闭环、之后又太晚**：`prepare` 要落检查点，
+> 而完整 Checkpoint（含证据关联）在 M2。M1 内部若不切一个最小版，
+> `prepare` 就只能落一个假的检查点——那比不落更糟，
+> 因为 `GET /system/resume` 会把它列出来，用户点了恢复才发现恢复不了。
+>
+> R3 是最容易写错的一条：**快照不是引用**。存了引用的话，
+> 更新期间 Work 状态一变，检查点记录的就不是它被创建时的现场了。
+
 ---
 
 ## S1.7b · 更新时的数据库安全 ★
@@ -746,6 +775,31 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | R5 | 无可恢复工作时 `resumable` 是 `[]` 不是 `null` | 断言 `jq -c .resumable` 输出 `[]` |
 | R6 | 响应通过 schema 校验 | `kin-openapi` |
 | R7 | `blocked` 的工作不在 `resumable` 里 | 造一个 `blocked` 的 Work，断言它不出现在列表中 |
+
+### ○ U1.8.4 · 启动恢复未完成的工作（`adr/0006` Q40，原 `U4.7.1`）
+
+| | |
+|---|---|
+| `goal` | 启动时扫描非终态 Work，逐个校验 worktree 与 Checkpoint 一致性；可恢复的列出，不可恢复的给出原因 |
+| `allowed_changes` | `backend/internal/app/system/resume_usecase.go` 及其测试 · `backend/internal/domain/model/checkpoint.go` 的校验方法 · `frontend/src/features/settings/update/ResumeList.tsx` · `backend/tests/integration/resume_test.go` |
+| `forbidden_changes` | **不自动恢复**——恢复必须由用户发起；不修改 worktree 内容；**不伪造「会话仍连续」**（对应 M0 U0.5.2 R5 / `acp-field-notes.md` H-4） |
+| `stop_conditions` | 恢复需要重建已经不存在的 ACP 会话而 `session/load` 失败 —— 降级路径必须显式标记，**不许假装连续**；U1.7.3（Checkpoint 最小版）未合入 → 停 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | worktree HEAD 与 `commit_hash` 不一致时 `Resume()` 返回错误（INV-CKP-4） | 夹具里手动 `git reset` 后断言 `ErrCheckpointMismatch`，错误含两个 hash |
+| R2 | 恢复由用户发起，启动时**不自动恢复** | 启动后断言全部 Work 仍为 `paused`，且未起任何 Runtime 子进程 |
+| R3 | 不可恢复的 Work 给出可读原因 | 三种场景（worktree 被删 / HEAD 漂移 / Checkpoint 的 commit 不可解析）各断言一个错误码 |
+| R4 | ★ **恢复失败时不伪造「会话仍连续」** | 断言降级路径显式标记为「新会话」，且该标记出现在事件流里 |
+| R5 | 恢复后 `seq` 不回退、不重复 | 断言恢复后首个事件的 `seq` 大于恢复前的最大值 |
+| R6 | 响应通过 `openapi.yaml` schema 校验 | `kin-openapi`，接进 `backend/tests/contract/` |
+| R7 | 测试不碰用户真实仓库 | 用临时 git 夹具仓库；铁律 6 守卫断言 |
+
+> R4 直接对应前一个项目的 **H-4**：界面从 DB 渲染出了历史，
+> 但 ACP 会话早就不在了——**用户以为 Agent 记得，其实它什么都不知道**。
+> 这不是显示问题，是会让人做出错误决定的问题。
 
 ---
 

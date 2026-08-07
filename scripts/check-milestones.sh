@@ -94,6 +94,33 @@ dupes = [u for u, n in unit_ids.items() if n > 1]
 for u in sorted(dupes):
     problems.append(f"单元编号重复 {u}（出现 {unit_ids[u]} 次）——编号只增不复用")
 
+# ⑥ ★ 裁定里提到的单元必须真实存在
+#
+# 踩过一次：adr/0006 的 Q35/Q40 裁定「M1 新增 U1.7.3」「U4.7.1 → U1.8.4」，
+# 但里程碑文档从没跟着改。下一个 AI 读了裁定去找这两个单元会扑空——
+# 而在此之前，没有任何检查会报警。
+#
+# 只查「裁定/计划类文档提到 U<数字>.x.y」这种形式；正文里说「原 U4.7.1」
+# 这类回溯引用用 `原 ` / `~~` 排除。
+RULING_DIRS = [pathlib.Path("docs/adr"), pathlib.Path("docs/plan")]
+UNIT_REF = re.compile(r"`?(U\d+\.\w+\.\d+)`?")
+
+for d in RULING_DIRS:
+    for path in sorted(d.rglob("*.md")):
+        if path.parent.name == "milestones" and path.name.startswith("M"):
+            continue                      # 里程碑自身在上面已经逐单元查过
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "原 " in line or "~~" in line or "已挪" in line:
+                continue                  # 回溯引用，指向旧编号是正常的
+            # 「`U4.7.1` → `U1.8.4`」的箭头左侧是被取代的旧编号，允许不存在；
+            # 但箭头右侧必须存在，否则裁定就是空的。
+            checked = re.sub(r"`?U\d+\.\w+\.\d+`?\s*(→|->)\s*", "", line)
+            for uid in UNIT_REF.findall(checked):
+                if uid not in unit_ids:
+                    problems.append(
+                        f"{path}: 提到 {uid}，但里程碑里没有这个单元——"
+                        f"裁定没有落进计划")
+
 if problems:
     print("✗ 里程碑规划有结构缺陷：")
     for p in problems:
