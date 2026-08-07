@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { listProjects } from '@/api/system'
 import { ChatPage } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
+import type { Project } from '@/models/project'
 import { Button } from '@/ui/Button'
 import { Resizer } from '@/ui/Resizer'
 import { STORAGE_KEYS, usePersistedState } from '@/utils/persisted'
@@ -41,6 +43,22 @@ export function App() {
   const [railWidth, setRailWidth] = usePersistedState(STORAGE_KEYS.railWidth, 252)
   const [contextWidth, setContextWidth] = usePersistedState(STORAGE_KEYS.contextWidth, 300)
 
+  // 面包屑要显示**真实的**当前项目。null 表示还没查到或一个都没有。
+  const [project, setProject] = useState<Project | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const list = await listProjects()
+        setProject(list[0] ?? null)
+      } catch {
+        // 查不到就当没有——**绝不让整个窗口白掉**。后端没起来时，
+        // 用户最需要的正是这条窗口栏（他要点进设置页看看怎么回事）。
+        setProject(null)
+      }
+    })()
+  }, [])
+
   const navPage = navPageById(pageId)
   const showContext = hasContextPanel(pageId) && contextOpen
 
@@ -67,9 +85,26 @@ export function App() {
         />
 
         <nav className={styles.breadcrumb} aria-label={t('nav.breadcrumb')} data-tauri-drag-region>
-          <span className={styles.crumbMuted} data-tauri-drag-region>
-            {t('common.state.noProject')}
-          </span>
+          {/* ★ 显示**真实的**当前项目。写死占位的话界面会说谎——
+              真机上后端明明有项目，顶栏却一直写着「还没有项目」。
+              而且原本那句还带着「项目管理即将上线」，可它早就在设置页上线了。 */}
+          {project === null ? (
+            <span className={styles.crumbMuted} data-tauri-drag-region>
+              {t('common.state.noProject')}
+            </span>
+          ) : (
+            <>
+              <span className={styles.crumbRoot} data-tauri-drag-region>
+                {project.name}
+              </span>
+              <span className={styles.crumbSep} aria-hidden="true" data-tauri-drag-region>
+                /
+              </span>
+              <span className={styles.crumbCurrent} data-tauri-drag-region>
+                {t(navPage?.titleKey ?? 'nav.chat')}
+              </span>
+            </>
+          )}
         </nav>
 
         {/* 靠视口右缘：tooltip 必须右对齐，否则会把页面撑出横向滚动条 */}

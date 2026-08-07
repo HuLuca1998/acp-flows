@@ -45,6 +45,32 @@
   color: var(--color-neutral-600);
 }
 
+/* 面包屑照设计稿：等宽的根（项目）· 分隔符 · 当前位置。
+   项目名可能很长，而窗口栏一撑开整个应用就出横向滚动条。 */
+.crumbRoot {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumbSep {
+  flex: none;
+  color: var(--color-neutral-800);
+  font-size: 12px;
+}
+
+.crumbCurrent {
+  flex: none;
+  color: var(--color-neutral-300);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* 拖拽由 data-tauri-drag-region 属性驱动（见 App.tsx），不是 CSS。
    -webkit-app-region 是 Electron 的机制，Tauri 不认。 */
 
