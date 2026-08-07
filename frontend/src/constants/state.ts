@@ -6,8 +6,15 @@
  *
  * 用 `as const` 对象而非 `enum`：enum 会生成运行时代码，
  * 且与 openapi 生成的字符串联合类型对不上。
+ *
+ * 共 11 个。设计规范 §09 只列了后 9 个——那是「对话状态行显示的」子集，
+ * `initializing` 阶段还没有对话。见 docs/adr/0006 Q1。
  */
 export const WORK_STATE = {
+  /** 正在切 worktree 与分支；此时对话还没开始。新建工作的初始状态。 */
+  initializing: 'initializing',
+  /** worktree 创建失败。终态——没切成就没有可执行的现场，只能删掉重建。 */
+  initializingFailed: 'initializing_failed',
   clarifying: 'clarifying',
   planning: 'planning',
   ready: 'ready',
@@ -26,6 +33,7 @@ export const ALL_WORK_STATES: readonly WorkState[] = Object.values(WORK_STATE)
 
 /** 终态：没有任何出边。 */
 export const TERMINAL_WORK_STATES: readonly WorkState[] = [
+  WORK_STATE.initializingFailed,
   WORK_STATE.completed,
   WORK_STATE.failed,
 ]

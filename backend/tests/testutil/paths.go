@@ -30,4 +30,4 @@ func (p *tempPaths) RuntimeSession() string {
 }
 func (p *tempPaths) RuntimesDir() string     { return filepath.Join(p.DataDir(), "runtimes") }
 func (p *tempPaths) CredentialsPath() string { return filepath.Join(p.DataDir(), "credentials") }
-func (p *tempPaths) WorktreeRoot() string    { return filepath.Join(p.root, ".duet", "worktrees") }
+func (p *tempPaths) WorktreeRoot() string    { return filepath.Join(p.DataDir(), "worktrees") }

@@ -12,10 +12,9 @@ import (
 )
 
 // 数据目录名。改这些会影响用户已有数据，属于破坏性变更。
-const (
-	dataDirName     = ".acpflows"
-	worktreeDirName = ".duet"
-)
+// ADR 0006 Q30：worktree 并进 .acpflows，不要第二个顶层目录——
+// 两个顶层目录意味着卸载清两处、备份备两处、隔离守卫护两处。
+const dataDirName = ".acpflows"
 
 // OSPaths 是生产环境的路径实现，全部落在用户家目录下。
 //
@@ -49,9 +48,7 @@ func (p *OSPaths) RuntimeSession() string {
 }
 func (p *OSPaths) RuntimesDir() string     { return filepath.Join(p.DataDir(), "runtimes") }
 func (p *OSPaths) CredentialsPath() string { return filepath.Join(p.DataDir(), "credentials") }
-func (p *OSPaths) WorktreeRoot() string {
-	return filepath.Join(p.home, worktreeDirName, "worktrees")
-}
+func (p *OSPaths) WorktreeRoot() string    { return filepath.Join(p.DataDir(), "worktrees") }
 
 // EnsureDirs 建出全部需要的目录。
 //
