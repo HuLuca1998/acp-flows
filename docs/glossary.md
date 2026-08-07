@@ -30,7 +30,7 @@
 `executing` · `reviewing_unit` · `waiting_user` · `paused` · `completed` · `failed`
 
 > 设计规范 §09 只列了后 9 个——那是**对话状态行显示的子集**，
-> `initializing` 阶段还没有对话。见 [`docs/adr/0006`](docs/adr/0006-open-question-rulings.md) Q1。
+> `initializing` 阶段还没有对话。见 [`docs/adr/0006`](adr/0006-open-question-rulings.md) Q1。
 >
 > **终态三个**：`initializing_failed` · `completed` · `failed`。
 

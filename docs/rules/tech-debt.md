@@ -64,7 +64,7 @@ AI 制造屎山的**头号路径**：
 
 **每一条都对应一份规范里的硬规则**，不是主观judgment：
 [`design-principles.md`](design-principles.md) · [`coding-standards.md`](coding-standards.md) ·
-[`testing-strategy.md`](testing-strategy.md) · [`architecture.md`](architecture.md)。
+[`testing-strategy.md`](testing-strategy.md) · [`architecture.md`](../spec/architecture.md)。
 
 ---
 

@@ -3,7 +3,7 @@
  *
  * ★ 新增第 14 类要**同时改四处**，缺一不可：
  *   1. api/openapi.yaml 的 Event.type 枚举
- *   2. docs/architecture.md §4 的表
+ *   2. docs/spec/architecture.md §4 的表
  *   3. design/Duet Spec.dc.html 第 07 节
  *   4. features/conversation/renderers 的注册表
  */

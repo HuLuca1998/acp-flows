@@ -5,8 +5,8 @@
 > 剩余关键路径：**U0.4.1/U0.4.2 Fake Runtime**（整套测试策略的支点，未开工）。
 >
 > 体系与编号规则见 [`README.md`](README.md)。写代码前必读
-> [`../acp-integration.md`](../acp-integration.md)（规格）与
-> [`../acp-field-notes.md`](../acp-field-notes.md)（实测与已踩过的坑）。
+> [`../acp-integration.md`](../../spec/acp-integration.md)（规格）与
+> [`../acp-field-notes.md`](../../notes/acp-field-notes.md)（实测与已踩过的坑）。
 
 ## 目标
 
@@ -167,7 +167,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 > R1 对本项目**必踩**：Duet 自己就在 Claude Code 里开发，
 > 不清这些变量，`claude-agent-acp` 会误判自己嵌套而拒绝服务。
-> 见 [`../acp-field-notes.md`](../acp-field-notes.md) §5 坑 1。
+> 见 [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §5 坑 1。
 
 ---
 
@@ -295,7 +295,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | R6 | 9 类 `sessionUpdate` **每类都有去处**（可以是显式丢弃） | 穷举测试：新增一类而未处理时必须红 |
 
 > R4、R5 分别对应前一个项目的 **H-5** 与 **H-3**；R3 对应 **H-2**。
-> 见 [`../acp-field-notes.md`](../acp-field-notes.md) §1。
+> 见 [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §1。
 
 ### ○ U0.5.2 · 会话恢复与游标持久化
 
@@ -394,7 +394,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 ## S0.8 · adapter 差异内化
 
-> 本子计划的规格在 [`../design-principles.md`](../design-principles.md) §4.4。
+> 本子计划的规格在 [`../design-principles.md`](../../rules/design-principles.md) §4.4。
 
 ### ○ U0.8.1 · base + claude/codex 三包
 
@@ -437,7 +437,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 ## S0.9 · 领域模型骨架（可与 S0.2..S0.8 并行）
 
-> 规格在 [`../domain-model.md`](../domain-model.md)，115 条不变量。
+> 规格在 [`../domain-model.md`](../../spec/domain-model.md)，115 条不变量。
 > 本子计划只做**骨架 + 状态机**，完整聚合在 M2。
 
 ### ✓ U0.9.1 · Work 状态机  ·  `1da80e9`

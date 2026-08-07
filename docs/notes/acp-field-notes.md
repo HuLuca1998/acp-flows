@@ -4,7 +4,7 @@
 > 真实运行记录。核对日期 **2026-07-31 / 08-03**，实跑版本 `claude-agent-acp 0.63.0` ·
 > `codex-acp 1.1.7` · SDK `1.3.0`。
 >
-> [`acp-integration.md`](acp-integration.md) 是**规格**（对着官方规范写的，该怎么做）；
+> [`acp-integration.md`](../spec/acp-integration.md) 是**规格**（对着官方规范写的，该怎么做）；
 > 本文是**实测**（真机上是什么样，以及前一个项目在哪些地方栽了）。
 > **两者冲突时，先看 §7 的裁定表。**
 
@@ -80,7 +80,7 @@ Duet 的设计稿里那条「主管 AI 会话 id 丢失修复」，就是 H-1。
 | 默认档下建文件 | 请求权限 1 次 ✅ | 请求权限 **0** 次 ❌ |
 
 **档位名没有任何交集。** 硬编码任何一个都会在另一端静默失效 ——
-这正是 [`design-principles.md`](design-principles.md) §4.4「差异内化」要解决的问题。
+这正是 [`design-principles.md`](../rules/design-principles.md) §4.4「差异内化」要解决的问题。
 
 ---
 
@@ -334,7 +334,7 @@ make probe          # 零模型开销：只做 initialize + session/new
 | 快速模式 | **`fast`** | **`fast-mode`** | **`model_config`** ✅ |
 
 **`id` 三处不同，`category` 四处全同。** 这条不是推测，是本机实测。
-[`design-principles.md`](design-principles.md) §4.4 的「差异内化最佳实证」由此坐实——
+[`design-principles.md`](../rules/design-principles.md) §4.4 的「差异内化最佳实证」由此坐实——
 协议本身提供了语义层的稳定键，**不需要维护映射表**。
 
 > 笔记原文对「快速模式」的 `category` 记的是 `—`（未知）。现在补上：两端都是 `model_config`。
@@ -361,6 +361,6 @@ make probe          # 零模型开销：只做 initialize + session/new
 - **绑定版本。** 每条 B 级结论都要注明实跑版本。升级 runtime 后**必须复验**，
   否则它就退化成 D 级假设
 - **复验的成本很低**：`ACP_LIST_ONLY=1` 式的探针只建会话不发 prompt，零模型开销
-- 新踩的坑写进这里，**同时**在 [`../backend/internal/acp/AGENTS.md`](../backend/internal/acp/AGENTS.md)
+- 新踩的坑写进这里，**同时**在 [`../backend/internal/acp/AGENTS.md`](../../backend/internal/acp/AGENTS.md)
   的「本域特有的坑」加一行指过来
 - 与规格冲突时，在 §7 加一行裁定，**不要直接改另一份文档** —— 裁定过程本身有价值

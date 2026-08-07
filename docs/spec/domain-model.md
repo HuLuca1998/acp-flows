@@ -3,8 +3,8 @@
 > **本文是 `backend/internal/domain/` 的规格说明，改领域逻辑前必读。**
 >
 > 读者：Claude / Codex / 人。本文只描述**模型与规则**，不含实现代码。
-> 模型落地位置与写法见 [`coding-standards.md`](coding-standards.md) §1.1（一个聚合一个文件、充血模型）；
-> 分层与依赖方向见 [`architecture.md`](architecture.md) §3；术语以根 [`AGENTS.md`](../AGENTS.md) §8 为准。
+> 模型落地位置与写法见 [`coding-standards.md`](../rules/coding-standards.md) §1.1（一个聚合一个文件、充血模型）；
+> 分层与依赖方向见 [`architecture.md`](architecture.md) §3；术语以根 [`AGENTS.md`](../../AGENTS.md) §8 为准。
 
 ---
 
@@ -28,7 +28,7 @@
 
 ### 0.3 这份文档是测试先行的输入
 
-按 [`testing-strategy.md`](testing-strategy.md) 的五步流程，§17 的每条不变量必须先变成一个**会红的测试**，
+按 [`testing-strategy.md`](../rules/testing-strategy.md) 的五步流程，§17 的每条不变量必须先变成一个**会红的测试**，
 再有实现。`domain/model` 与 `domain/policy` 的覆盖率门槛是 **≥ 90%，零 mock，真实实例真实数据**。
 
 ---
@@ -1126,7 +1126,7 @@ skills/rust-test-first/
 ## 17. 不变量清单（汇总）
 
 **这一节是测试先行的清单。** 每条都写成一句可直接变成断言的话；
-写实现前先让它红一次（[`testing-strategy.md`](testing-strategy.md) §1）。
+写实现前先让它红一次（[`testing-strategy.md`](../rules/testing-strategy.md) §1）。
 
 > **与各聚合小节的关系（不是重复）**：各聚合的「不变量」表写的是**规则本身**（为什么成立、约束什么）；
 > 本节写的是**同一条规则的断言形式**（怎么验、断言什么）。两处 ID 一一对应，
@@ -1336,9 +1336,9 @@ skills/rust-test-first/
 
 | 你要做的事 | 读 |
 |---|---|
-| 模型放哪、怎么写（充血、一个聚合一个文件） | [`coding-standards.md`](coding-standards.md) §1.1 |
+| 模型放哪、怎么写（充血、一个聚合一个文件） | [`coding-standards.md`](../rules/coding-standards.md) §1.1 |
 | 分层、依赖方向、存储边界、13 类事件 | [`architecture.md`](architecture.md) §3 §4 |
-| 把本文 §17 的不变量变成测试 | [`testing-strategy.md`](testing-strategy.md) |
+| 把本文 §17 的不变量变成测试 | [`testing-strategy.md`](../rules/testing-strategy.md) |
 | `paused` / Checkpoint / 恢复的完整流程 | [`release-and-update.md`](release-and-update.md) §5 |
-| 产品 worktree 与开发 worktree 的区别 | [`git-workflow.md`](git-workflow.md) §4 |
-| 术语与状态词的唯一真源 | [`../AGENTS.md`](../AGENTS.md) §8 |
+| 产品 worktree 与开发 worktree 的区别 | [`git-workflow.md`](../rules/git-workflow.md) §4 |
+| 术语与状态词的唯一真源 | [`../AGENTS.md`](../../AGENTS.md) §8 |

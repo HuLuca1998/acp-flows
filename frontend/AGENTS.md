@@ -64,11 +64,11 @@ make -C .. dev-web            # duetd + vite，浏览器打开 http://localhost:
 
 | 改什么 | 读什么 |
 |---|---|
-| **任何组件** | [`../docs/frontend-guide.md`](../docs/frontend-guide.md) + [`../design/Duet Spec.dc.html`](../design/Duet%20Spec.dc.html) |
-| 命名、文件组织 | [`../docs/coding-standards.md`](../docs/coding-standards.md) §4 |
-| 抽象与复用 | [`../docs/design-principles.md`](../docs/design-principles.md) §6 |
-| 事件流 | [`../docs/architecture.md`](../docs/architecture.md) §4（13 类封闭枚举） |
-| **任何用户可见文案** | [`../docs/i18n.md`](../docs/i18n.md) —— 中英双语，禁止硬编码 |
+| **任何组件** | [`../docs/frontend-guide.md`](../docs/spec/frontend-guide.md) + [`../design/Duet Spec.dc.html`](../design/Duet%20Spec.dc.html) |
+| 命名、文件组织 | [`../docs/coding-standards.md`](../docs/rules/coding-standards.md) §4 |
+| 抽象与复用 | [`../docs/design-principles.md`](../docs/rules/design-principles.md) §6 |
+| 事件流 | [`../docs/architecture.md`](../docs/spec/architecture.md) §4（13 类封闭枚举） |
+| **任何用户可见文案** | [`../docs/i18n.md`](../docs/rules/i18n.md) —— 中英双语，禁止硬编码 |
 | 写测试 | `web-ui-test` skill |
 
 **新组件必须能在 `design/Duet Spec.dc.html` 找到对应条目。找不到 → 先在设计规范新增条目，再实现。**

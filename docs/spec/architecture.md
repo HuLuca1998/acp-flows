@@ -1,7 +1,7 @@
 # 架构总览
 
 > 读者：Claude / Codex / 人。改任何跨层的东西之前先读完本文。
-> 决策依据见 [`adr/`](adr/)。本文描述**目标架构**；当前实现进度见 [`roadmap.md`](roadmap.md)。
+> 决策依据见 [`adr/`](../adr/)。本文描述**目标架构**；当前实现进度见 [`roadmap.md`](../plan/roadmap.md)。
 
 ---
 
@@ -105,7 +105,7 @@ Tauri 读该文件，把 `port` 与 `token` 注入 WebView（`window.__DUET__`�
 
 ### 固定目录：模型 / 常量 / 工具
 
-三个专用文件夹，全仓库统一，准入规则见 [`coding-standards.md`](coding-standards.md) §1：
+三个专用文件夹，全仓库统一，准入规则见 [`coding-standards.md`](../rules/coding-standards.md) §1：
 
 | | Go | TypeScript |
 |---|---|---|
@@ -147,8 +147,8 @@ Tauri 读该文件，把 `port` 与 `token` 注入 WebView（`window.__DUET__`�
 | GitHub PAT | `~/.acpflows/credentials`（加密） | **绝不写入任何项目目录，绝不进入 Agent 上下文** |
 
 持久化用 **GORM + SQLite**，驱动是 `github.com/glebarez/sqlite`（纯 Go，无 CGO），
-保证交叉编译与 CI 简单。**只做 SQLite，不做 MySQL** —— 理由见 [`adr/0005-persistence.md`](adr/0005-persistence.md)。
-表结构、实体定义、迁移规范见 [`database.md`](database.md)。
+保证交叉编译与 CI 简单。**只做 SQLite，不做 MySQL** —— 理由见 [`adr/0005-persistence.md`](../adr/0005-persistence.md)。
+表结构、实体定义、迁移规范见 [`database.md`](../rules/database.md)。
 启动时执行 **DB ↔ 文件对账**：文件被人手改过或删过，索引要能自愈并上报差异。
 
 ---

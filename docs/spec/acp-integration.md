@@ -2,12 +2,12 @@
 
 > **本文是 `backend/internal/acp/` 的规格说明，改协议层前必读。**
 
-> 读者：Claude / Codex / 人。本文描述 **M0 目标形态**；实现进度见 [`roadmap.md`](roadmap.md)。
-> 与根 [`AGENTS.md`](../AGENTS.md) 的六条铁律冲突时以铁律为准。
+> 读者：Claude / Codex / 人。本文描述 **M0 目标形态**；实现进度见 [`roadmap.md`](../plan/roadmap.md)。
+> 与根 [`AGENTS.md`](../../AGENTS.md) 的六条铁律冲突时以铁律为准。
 > 术语按 `AGENTS.md` §8；状态词与协议标识符一律英文原值、等宽显示，不翻译。
 
 > **读法**：本文 ~27k token（占上下文 13%），**不要整篇读**。先在下表定位到章节，
-> 再 `Read` 那一段。规则见 [`ai-playbook.md`](ai-playbook.md) §1。
+> 再 `Read` 那一段。规则见 [`ai-playbook.md`](../ai-playbook.md) §1。
 >
 > | 你要做的事 | 读哪一节 | 定位 |
 > |---|---|---|
@@ -27,7 +27,7 @@
 > | 「这个要不要做」 | §15 | `grep -n '^## 15\.' docs/acp-integration.md` |
 > | 卡在没核实的假设上 | §16 ★ | `grep -n '^## 16\.' docs/acp-integration.md` |
 >
-> **实测结论不在本文**，在 [`acp-field-notes.md`](acp-field-notes.md)。
+> **实测结论不在本文**，在 [`acp-field-notes.md`](../notes/acp-field-notes.md)。
 > 本文写「应该怎样」，那份写「真机上实际怎样」——**冲突时以实测为准**。
 
 ---
@@ -199,7 +199,7 @@ backend/internal/acp/
 ```
 
 > 文件命名 `snake_case.go`、单文件 ≤ 400 行、禁止 `util.go`/`helper.go`/`common.go`/`misc.go`
-> —— 见 [`coding-standards.md`](coding-standards.md) §1.3、§2。
+> —— 见 [`coding-standards.md`](../rules/coding-standards.md) §1.3、§2。
 
 ### 3.2 每个子包负责什么 / 不负责什么
 
@@ -1469,7 +1469,7 @@ TestRegistry_ActivateBlockedByActiveSession          有活跃会话时延后切
 ```
 
 > 表驱动的子用例不单独登记，但顶层 `func TestXxx` **每一个都要进
-> [`../backend/tests/INDEX.md`](../backend/tests/INDEX.md)**，`make check-test-index` 会校验。
+> [`../backend/tests/INDEX.md`](../../backend/tests/INDEX.md)**，`make check-test-index` 会校验。
 
 ### 13.4 禁止
 
@@ -1600,7 +1600,7 @@ session/new → error -32000 Authentication required
 `internal/domain/**` 与 `internal/app`。** 由 `backend/.golangci.yml` 的 `depguard` 强制。
 
 反过来，`app` 层在 `port/` 里定义它需要的接口，`acp` 去实现
-（接口定义在使用方，见 [`design-principles.md`](design-principles.md) §3.1、§3.2）：
+（接口定义在使用方，见 [`design-principles.md`](../rules/design-principles.md) §3.1、§3.2）：
 
 ```go
 // internal/app/port/gateway.go（示意，最终以 app 层为准）
@@ -1652,11 +1652,11 @@ type RuntimeGateway interface {
 | 你要做的事 | 读 |
 |---|---|
 | 理解分层与依赖方向 | [`architecture.md`](architecture.md) §3 |
-| 两个 adapter 怎么复用 80% 逻辑（嵌入 + 复写） | [`design-principles.md`](design-principles.md) §4 |
-| 接口定义在哪、`port/` 怎么组织、包怎么拆 | [`design-principles.md`](design-principles.md) §3 §5 |
+| 两个 adapter 怎么复用 80% 逻辑（嵌入 + 复写） | [`design-principles.md`](../rules/design-principles.md) §4 |
+| 接口定义在哪、`port/` 怎么组织、包怎么拆 | [`design-principles.md`](../rules/design-principles.md) §3 §5 |
 | 13 类事件枚举与 SSE 契约 | [`architecture.md`](architecture.md) §4 |
-| 写这一层的任何测试 | [`testing-strategy.md`](testing-strategy.md) §2 §3 §4 §5 |
+| 写这一层的任何测试 | [`testing-strategy.md`](../rules/testing-strategy.md) §2 §3 §4 §5 |
 | 更新 `prepare` 为什么依赖两段式取消 | [`release-and-update.md`](release-and-update.md) §5 |
 | Runtime 多版本与升级 | [`release-and-update.md`](release-and-update.md) §6 |
-| 命名、文件归属、错误处理 | [`coding-standards.md`](coding-standards.md) |
-| 术语与状态词 | [`../AGENTS.md`](../AGENTS.md) §8 |
+| 命名、文件归属、错误处理 | [`coding-standards.md`](../rules/coding-standards.md) |
+| 术语与状态词 | [`../AGENTS.md`](../../AGENTS.md) §8 |

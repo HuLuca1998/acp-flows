@@ -1,9 +1,9 @@
 # M4 · 完整产品面
 
 > 体系与编号规则见 [`README.md`](README.md)。开工前必读
-> [`../frontend-guide.md`](../frontend-guide.md)（组件与设计合规，**§16 的缺口表挡着本里程碑一半的单元**）、
-> [`../i18n.md`](../i18n.md)（英文版的全部规则）、
-> [`../domain-model.md`](../domain-model.md) §12（D3 逐次授权）与
+> [`../frontend-guide.md`](../../spec/frontend-guide.md)（组件与设计合规，**§16 的缺口表挡着本里程碑一半的单元**）、
+> [`../i18n.md`](../../rules/i18n.md)（英文版的全部规则）、
+> [`../domain-model.md`](../../spec/domain-model.md) §12（D3 逐次授权）与
 > [`../open-questions.md`](../open-questions.md)。
 
 ## 目标

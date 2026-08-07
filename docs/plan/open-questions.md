@@ -3,7 +3,7 @@
 > **这里汇总所有需要人做决定的事。** 撞上未决问题 → **停，不要猜**。
 >
 > 2026-08-07 做过一轮批量裁定：42 条里 **40 条已决**，理由逐条写在
-> [`adr/0006-open-question-rulings.md`](adr/0006-open-question-rulings.md)。
+> [`adr/0006-open-question-rulings.md`](../adr/0006-open-question-rulings.md)。
 > 本文只留**仍需人拍板的**与**索引**。
 
 ---
@@ -21,13 +21,13 @@
 
 > **Q6（私钥备份）已解决** —— 前一个项目 `ai-workflows` 有现成方案，
 > 照抄即可（存三处：GitHub Secret + 本地 `~/.duet-updater/updater.key` + 密码管理器）。
-> 见 [`adr/0007`](adr/0007-release-revision-from-prior-art.md)。
+> 见 [`adr/0007`](../adr/0007-release-revision-from-prior-art.md)。
 
 ---
 
 ## 已决（40 条）
 
-全部裁定与理由见 [`adr/0006`](adr/0006-open-question-rulings.md)。以下是索引与结论摘要。
+全部裁定与理由见 [`adr/0006`](../adr/0006-open-question-rulings.md)。以下是索引与结论摘要。
 
 ### 影响最大的七条（⚑ 表示我压过了文档字面表述，**最值得复核**）
 
@@ -69,7 +69,7 @@
 | Q36 | 品牌判断禁令**排除 `internal/api/gen/`** |
 | Q38 | 三个隔离开关默认全开（最严）；第三个要标注「无法关闭，仅用于知情」 |
 
-字段与取值的完整规格 → [`runtime-config.md`](runtime-config.md)。
+字段与取值的完整规格 → [`runtime-config.md`](../spec/runtime-config.md)。
 
 ### 发布与更新
 
@@ -81,7 +81,7 @@
 | Q35 | Checkpoint 最小版挪进 M1（新增 `U1.7.3`） |
 | Q40 | 启动恢复从 M4 挪到 M1（`U4.7.1` → `U1.8.4`） |
 
-### 设计缺口（全部从既有令牌与规则推导，规格见 [`frontend-guide.md`](frontend-guide.md) §17）
+### 设计缺口（全部从既有令牌与规则推导，规格见 [`frontend-guide.md`](../spec/frontend-guide.md) §17）
 
 | # | 结论 |
 |---|---|

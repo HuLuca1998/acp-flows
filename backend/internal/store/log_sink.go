@@ -9,7 +9,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
 )
 
-// 落库的三条硬约束（docs/logging.md §6）在这里实现：
+// 落库的三条硬约束（docs/rules/logging.md §6）在这里实现：
 //
 //	① 不阻塞业务路径  —— 异步缓冲 + 批量提交
 //	② 失败不向上抛    —— Write 不返回 error，内部吞掉

@@ -1,6 +1,6 @@
 package store_test
 
-// 数据层的地基验证。规格见 docs/database.md。
+// 数据层的地基验证。规格见 docs/rules/database.md。
 //
 // 这些测试先于实现写就。重点是 R1——foreign_keys pragma 是 SQLite 最著名的坑：
 // 默认关闭，外键写了但不生效，删父行子行还在。不显式打开等于外键白写。
@@ -44,7 +44,7 @@ func TestOpen_R1_ForeignKeysPragmaIsOn(t *testing.T) {
 		t.Fatalf("query pragma: %v", err)
 	}
 	if on != 1 {
-		t.Fatalf("foreign_keys = %d, want 1 —— 外键约束没生效，见 docs/database.md §6", on)
+		t.Fatalf("foreign_keys = %d, want 1 —— 外键约束没生效，见 docs/rules/database.md §6", on)
 	}
 }
 

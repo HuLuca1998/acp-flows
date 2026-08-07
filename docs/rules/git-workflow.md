@@ -171,7 +171,7 @@ gh pr merge <n> --squash --delete-branch --admin                       # 再绕�
 
 | 动作 | 为什么 |
 |---|---|
-| **合并 release-please 的 Release PR** | 发版对外不可撤回，属于 D3。见 [`adr/0002`](adr/0002-release-and-auto-update.md) |
+| **合并 release-please 的 Release PR** | 发版对外不可撤回，属于 D3。见 [`adr/0002`](../adr/0002-release-and-auto-update.md) |
 | 删除远端分支以外的远端资源 | 不可逆 |
 | 改分支保护规则本身 | 会削弱所有后续的把关 |
 | `docs/open-questions.md` 里的任何一条 | AI 不许替这些拍板 |
@@ -185,7 +185,7 @@ gh pr merge <n> --squash --delete-branch --admin                       # 再绕�
 > | | 谁在用 | 位置 |
 > |---|---|---|
 > | **开发本仓库**的并行工作区 | Claude / Codex / 你 | `.worktree/<分支名>/`（本节） |
-> | **产品功能**：每个 Work 一个隔离工作区 | Duet 运行时 | `~/.duet/worktrees/<项目>/<work>/`（见 [`domain-model.md`](domain-model.md)） |
+> | **产品功能**：每个 Work 一个隔离工作区 | Duet 运行时 | `~/.duet/worktrees/<项目>/<work>/`（见 [`domain-model.md`](../spec/domain-model.md)） |
 
 ### 位置与命名
 
@@ -282,7 +282,7 @@ release-please 读取 main 上的 conventional commits
 **发版这一下由人点。** 理由：发版对外可见且不可撤回，属于 D3。
 其余全部自动，AI 不需要也不应该碰版本号。
 
-完整发布与客户端更新链路见 [`release-and-update.md`](release-and-update.md)。
+完整发布与客户端更新链路见 [`release-and-update.md`](../spec/release-and-update.md)。
 
 ---
 

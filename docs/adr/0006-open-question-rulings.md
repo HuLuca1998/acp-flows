@@ -247,7 +247,7 @@ enum 会逼着改契约。
 ## P2 · 设计缺口
 
 > 以下全部**从既有令牌与设计规则推导**，不是发明。
-> 明细写进 [`../frontend-guide.md`](../frontend-guide.md) §17「AI 拟定的补充条目」，
+> 明细写进 [`../frontend-guide.md`](../spec/frontend-guide.md) §17「AI 拟定的补充条目」，
 > 每条标注可推翻。
 
 ### ⚑ Q14 · 设置页 tab 与 §08「选中态」不矛盾——它们是两类控件

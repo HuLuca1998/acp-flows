@@ -5,8 +5,8 @@ description: 测试前端界面时使用。触发场景：写或改 React 组件
 
 # 前端测试三层
 
-> 完整策略见 [`docs/testing-strategy.md`](../../docs/testing-strategy.md) §6。
-> 设计合规规则见 [`docs/frontend-guide.md`](../../docs/frontend-guide.md)。
+> 完整策略见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §6。
+> 设计合规规则见 [`docs/frontend-guide.md`](../../docs/spec/frontend-guide.md)。
 
 选哪一层：
 

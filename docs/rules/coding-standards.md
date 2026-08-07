@@ -2,7 +2,7 @@
 
 > 本文件规定命名、文件组织与写法。**这些规则尽可能由 lint 强制**；
 > 靠自觉的规则在无人类审阅的仓库里等于不存在。
-> 与根 [`AGENTS.md`](../AGENTS.md) 的铁律冲突时，以铁律为准。
+> 与根 [`AGENTS.md`](../../AGENTS.md) 的铁律冲突时，以铁律为准。
 
 ---
 
@@ -105,8 +105,8 @@ internal/util/
 
 | 位置 | 索引 |
 |---|---|
-| Go | [`backend/internal/util/INDEX.md`](../backend/internal/util/INDEX.md) |
-| TypeScript | [`frontend/src/utils/INDEX.md`](../frontend/src/utils/INDEX.md) |
+| Go | [`backend/internal/util/INDEX.md`](../../backend/internal/util/INDEX.md) |
+| TypeScript | [`frontend/src/utils/INDEX.md`](../../frontend/src/utils/INDEX.md) |
 
 **动手写任何工具函数之前，先在对应索引里搜一遍。** 索引存在的唯一目的就是这个。
 搜到了就用，别重写；搜到相近的就扩展它，别并列一个新的。
@@ -307,7 +307,7 @@ export type WorkState = (typeof WORK_STATE)[keyof typeof WORK_STATE]
 
 ### 4.3 样式
 
-- 只用 CSS Modules + 设计令牌，见 [`frontend-guide.md`](frontend-guide.md)
+- 只用 CSS Modules + 设计令牌，见 [`frontend-guide.md`](../spec/frontend-guide.md)
 - **禁止**：硬编码 hex、裸 px、内联 `style` 里写颜色、CSS-in-JS
 - 类名 camelCase（CSS Modules 惯例）：`.eventRow` `.unitBadge`
 
@@ -350,7 +350,7 @@ import styles from './EventStream.module.css'
 - 函数 `snake_case`，类型 `PascalCase`，常量 `SCREAMING_SNAKE_CASE`
 - Tauri command 函数名与前端调用名一致，前缀 `cmd_`：`cmd_pick_directory`
 - **禁止** `unwrap()` / `expect()` 出现在非测试代码（`clippy::unwrap_used` 设为 deny）
-- 壳里不写业务逻辑，见 [`../shell/AGENTS.md`](../shell/AGENTS.md)
+- 壳里不写业务逻辑，见 [`../shell/AGENTS.md`](../../shell/AGENTS.md)
 
 ---
 

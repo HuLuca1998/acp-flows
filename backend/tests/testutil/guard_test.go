@@ -5,7 +5,7 @@ package testutil_test
 // 守卫本身必须有测试，否则它可能一直是失效的——而失效的守卫比没有守卫更糟，
 // 因为它制造了「测试碰不到真实数据」的错觉。
 //
-// 验收标准见 docs/milestones/M0-acp-foundation.md § S0.1 U0.1.2。
+// 验收标准见 docs/plan/milestones/M0-acp-foundation.md § S0.1 U0.1.2。
 
 import (
 	"path/filepath"

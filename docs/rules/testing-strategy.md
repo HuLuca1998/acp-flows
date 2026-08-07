@@ -295,9 +295,9 @@ AI 反复写重复测试的根因和重复造工具轮子一样：**它不知道
 
 | 范围 | 索引 |
 |---|---|
-| 后端全部 Go 测试（含就地单测与 `tests/`） | [`../backend/tests/INDEX.md`](../backend/tests/INDEX.md) |
-| 前端 Vitest | [`../frontend/tests/INDEX.md`](../frontend/tests/INDEX.md) |
-| Playwright 端到端 | [`../e2e/INDEX.md`](../e2e/INDEX.md) |
+| 后端全部 Go 测试（含就地单测与 `tests/`） | [`../backend/tests/INDEX.md`](../../backend/tests/INDEX.md) |
+| 前端 Vitest | [`../frontend/tests/INDEX.md`](../../frontend/tests/INDEX.md) |
+| Playwright 端到端 | [`../e2e/INDEX.md`](../../e2e/INDEX.md) |
 
 ### 写新测试前：先查索引
 

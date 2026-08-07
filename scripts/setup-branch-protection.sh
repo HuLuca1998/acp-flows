@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# 一次性配置 main 分支保护。规则见 docs/git-workflow.md §5。
+# 一次性配置 main 分支保护。规则见 docs/rules/git-workflow.md §5。
 #
 # ★ required check 只认 CI 的汇总门禁 "ci"，不认单个 job——
-#   单个 job 被路径过滤跳过时会让 PR 永远 pending。见 docs/ci.md 规则 2。
+#   单个 job 被路径过滤跳过时会让 PR 永远 pending。见 docs/rules/ci.md 规则 2。
 set -euo pipefail
 
 REPO="${1:-HuLuca1998/acp-flows}"

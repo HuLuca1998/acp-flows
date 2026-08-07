@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 分包覆盖率门槛。门槛见 docs/testing-strategy.md §2。
+# 分包覆盖率门槛。门槛见 docs/rules/testing-strategy.md §2。
 #
 # 覆盖率是下限不是目标——它只用来发现"完全没测的地方"。
 set -euo pipefail
@@ -47,6 +47,6 @@ done
 if [[ $fail -eq 1 ]]; then
   echo
   echo "覆盖率不达标。注意：补测试不等于补断言——"
-  echo "对着 docs/testing-strategy.md §3「假测试图鉴」自查后再提交。"
+  echo "对着 docs/rules/testing-strategy.md §3「假测试图鉴」自查后再提交。"
   exit 1
 fi

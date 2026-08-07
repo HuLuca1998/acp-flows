@@ -1,6 +1,6 @@
 # Runtime 配置：字段与取值
 
-> **设计稿管形，实测管值**（根 [`AGENTS.md`](../AGENTS.md) 铁律 3）。
+> **设计稿管形，实测管值**（根 [`AGENTS.md`](../../AGENTS.md) 铁律 3）。
 > 界面长什么样看 `design/ACP Duet 1a.dc.html`；**每个字段叫什么、能取什么值，看本文**。
 >
 > 数据来自 `make probe` 的真机报告（`backend/tests/fixtures/probe/`），
@@ -11,7 +11,7 @@
 
 ## 1. 一条总规则：按 `category` 取，不按 `id` 取
 
-真机实测（[`acp-field-notes.md`](acp-field-notes.md) §7.1）：
+真机实测（[`acp-field-notes.md`](../notes/acp-field-notes.md) §7.1）：
 
 | 概念 | claude 的 `id` | codex 的 `id` | 两端 `category` |
 |---|---|---|---|
@@ -112,7 +112,7 @@ const (
 
 **只有实现工程师需要写权限。** 其余七个角色都是读+分析，给 `read_only`——
 这同时让「客户端裁决回调」真正生效（默认档下它一次都不会被调用，见
-[`acp-field-notes.md`](acp-field-notes.md) §2）。
+[`acp-field-notes.md`](../notes/acp-field-notes.md) §2）。
 
 > `Runtime` 一列是**注册表引用**不是二值枚举（ADR 0006 Q13）——
 > 设置页的下拉选项来自已安装 runtime 列表。
@@ -155,7 +155,7 @@ const (
 
 ## 7. 隔离开关的实现映射
 
-设计稿设置页三个开关，实测方案见 [`acp-field-notes.md`](acp-field-notes.md) §4：
+设计稿设置页三个开关，实测方案见 [`acp-field-notes.md`](../notes/acp-field-notes.md) §4：
 
 | 开关 | 默认 | claude 实现 | codex 实现 |
 |---|---|---|---|

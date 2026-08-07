@@ -1,14 +1,14 @@
 # M1 · 发布与自动更新
 
 > ⚠️ **本章的 S1.2（分支保护）与 S1.5（构建签名发布）已被
-> [`../adr/0007`](../adr/0007-release-revision-from-prior-art.md) 修订**：
+> [`../adr/0007`](../../adr/0007-release-revision-from-prior-art.md) 修订**：
 > 触发方式改为 `workflow_dispatch` on main、弃用 release-please、
 > 检查时机改为进设置页时检查。开工前先读那份 ADR。
 >
 > 体系与编号规则见 [`README.md`](README.md)。动手前必读
-> [`../release-and-update.md`](../release-and-update.md)（规格）、
-> [`../adr/0002-release-and-auto-update.md`](../adr/0002-release-and-auto-update.md)（已定的决策，不重新讨论）、
-> [`../ci.md`](../ci.md)（CI 设计规范）与 [`../git-workflow.md`](../git-workflow.md) §6（版本推导）。
+> [`../release-and-update.md`](../../spec/release-and-update.md)（规格）、
+> [`../adr/0002-release-and-auto-update.md`](../../adr/0002-release-and-auto-update.md)（已定的决策，不重新讨论）、
+> [`../ci.md`](../../rules/ci.md)（CI 设计规范）与 [`../git-workflow.md`](../../rules/git-workflow.md) §6（版本推导）。
 
 > **读法**：本文 ~15k token，**不要整篇读**。一个里程碑章是子计划的菜单，
 > 你一次只做其中**一个**子计划。标准读法是三段：
@@ -286,8 +286,8 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 
 **阶段交付物**：无边框窗口能开、`duetd` 能被拉起并守住、端口与令牌能注入 WebView。
 
-> 规格在 [`../../shell/AGENTS.md`](../../shell/AGENTS.md) 与
-> [`../architecture.md`](../architecture.md) §2、§6。**壳只做四件事**，第五件不要写进来。
+> 规格在 [`../../shell/AGENTS.md`](../../../shell/AGENTS.md) 与
+> [`../architecture.md`](../../spec/architecture.md) §2、§6。**壳只做四件事**，第五件不要写进来。
 
 ### ○ U1.3.1 · `src-tauri` 骨架与无边框窗口
 

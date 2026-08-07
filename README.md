@@ -10,7 +10,7 @@ macOS 桌面应用（Tauri 壳 + Go sidecar），同一份代码可作为纯 Web
 
 > **状态：M0 进行中**，脚手架四件套（backend / frontend / shell / e2e）已跑通，
 > `make check` 全绿。剩余关键路径是 Fake ACP Runtime。
-> 进度见 [`docs/roadmap.md`](docs/roadmap.md)，分章见 [`docs/milestones/`](docs/milestones/)。
+> 进度见 [`docs/roadmap.md`](docs/plan/roadmap.md)，分章见 [`docs/milestones/`](docs/plan/milestones/)。
 
 ---
 
@@ -68,25 +68,25 @@ make help
 | 文档 | 管什么 |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | ★ 工作总纲：铁律、流程、目录地图、术语、禁止清单 |
-| [`docs/architecture.md`](docs/architecture.md) | 进程模型、前后端分层、事件流、目录规划 |
-| [`docs/domain-model.md`](docs/domain-model.md) | 聚合、状态机、不变量 |
-| [`docs/design-principles.md`](docs/design-principles.md) | 抽象怎么切、接口放哪、怎么复用而不复制 |
-| [`docs/database.md`](docs/database.md) | GORM 实体与领域模型的边界、表/列/索引命名、迁移、GORM 陷阱 |
-| [`docs/coding-standards.md`](docs/coding-standards.md) | 命名、文件组织、`model`/`constant`/`util` 归属、工具库索引 |
-| [`docs/testing-strategy.md`](docs/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
-| [`docs/acp-integration.md`](docs/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
-| [`docs/runtime-config.md`](docs/runtime-config.md) | Runtime 配置的字段与取值（**实测为准**，非设计稿） |
-| [`docs/acp-field-notes.md`](docs/acp-field-notes.md) | ★ 实测笔记：两端真实差异、隔离与注入方案、前一个项目踩过的 10 个坑 |
-| [`docs/frontend-guide.md`](docs/frontend-guide.md) | 设计系统落地、组件规格、事件渲染器 |
-| [`docs/i18n.md`](docs/i18n.md) | 中英双语规范 |
-| [`docs/tech-debt.md`](docs/tech-debt.md) | 撞上烂代码：铲还是不铲、怎么铲、债务登记 |
-| [`docs/git-workflow.md`](docs/git-workflow.md) | 分支、提交、PR、worktree |
-| [`docs/ci.md`](docs/ci.md) | CI 设计：只跑受影响的部分、汇总门禁、时长预算 |
-| [`docs/release-and-update.md`](docs/release-and-update.md) | 发版流水线、签名、客户端自动更新 |
-| [`docs/ai-workflow.md`](docs/ai-workflow.md) | Claude × Codex 分工与交接 |
-| [`docs/roadmap.md`](docs/roadmap.md) | 里程碑总览 |
-| [`docs/milestones/`](docs/milestones/) | ★ 里程碑分章：子计划 → 单元 → 五段契约 → 可断言的验收标准 |
-| [`docs/open-questions.md`](docs/open-questions.md) | ★ 待人拍板的问题（AI 不许替这些拍板） |
+| [`docs/architecture.md`](docs/spec/architecture.md) | 进程模型、前后端分层、事件流、目录规划 |
+| [`docs/domain-model.md`](docs/spec/domain-model.md) | 聚合、状态机、不变量 |
+| [`docs/design-principles.md`](docs/rules/design-principles.md) | 抽象怎么切、接口放哪、怎么复用而不复制 |
+| [`docs/database.md`](docs/rules/database.md) | GORM 实体与领域模型的边界、表/列/索引命名、迁移、GORM 陷阱 |
+| [`docs/coding-standards.md`](docs/rules/coding-standards.md) | 命名、文件组织、`model`/`constant`/`util` 归属、工具库索引 |
+| [`docs/testing-strategy.md`](docs/rules/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
+| [`docs/acp-integration.md`](docs/spec/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
+| [`docs/runtime-config.md`](docs/spec/runtime-config.md) | Runtime 配置的字段与取值（**实测为准**，非设计稿） |
+| [`docs/acp-field-notes.md`](docs/notes/acp-field-notes.md) | ★ 实测笔记：两端真实差异、隔离与注入方案、前一个项目踩过的 10 个坑 |
+| [`docs/frontend-guide.md`](docs/spec/frontend-guide.md) | 设计系统落地、组件规格、事件渲染器 |
+| [`docs/i18n.md`](docs/rules/i18n.md) | 中英双语规范 |
+| [`docs/tech-debt.md`](docs/rules/tech-debt.md) | 撞上烂代码：铲还是不铲、怎么铲、债务登记 |
+| [`docs/git-workflow.md`](docs/rules/git-workflow.md) | 分支、提交、PR、worktree |
+| [`docs/ci.md`](docs/rules/ci.md) | CI 设计：只跑受影响的部分、汇总门禁、时长预算 |
+| [`docs/release-and-update.md`](docs/spec/release-and-update.md) | 发版流水线、签名、客户端自动更新 |
+| [`docs/ai-workflow.md`](docs/rules/ai-workflow.md) | Claude × Codex 分工与交接 |
+| [`docs/roadmap.md`](docs/plan/roadmap.md) | 里程碑总览 |
+| [`docs/milestones/`](docs/plan/milestones/) | ★ 里程碑分章：子计划 → 单元 → 五段契约 → 可断言的验收标准 |
+| [`docs/open-questions.md`](docs/plan/open-questions.md) | ★ 待人拍板的问题（AI 不许替这些拍板） |
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
 | [`.skills/`](.skills/) | 项目级 skill（Claude 与 Codex 共用） |
 

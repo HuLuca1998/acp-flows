@@ -1,6 +1,6 @@
 name: ci
 
-# 设计规范见 docs/ci.md。三条核心规则：
+# 设计规范见 docs/rules/ci.md。三条核心规则：
 #   ① 只跑受影响的部分（changes 探测 → 各 job if 守卫）
 #   ② 分支保护只认最后的 ci 汇总门禁，不认单个 job
 #      —— 否则被跳过的 required check 会让 PR 永远 pending
@@ -88,6 +88,9 @@ jobs:
 
       - name: 文档里的命令与脚本真实存在
         run: bash scripts/check-doc-commands.sh
+
+      - name: 文档里的相对链接有效
+        run: bash scripts/check-doc-links.sh
 
       # 文档超预算不会报错，只会表现为「AI 好像没按文档做」——所以必须机器拦
       - name: 文档的上下文预算（L0 常驻 / L1 阶段 / L2 读法块）

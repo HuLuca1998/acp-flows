@@ -1,7 +1,7 @@
 // Package constant 存放跨包共享的常量与枚举取值，按主题分文件。
 //
 // 只在一个文件里用到的常量应就地定义，不要污染这里的共享命名空间。
-// 规则见 docs/coding-standards.md §1.2。
+// 规则见 docs/rules/coding-standards.md §1.2。
 package constant
 
 import "slices"

@@ -5,9 +5,9 @@
 # AI 照着文档跑，撞一鼻子灰，然后开始不信任文档——这是最坏的结果。
 #
 # 两处例外，都是「按定义会引用尚不存在的东西」：
-#   - docs/milestones/**  单元是**计划**不是**声称**。单元标记改成 ✓ 的那一刻起
+#   - docs/plan/milestones/**  单元是**计划**不是**声称**。单元标记改成 ✓ 的那一刻起
 #     它引用的路径就必须真的存在——本脚本对已完成的单元不放行（见文末那段检查）
-#   - docs/open-questions.md  它是**已知缺口登记表**，登记「某某还不存在」正是它的职责
+#   - docs/plan/open-questions.md  它是**已知缺口登记表**，登记「某某还不存在」正是它的职责
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -32,7 +32,7 @@ docs_to_check() {
   # 结果会把几千个第三方 README 里的散文（"make an aggregate"）当成 make 目标。
   find . \
     \( -name node_modules -o -name .git -o -name .worktree -o -name dist \
-       -o -name target -o -path './docs/milestones' \) -prune -o \
+       -o -name target -o -path './docs/plan/milestones' \) -prune -o \
     -name '*.md' -not -name 'open-questions.md' -print \
     2>/dev/null || true
 }
@@ -63,7 +63,7 @@ if [[ -n $missing_script ]]; then say "文档提到但不存在的脚本" "$miss
 
 # ── 已完成的里程碑单元不许引用不存在的东西 ────────────────────
 # 标记为 ✓ 的单元代表「已交付」，它 allowed_changes 里的路径必须真的存在。
-done_missing=$(grep -rlE '^### ✓ U' docs/milestones/*.md 2>/dev/null | while read -r f; do
+done_missing=$(grep -rlE '^### ✓ U' docs/plan/milestones/*.md 2>/dev/null | while read -r f; do
   awk '/^### ✓ U/{u=$0; keep=1} /^### [○◐⊘]/{keep=0} keep && /allowed_changes/{print FILENAME"\t"u"\t"$0}' "$f"
 done | grep -oE '`[a-z][a-zA-Z0-9_/.@-]+`' | tr -d '`' | sort -u | while read -r p; do
   [[ $p == *"*"* ]] && continue                    # 通配路径不检查
@@ -74,7 +74,7 @@ if [[ -n $done_missing ]]; then say "已完成（✓）的里程碑单元引用�
 
 if [[ $fail -eq 1 ]]; then
   echo "修正方式：改文档指向真实存在的命令，或把命令建出来。"
-  echo "注意：docs/milestones/ 里未完成（○/◐）单元的前向引用是正常的，本脚本已跳过。"
+  echo "注意：docs/plan/milestones/ 里未完成（○/◐）单元的前向引用是正常的，本脚本已跳过。"
   exit 1
 fi
 echo "✓ 文档里的命令与脚本都真实存在"

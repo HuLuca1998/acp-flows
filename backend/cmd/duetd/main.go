@@ -1,7 +1,7 @@
 // Command duetd 是 Duet 的后端进程。
 //
 // 它承载全部业务逻辑，对外只暴露 HTTP + SSE。Tauri 壳与浏览器走同一套接口——
-// 壳不得通过 IPC 绕过 HTTP，否则 Web 版当天就废（见 docs/architecture.md §1）。
+// 壳不得通过 IPC 绕过 HTTP，否则 Web 版当天就废（见 docs/spec/architecture.md §1）。
 //
 // 本文件是全仓库**唯一做依赖装配**的地方：手工 new，一眼能看出谁依赖谁。
 package main
@@ -55,7 +55,7 @@ func run() error {
 	flag.Parse()
 
 	// 日志级别按域可调：DUET_LOG="info,acp=trace,store=debug"
-	// 一次调试通常只关心一个组件，全局调 debug 会淹没在噪音里（docs/logging.md §3）。
+	// 一次调试通常只关心一个组件，全局调 debug 会淹没在噪音里（docs/rules/logging.md §3）。
 	globalLevel, compLevels, err := logging.ParseLevels(os.Getenv("DUET_LOG"))
 	if err != nil {
 		return fmt.Errorf("DUET_LOG: %w", err)
@@ -79,7 +79,7 @@ func run() error {
 		return fmt.Errorf("open store: %w", err)
 	}
 
-	// 日志双去处：stderr 给人看，SQLite 给 AI 查（docs/logging.md §1）。
+	// 日志双去处：stderr 给人看，SQLite 给 AI 查（docs/rules/logging.md §1）。
 	// 落库必须在 store 之后装配 —— 它要往 logs 表写。
 	sink := db.NewLogSink()
 	slog.SetDefault(slog.New(logging.NewHandler(logging.Options{

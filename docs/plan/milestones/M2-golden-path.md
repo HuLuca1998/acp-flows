@@ -1,10 +1,10 @@
 # M2 · 主链路垂直切片
 
 > 体系与编号规则见 [`README.md`](README.md)。动手前必读
-> [`../domain-model.md`](../domain-model.md)（**主要规格来源**，115 条不变量）、
-> [`../architecture.md`](../architecture.md) §4（13 类事件封闭枚举）、
-> [`../frontend-guide.md`](../frontend-guide.md) §9（渲染器注册表）、
-> [`../i18n.md`](../i18n.md)、[`../open-questions.md`](../open-questions.md) P2。
+> [`../domain-model.md`](../../spec/domain-model.md)（**主要规格来源**，115 条不变量）、
+> [`../architecture.md`](../../spec/architecture.md) §4（13 类事件封闭枚举）、
+> [`../frontend-guide.md`](../../spec/frontend-guide.md) §9（渲染器注册表）、
+> [`../i18n.md`](../../rules/i18n.md)、[`../open-questions.md`](../open-questions.md) P2。
 
 > **读法**：本文 ~21k token（占上下文 10%），**不要整篇读**。
 > 一个里程碑章是子计划的菜单，你一次只做其中**一个**。标准读法是四段：

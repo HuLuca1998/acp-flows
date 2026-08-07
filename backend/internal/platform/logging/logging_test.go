@@ -1,6 +1,6 @@
 package logging_test
 
-// 日志基础设施。规范见 docs/logging.md。
+// 日志基础设施。规范见 docs/rules/logging.md。
 //
 // 日志是 AI 调试时的唯一观测面——人可以 attach 调试器、看界面、凭经验猜，
 // AI 只能看日志。所以这里的断言比一般项目严：关联字段必须自动带、
@@ -27,7 +27,7 @@ func TestLevels_R1_FiveLevels(t *testing.T) {
 		}
 	}
 	if logging.LevelTrace != -8 {
-		t.Errorf("LevelTrace = %d, want -8（docs/logging.md §2）", logging.LevelTrace)
+		t.Errorf("LevelTrace = %d, want -8（docs/rules/logging.md §2）", logging.LevelTrace)
 	}
 }
 

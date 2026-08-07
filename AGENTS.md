@@ -48,12 +48,12 @@ Tauri v2 (Rust 壳) ──sidecar──▶ duetd (Go, HTTP+SSE) ──stdio─�
 
 | # | 铁律 | 一句话 | 详见 |
 |---|---|---|---|
-| 1 | **测试先行** | 先写会失败的测试，**跑一次确认它是红的**，再写实现。提交说明必须回答「哪个测试先红了」 | [`testing-strategy.md`](docs/testing-strategy.md) |
+| 1 | **测试先行** | 先写会失败的测试，**跑一次确认它是红的**，再写实现。提交说明必须回答「哪个测试先红了」 | [`testing-strategy.md`](docs/rules/testing-strategy.md) |
 | 2 | **契约先行** | 改接口的顺序永远是 `改 openapi.yaml → make gen → 改实现` | [`api/AGENTS.md`](api/AGENTS.md) |
-| 3 | **设计合规** | UI 必须能在设计规范找到条目；找不到先加条目。**但设计稿管「形」，实测管「值」**（见下） | [`frontend-guide.md`](docs/frontend-guide.md) |
+| 3 | **设计合规** | UI 必须能在设计规范找到条目；找不到先加条目。**但设计稿管「形」，实测管「值」**（见下） | [`frontend-guide.md`](docs/spec/frontend-guide.md) |
 | 4 | **不扩大边界** | 只改允许改的范围。需要越界就**停下来上报** | — |
 | 5 | **证据优先** | 结论必须附 diff / 测试输出 / 命令记录。转述不算 | — |
-| 6 | **不碰用户真实数据** | 测试禁止读写 `~/.acpflows`、真实仓库、真实令牌。用 `t.TempDir()` / Fake Runtime | [`testing-strategy.md`](docs/testing-strategy.md) |
+| 6 | **不碰用户真实数据** | 测试禁止读写 `~/.acpflows`、真实仓库、真实令牌。用 `t.TempDir()` / Fake Runtime | [`testing-strategy.md`](docs/rules/testing-strategy.md) |
 
 ### 铁律 3 的边界：设计稿管「形」，实测管「值」
 
@@ -62,8 +62,8 @@ Tauri v2 (Rust 壳) ──sidecar──▶ duetd (Go, HTTP+SSE) ──stdio─�
 | 布局、组件形态、交互流程、文案 | **配置项 id 与取值域、协议字段、能力清单、档位名、枚举成员** |
 
 **冲突时以实测为准**，同时回设计稿修正，不在代码里迁就它。
-字段与取值见 [`runtime-config.md`](docs/runtime-config.md)，实测结论见
-[`acp-field-notes.md`](docs/acp-field-notes.md) §7.1。
+字段与取值见 [`runtime-config.md`](docs/spec/runtime-config.md)，实测结论见
+[`acp-field-notes.md`](docs/notes/acp-field-notes.md) §7.1。
 
 ---
 
@@ -78,13 +78,13 @@ Tauri v2 (Rust 壳) ──sidecar──▶ duetd (Go, HTTP+SSE) ──stdio─�
 
 **触发以下任一条立刻停，不要自行扩大范围**：需要改公开接口 / schema / OpenAPI 而未授权 ·
 需要改边界外的文件 · 发现架构假设错误 · 需要新第三方依赖 · 撞上
-[`open-questions.md`](docs/open-questions.md) 里的未决项。
+[`open-questions.md`](docs/plan/open-questions.md) 里的未决项。
 
 ### 撞上烂代码：不要在屎山上堆屎
 
 最危险的一句话是「**跟现有代码保持一致**」——与错误的模式保持一致是在扩散错误。
 **三选一，没有第四种**：挡路的先铲平（独立提交）· 路过的登记债务表 + 开 issue · 不确定就问。
-**"照着抄一遍然后什么都不说"不在选项里。** 判定标准见 [`tech-debt.md`](docs/tech-debt.md)。
+**"照着抄一遍然后什么都不说"不在选项里。** 判定标准见 [`tech-debt.md`](docs/rules/tech-debt.md)。
 
 ---
 
@@ -116,7 +116,7 @@ api → app → domain          基础设施实现 app/port 的接口，不被 a
 ```
 
 **新建关键目录必须补 `AGENTS.md` + `CLAUDE.md`**，`make check-docs` 会拦。
-规则见 [`doc-system.md`](docs/doc-system.md)。
+规则见 [`doc-system.md`](docs/rules/doc-system.md)。
 
 ---
 
@@ -168,7 +168,7 @@ make tidy           # ★ 合并 PR 后：清理分支 / worktree / 远端残留
 
 ## 8. 最高频的禁止项
 
-完整清单见 [`docs/forbidden.md`](docs/forbidden.md)。这里只列最容易犯的：
+完整清单见 [`rules/forbidden.md`](docs/rules/forbidden.md)。这里只列最容易犯的：
 
 - ✗ 先写实现后补测试；恒真断言；mock 喂 mock
 - ✗ **为了让 CI 变绿而删测试 / 加 skip / 放宽断言** —— 等同伪造验收
@@ -198,4 +198,4 @@ make tidy           # ★ 合并 PR 后：清理分支 / worktree / 远端残留
 
 **M0 进行中**，脚手架四件套已跑通。剩余关键路径是 **Fake ACP Runtime**（S0.4）。
 
-进度见 [`docs/roadmap.md`](docs/roadmap.md)，单元级拆解见 [`docs/milestones/`](docs/milestones/)。
+进度见 [`plan/roadmap.md`](docs/plan/roadmap.md)，单元级拆解见 [`plan/milestones/`](docs/plan/milestones/)。

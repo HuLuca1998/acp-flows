@@ -1,6 +1,6 @@
 # AGENTS.md · backend/tests/testutil
 
-> **就近优先**。测试策略见 [`../../../docs/testing-strategy.md`](../../../docs/testing-strategy.md)。
+> **就近优先**。测试策略见 [`../../../docs/testing-strategy.md`](../../../docs/rules/testing-strategy.md)。
 
 ## 负责什么
 

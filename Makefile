@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-budget check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -34,6 +34,10 @@ check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
 .PHONY: check-doc-commands
 check-doc-commands: ## 文档里提到的 make 目标与脚本是否真实存在
 	@bash scripts/check-doc-commands.sh
+
+.PHONY: check-doc-links
+check-doc-links: ## 文档里的相对链接指向的文件真实存在
+	@bash scripts/check-doc-links.sh
 
 .PHONY: check-doc-budget
 check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大文档读法块
@@ -48,7 +52,7 @@ docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/
 check-index: check-util-index check-test-index check-i18n ## 校验工具库索引、测试索引、i18n 词条
 
 .PHONY: check-i18n
-check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/i18n.md）
+check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/rules/i18n.md）
 	@bash scripts/check-i18n.sh
 
 .PHONY: check-util-index
@@ -148,7 +152,7 @@ check-icons: ## 图标产物是否与源 SVG 同步
 probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/codex.json  codex
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/claude.json claude
-	@echo "报告已更新。对照 docs/acp-field-notes.md §7.1 核对差异。"
+	@echo "报告已更新。对照 docs/notes/acp-field-notes.md §7.1 核对差异。"
 
 # ══ 本地服务（规范见 run-services skill）════════════════════════
 # 端口写死：duetd 7777 · vite 5173。幂等启动、干净关闭。
@@ -185,7 +189,7 @@ dev-web: dev ## dev 的别名（历史文档里用过这个名字）
 dev-app: ## Tauri 壳联调（需要 Rust 工具链）
 	cd $(SHELLDIR) && pnpm tauri dev
 
-# ══ worktree（规范见 docs/git-workflow.md §4）════════════════════
+# ══ worktree（规范见 docs/rules/git-workflow.md §4）════════════════════
 .PHONY: wt
 wt: ## 建并行工作区： make wt NAME=feat/acp-session-cancel
 	@bash scripts/worktree.sh add "$(NAME)"

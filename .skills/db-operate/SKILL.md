@@ -5,7 +5,7 @@ description: 连接、查询、调试、修改 Duet 的 SQLite 数据库时使�
 
 # 数据库操作
 
-> 设计规范在 [`docs/database.md`](../../docs/database.md)（表怎么建、模型怎么写）。
+> 设计规范在 [`docs/database.md`](../../docs/rules/database.md)（表怎么建、模型怎么写）。
 > **本文只管「怎么连、怎么查、怎么调、怎么改」。**
 
 ## 三条红线

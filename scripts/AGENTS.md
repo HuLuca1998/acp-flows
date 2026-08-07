@@ -55,74 +55,41 @@ bash -n scripts/xxx.sh           # 语法检查
 - 你要强制的那条规则出自哪份文档 —— 检查逻辑必须和文档一字对应，
   文档说 400 行，脚本就不能写 500
 
-## ★ 四个反复踩的 shell 陷阱
-
-写检查脚本时**每次都要对照这四条**。前三条我在同一个仓库里各踩过 2–3 次，
-说明只写一句「注意」是不够的。
-
-### 1. `set -e` + `[[ ]] && cmd`
+## ★ 动手写之前：先过一遍 shell 陷阱清单
 
 ```bash
-set -euo pipefail
-[[ -n $found ]] && report "$found"     # ✗ $found 为空时整个脚本退出
-if [[ -n $found ]]; then report "$found"; fi   # ✓
+grep -n '^## Shell' -A2 docs/notes/pitfalls.md      # P-01 ~ P-06
 ```
 
-AND 列表整体失败会触发 `set -e`。**检查脚本里「没发现问题」是最常见的路径**，
-所以这个 bug 表现为「脚本永远静默退出 1」，最难排查。
+**P-01（`set -e` + `[[ ]] && cmd` 静默退出）在本仓库已经被踩了 4 次。**
+写检查脚本时它必然出现——因为「没发现问题」正是检查脚本最常见的路径。
 
-### 2. `set -o pipefail` + 管道里的 `grep` / `find`
+细节不在这里，在 [`docs/notes/pitfalls.md`](../docs/notes/pitfalls.md)（一件事只写一处）：
 
-```bash
-x=$(find . -name '*.go' | grep foo | sort)          # ✗ grep 无匹配返回 1 → 整脚本死
-x=$(find . -name '*.go' | { grep foo || true; } | sort)   # ✓
-x=$(... | sort || true)                                    # ✓ 收尾兜底
-```
+| 编号 | 一句话 |
+|---|---|
+| P-01 | `set -e` 下 `[[ ]] && cmd`，条件为假时脚本静默终止 |
+| P-02 | `pipefail` + `grep` 无匹配 / `find` 权限错 → 整条管道失败 |
+| P-03 | `case` 的 `)` 在 `$( )` 里造成括号失配 |
+| P-04 | `find -not -path './node_modules/*'` 只排除顶层 |
+| P-05 | macOS 自带 bash 是 3.2，没有 `mapfile` / `declare -A` |
+| P-06 | `nohup` 继承父进程 stdout 管道 → `make` 挂住 |
 
-`grep` 无匹配、`find` 遇到无权限目录，都会返回非零。**在检查脚本里这两件事都是常态。**
+### 验证方式 —— 不能省
 
-### 3. `case` 的 `)` 在 `$(...)` 里让括号失衡
+**改完必须手动造一个负例，确认脚本真的会红。** `bash -n` 只查语法，
+上面这些都是运行时行为，语法检查一个都查不出来。
 
-```bash
-x=$(... | while read -r s; do
-      case "$s" in *xxx*) continue ;; esac   # ✗ syntax error near `;;`
-    done)
+> 「配置了 ≠ 生效了」在本仓库已经发生过两次（见 pitfalls P-01、P-09）。
+> **一个永远绿的检查比没有检查更糟**——它会让人以为这条规则有人守。
 
-x=$(... | while read -r s; do
-      [[ $s == *xxx* ]] && continue          # ✓
-    done)
-```
-
-命令替换里**不要用 `case`**，用 `[[ ]]`。
-
-### 4. `find` 剪枝要用 `-prune`
-
-```bash
-find . -not -path './node_modules/*'    # ✗ 只匹配顶层，漏掉 ./frontend/node_modules/
-find . \( -name node_modules \) -prune -o -name '*.md' -print   # ✓
-```
-
-漏剪的后果很直观：几千个第三方 README 的散文被当成待检查内容。
-
-### 验证方式
-
-**改完必须手动造一个负例**，确认脚本真的会红。`bash -n` 只查语法，
-查不出上面四条——它们都是运行时行为。
-
-> ⚠️ **造负例时不要用 `git reset --hard` 收尾。** 它会连同你尚未提交的修改
-> 一起抹掉——这个坑真踩过一次，刚写好的规则改动没了。
->
-> 用 `git reset --soft HEAD~1`（只退提交）或先 `git stash`。
-> 更稳的做法是**先提交你的改动，再造负例**。
+> ⚠️ 造负例时**不要用 `git reset --hard` 收尾**（pitfalls P-07，真的丢过东西）。
+> 先提交你的改动，再造负例。
 
 ---
 
 ## 本域特有的坑
 
-- **macOS 的 `bash` 是 3.2**，没有 `declare -A` 关联数组、没有 `${x@Q}`。
-  要么用数组模拟，要么在脚本头部检测 bash 版本。
 - **`grep` / `sed` 的 BSD 与 GNU 行为不同。** CI 跑 Linux，本地跑 macOS，
   两边都要过——优先用 POSIX 子集，或者用 `python3`（两边都有）。
 - **`find` 的 `-prune` 要放对位置**，否则会扫进 `node_modules`，慢到不可用。
-- **检查脚本自己要能被测。** 至少手动跑一次「应该失败」的场景，
-  确认它真的会红——一个永远绿的检查比没有检查更糟。

@@ -1,7 +1,7 @@
 # AGENTS.md · backend/internal/acp/jsonrpc
 
-> **就近优先**。规格见 [`../../../../docs/acp-integration.md`](../../../../docs/acp-integration.md)，
-> 实测坑见 [`../../../../docs/acp-field-notes.md`](../../../../docs/acp-field-notes.md)。
+> **就近优先**。规格见 [`../../../../docs/acp-integration.md`](../../../../docs/spec/acp-integration.md)，
+> 实测坑见 [`../../../../docs/acp-field-notes.md`](../../../../docs/notes/acp-field-notes.md)。
 
 ## 负责什么
 

@@ -1,14 +1,14 @@
 # 前端实现指南
 
 > 本文是 `frontend/` 的**实现规格**，写任何组件前必读；设计真源是
-> [`design/Duet Spec.dc.html`](../design/Duet%20Spec.dc.html)，**本文与它冲突时以设计稿为准**。
+> [`design/Duet Spec.dc.html`](../../design/Duet%20Spec.dc.html)，**本文与它冲突时以设计稿为准**。
 >
-> 界面原型（真实文案与结构）在 [`design/ACP Duet 1a.dc.html`](../design/ACP%20Duet%201a.dc.html)。
+> 界面原型（真实文案与结构）在 [`design/ACP Duet 1a.dc.html`](../../design/ACP%20Duet%201a.dc.html)。
 > `design/` 是**只读**的，不要改；发现缺口按 §14 走登记流程。
 
 > **读法**：本文 ~17k token，**不要整篇读**。写一个组件通常只需要
 > 「§7 的那一行 + §1 令牌 + §13 lint 规则」三处。规则见
-> [`ai-playbook.md`](ai-playbook.md) §1。
+> [`ai-playbook.md`](../ai-playbook.md) §1。
 >
 > | 你要做的事 | 读哪一节 | 定位 |
 > |---|---|---|
@@ -31,12 +31,12 @@
 
 | 你要找的东西 | 去哪 |
 |---|---|
-| 命名、文件组织、导入顺序、`enum` 禁用、Props 类型名、CSS Modules 类名 | [`coding-standards.md`](coding-standards.md) §4 |
+| 命名、文件组织、导入顺序、`enum` 禁用、Props 类型名、CSS Modules 类名 | [`coding-standards.md`](../rules/coding-standards.md) §4 |
 | 前端目录职责、平台适配层接口、状态管理分工、13 类事件枚举 | [`architecture.md`](architecture.md) §4–§5 |
-| 组合优于继承、注册表代替 switch、文件层级上限 | [`design-principles.md`](design-principles.md) §6 |
-| 词条 key、什么翻译什么不翻译、`Intl` 用法 | [`i18n.md`](i18n.md) |
-| 术语表、状态词、语气、按钮文案、禁止清单 | [`../AGENTS.md`](../AGENTS.md) §8 §9 |
-| 组件测试怎么写、E2E 黄金路径 | [`testing-strategy.md`](testing-strategy.md) §6 |
+| 组合优于继承、注册表代替 switch、文件层级上限 | [`design-principles.md`](../rules/design-principles.md) §6 |
+| 词条 key、什么翻译什么不翻译、`Intl` 用法 | [`i18n.md`](../rules/i18n.md) |
+| 术语表、状态词、语气、按钮文案、禁止清单 | [`../AGENTS.md`](../../AGENTS.md) §8 §9 |
+| 组件测试怎么写、E2E 黄金路径 | [`testing-strategy.md`](../rules/testing-strategy.md) §6 |
 | **令牌、层级、组件规格、布局数值、事件渲染器、设计合规 lint** | **本文** |
 
 本文**不重复** `coding-standards.md` §4 的任何内容。凡是命名与写法问题，回去读那份。
@@ -362,7 +362,7 @@ export type IconName = (typeof ICON)[keyof typeof ICON]
 `src/ui/` 是**设计系统原语**：无业务语义、不认识 Work / Unit / Contract、不发请求。
 带业务语义的组合体属于对应 `src/features/<name>/`。
 
-一文件一组件 + 同名 `.module.css`，见 [`coding-standards.md`](coding-standards.md) §4.2。
+一文件一组件 + 同名 `.module.css`，见 [`coding-standards.md`](../rules/coding-standards.md) §4.2。
 
 | 设计规范条目 | 文件 | 备注 |
 |---|---|---|
@@ -825,7 +825,7 @@ export function tooltipProps(label: string): { title: string; 'data-tt': string 
 ```
 
 - `title` 与 `data-tt` **两个都要**：`title` 给可访问性与原生兜底，`data-tt` 给统一样式。
-- `label` 必须来自 `t()`，不是硬编码字符串（[`i18n.md`](i18n.md) §5）。
+- `label` 必须来自 `t()`，不是硬编码字符串（[`i18n.md`](../rules/i18n.md) §5）。
 - 样式由**全局** `[data-tt]:hover::after` 提供，写在 `src/design/duet.css`：
   `--color-surface` 底、1px `--color-neutral-800` 描边、11px、`--radius-tip`、
   `top: calc(100% + 7px)`、`z-index: var(--z-tooltip)`、`pointer-events: none`。
@@ -869,12 +869,12 @@ export function tooltipProps(label: string): { title: string; 'data-tt': string 
 
 ## 11. 文案与术语
 
-术语表是 [`../AGENTS.md`](../AGENTS.md) §8，**不要在本文重抄**。
-词条怎么存、怎么取、什么翻译什么不翻译，见 [`i18n.md`](i18n.md)——本文只管**视觉与措辞**。
+术语表是 [`../AGENTS.md`](../../AGENTS.md) §8，**不要在本文重抄**。
+词条怎么存、怎么取、什么翻译什么不翻译，见 [`i18n.md`](../rules/i18n.md)——本文只管**视觉与措辞**。
 
 | 规则 | 前端落地 |
 |---|---|
-| 界面语言简体中文 | 所有面向用户的字符串走 `t()`，词条真源 `src/i18n/locales/zh-CN.json`（[`i18n.md`](i18n.md) §4） |
+| 界面语言简体中文 | 所有面向用户的字符串走 `t()`，词条真源 `src/i18n/locales/zh-CN.json`（[`i18n.md`](../rules/i18n.md) §4） |
 | **状态词一律英文原值、不翻译、等宽显示** | `clarifying` `planning` `ready` `executing` `reviewing_unit` `waiting_user` `paused` `completed` `failed` —— 只经过 `StatusText` 一个出口，用 `--font-mono` |
 | 标识符保留英文并等宽 | `Work` `Plan` `Subplan` `Unit` `UnitContract` `Attempt` `Evidence` `Checkpoint` `worktree` `set_mode` `request_permission` |
 | **按钮用动词短语** | ✓ `创建 worktree 并开始` `请求 push 授权` `打开证据抽屉` ／ ✗ `确定` `提交` `OK` |
@@ -939,7 +939,7 @@ src/platform/
 **禁止裸 hex 字面量、禁止裸 px 字面量、字体只能 Inter**。
 本仓库不跑 oxlint，把它转译成 ESLint + Stylelint。
 
-> **规则改了但没有强制手段 = 规则没改**（[`coding-standards.md`](coding-standards.md) §6）。
+> **规则改了但没有强制手段 = 规则没改**（[`coding-standards.md`](../rules/coding-standards.md) §6）。
 > 本节的每条规则都必须真的进配置文件，不是写在文档里就算数。
 
 ### 13.1 Stylelint（`frontend/.stylelintrc.json`）
@@ -1070,7 +1070,7 @@ src/platform/
 }
 ```
 
-命名、导入顺序、`enum` 禁用等规则见 [`coding-standards.md`](coding-standards.md) §4，本文不重复。
+命名、导入顺序、`enum` 禁用等规则见 [`coding-standards.md`](../rules/coding-standards.md) §4，本文不重复。
 
 ### 13.4 类型层强制（比 lint 更靠谱的部分）
 
@@ -1214,7 +1214,7 @@ make check                   # 提交前必跑
 > 这些是设计规范里**找不到条目**、但界面上确实需要的东西。
 > 全部**从既有令牌与设计规则推导**，不是发明——每条都注明推导依据。
 >
-> 裁定见 [`adr/0006-open-question-rulings.md`](adr/0006-open-question-rulings.md)。
+> 裁定见 [`adr/0006-open-question-rulings.md`](../adr/0006-open-question-rulings.md)。
 > **设计侧可推翻**：推翻时回 Claude Design 项目改 `Duet Spec.dc.html`，
 > 同步下来后删掉这里对应条目。
 

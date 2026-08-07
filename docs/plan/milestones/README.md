@@ -68,7 +68,7 @@ U<里程碑>.<子计划>.<单元>   U0.1.2
 ## 依赖与并行
 
 每章开头画子计划 DAG。**无依赖关系的子计划可以并行**，用 worktree 隔离
-（见 [`../git-workflow.md`](../git-workflow.md) §4）。
+（见 [`../git-workflow.md`](../../rules/git-workflow.md) §4）。
 
 并行的前提是**文件不重叠**。切不开就别并行——串行比合并冲突便宜。
 

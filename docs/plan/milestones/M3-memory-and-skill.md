@@ -1,8 +1,8 @@
 # M3 · 记忆与 Skill
 
 > 体系与编号规则见 [`README.md`](README.md)。开工前必读
-> [`../domain-model.md`](../domain-model.md) §14 §15（规格）、
-> [`../acp-field-notes.md`](../acp-field-notes.md) §4（**隔离与注入的已跑通方案**）与
+> [`../domain-model.md`](../../spec/domain-model.md) §14 §15（规格）、
+> [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §4（**隔离与注入的已跑通方案**）与
 > [`../open-questions.md`](../open-questions.md)（P2 / P3 里有多条挡着本里程碑）。
 
 > **读法**：本文 ~10k token，**不要整篇读**。标准读法是三段：
@@ -364,7 +364,7 @@ S3.3 跨项目记忆 L3                           │
 
 ## S3.5 · Skill 注入通道与隔离开关 ★
 
-> **本子计划的方案已经在真机上跑通，直接照抄 [`../acp-field-notes.md`](../acp-field-notes.md) §4，
+> **本子计划的方案已经在真机上跑通，直接照抄 [`../acp-field-notes.md`](../../notes/acp-field-notes.md) §4，
 > 不要重新设计。** 那一节里的每条结论都是 B 级实测（`claude-agent-acp 0.63.0` ·
 > `codex-acp 1.1.7`），偏离它就是把已经付过学费的坑再踩一遍。
 

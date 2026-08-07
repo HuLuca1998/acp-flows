@@ -37,7 +37,7 @@ app（高层，定义接口） ◀── store / acp / gitx（低层，实现接
 
 `app` 定义 `WorkRepo`，`store` 去实现它。**`app` 永远不知道 SQLite 的存在。**
 
-这条由 `depguard` 强制，不是靠自觉。见 [`architecture.md`](architecture.md) §3。
+这条由 `depguard` 强制，不是靠自觉。见 [`architecture.md`](../spec/architecture.md) §3。
 
 ### 2.2 单一职责 —— 用「改动理由」判定
 

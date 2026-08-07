@@ -2,7 +2,7 @@
 
 - **日期**：2026-08-07
 - **状态**：已接受
-- **相关**：[`../database.md`](../database.md)（设计规范）· `db-operate` skill（操作手册）
+- **相关**：[`../database.md`](../rules/database.md)（设计规范）· `db-operate` skill（操作手册）
 
 ## 背景
 
@@ -22,7 +22,7 @@ Duet 需要存 Work / Plan / Unit / Contract / Attempt / Evidence / Decision / C
 
 代价是 GORM 有一批**著名的隐式行为**（`Updates` 忽略零值、`Find` 不返回
 `ErrRecordNotFound`、`Save` 全字段覆盖、Hooks 藏业务逻辑）。
-这些不是「注意一下」能解决的——[`../database.md`](../database.md) §9 逐条写了规则，
+这些不是「注意一下」能解决的——[`../database.md`](../rules/database.md) §9 逐条写了规则，
 **每条都要有测试守着**。
 
 ### 2. 只用 SQLite，不做 MySQL
@@ -52,7 +52,7 @@ M1 要在 CI 上交叉编译 `duetd` 给两个架构再合 universal —— **CG
 `AutoMigrate` 不删列、不改类型、不重命名，没有 down 路径，行为随 GORM 版本变化。
 
 **用户机器上的数据库是用户的数据**，不能让一个隐式推导去改它。
-版本化迁移 + checksum 校验 + 迁移前自动备份，见 [`../database.md`](../database.md) §5。
+版本化迁移 + checksum 校验 + 迁移前自动备份，见 [`../database.md`](../rules/database.md) §5。
 
 ### 5. GORM 实体与领域模型严格分离 ★
 

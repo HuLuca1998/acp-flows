@@ -1,6 +1,6 @@
 # 数据库与模型设计规范
 
-> 选型理由见 [`adr/0005-persistence.md`](adr/0005-persistence.md)。
+> 选型理由见 [`adr/0005-persistence.md`](../adr/0005-persistence.md)。
 > 调试与改数据的操作手册在 `db-operate` skill，**不在本文**——本文只管「怎么设计」。
 
 | | |

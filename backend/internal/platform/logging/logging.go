@@ -3,7 +3,7 @@
 // 存在的理由：**日志是 AI 调试时的唯一观测面**。人可以 attach 调试器、看界面、
 // 凭经验猜；AI 只能看日志。所以标准比一般项目高——结构化、可查询、可按域调级别。
 //
-// 规范见 docs/logging.md。
+// 规范见 docs/rules/logging.md。
 package logging
 
 import (
@@ -127,7 +127,7 @@ type Entry struct {
 // Sink 是日志的落库去处。
 //
 // ★ Write **不返回 error**：这是刻意的设计。落库失败只能降级为「只写 stderr」，
-// 绝不向上抛——日志系统挂掉不该让产品挂掉（docs/logging.md §6）。
+// 绝不向上抛——日志系统挂掉不该让产品挂掉（docs/rules/logging.md §6）。
 // 签名上就不给调用方处理错误的机会，避免有人写出 `if err := sink.Write(); err != nil { return err }`。
 type Sink interface {
 	Write(Entry)
@@ -220,7 +220,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		})
 	}
 
-	// stderr 的门槛与落库不同（docs/logging.md §2 的表）：
+	// stderr 的门槛与落库不同（docs/rules/logging.md §2 的表）：
 	//   TRACE  永不进 —— 它是报文全文，量大到会把生命周期日志完全淹掉
 	//   DEBUG  只在有效门槛调到 DEBUG 及以下时才进
 	//   INFO+  总是进
@@ -235,7 +235,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 // stderrEligible 报告这条记录该不该写到 stderr。
 //
 // TRACE 是硬排除，不受门槛影响——把它放进 stderr 等于让 `make dev-logs` 不可用。
-// 要看 TRACE 就去查库（docs/logging.md §9）。
+// 要看 TRACE 就去查库（docs/rules/logging.md §9）。
 func stderrEligible(lv, threshold slog.Level) bool {
 	if lv <= LevelTrace {
 		return false

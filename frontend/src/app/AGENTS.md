@@ -1,7 +1,7 @@
 # AGENTS.md · frontend/src/app
 
 > **就近优先**。前端总规则见 [`../../AGENTS.md`](../../AGENTS.md)，
-> 实现规格见 [`../../../docs/frontend-guide.md`](../../../docs/frontend-guide.md)。
+> 实现规格见 [`../../../docs/frontend-guide.md`](../../../docs/spec/frontend-guide.md)。
 
 ## 负责什么
 

@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 // dev-web 形态：vite 把 /v1 代理到 duetd，前端不需要知道端口。
-// 见 docs/architecture.md §2。
+// 见 docs/spec/architecture.md §2。
 const DUETD_PORT = process.env.DUET_PORT ?? '7777'
 
 export default defineConfig({

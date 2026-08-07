@@ -9,7 +9,7 @@ import styles from './App.module.css'
  * 应用骨架。当前是 M0 的冒烟页面——只证明令牌、i18n、组件、构建这条链是通的。
  *
  * 真正的三栏布局（窗口栏 42 / 左栏 252 / 主区 800 / 右栏 300）在 M2 的 S2.9，
- * 规格见 docs/frontend-guide.md §8。
+ * 规格见 docs/spec/frontend-guide.md §8。
  */
 export function App() {
   const { t } = useTranslation()
