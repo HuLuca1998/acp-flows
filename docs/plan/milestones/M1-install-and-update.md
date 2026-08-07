@@ -6,6 +6,10 @@
 > 没有一键更新，这个循环每次都要卸载重装。
 > 所以**第一个交到他手上的版本里就必须已经带着一键更新**。
 
+> **进度（2026-08-07）**：S1.1 三个单元已完成（平台适配层 / 更新卡片 / 一键更新流程）。
+> 壳已能拉起 `duetd` 并常驻菜单栏，本地打出的 `.app` 跑通了四类产物与签名校验。
+> **卡点在 `U1.2.1` 第 ③ 步**：私钥进 GitHub Secrets 必须由人执行，见下。
+
 ## 目标
 
 **用户下载一个 `.dmg`，装上能打开；之后我每发一个版本，他在设置页点一下就更新完了，工作不丢。**
@@ -57,7 +61,7 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 
 **用户拿到什么**：设置页里的更新卡片。这是 V2 的界面一半。
 
-### ○ U1.1.1 · 平台适配层：Tauri 有 updater，浏览器没有
+### ✓ U1.1.1 · 平台适配层：Tauri 有 updater，浏览器没有  ·  `aba9010`
 
 | | |
 |---|---|
@@ -75,7 +79,7 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 | R3 | 检测形态**不靠 UA 猜**，靠壳注入的标记 | 断言没有 `window.__TAURI__` 时判为 Web |
 | R4 | 非 `platform/` 文件 import `@tauri-apps/*` 会被拦 | 故意写一行，`make lint-frontend` 必须红 |
 
-### ○ U1.1.2 · 更新卡片：看得懂、点得动
+### ✓ U1.1.2 · 更新卡片：看得懂、点得动  ·  `6c301a4`
 
 | | |
 |---|---|
@@ -98,7 +102,7 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 > **R4 是这个单元最重要的一条。** 网络断了却显示「已是最新版本」，
 > 用户永远不会知道自己在用旧版——这类故障没有任何症状。
 
-### ○ U1.1.3 · 一键更新的完整流程与失败处理
+### ✓ U1.1.3 · 一键更新的完整流程与失败处理  ·  `aba9010`
 
 | | |
 |---|---|
@@ -123,7 +127,7 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 
 **用户拿到什么**：一个能下载、能安装的 `.dmg`。这是 V1。
 
-### ○ U1.2.1 · minisign 密钥与 GitHub Secrets
+### ◐ U1.2.1 · minisign 密钥与 GitHub Secrets  ·  `2696c0b`（**卡在第 ③ 步：等人执行**）
 
 | | |
 |---|---|
@@ -140,7 +144,22 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 | R2 | 给用户的操作步骤可照抄执行 | 断言文档里每条命令都能直接粘贴运行 |
 | R3 | 私钥有离线备份方案 | 断言文档写明备份位置与丢失后的补救（重发公钥 = 老版本无法更新） |
 
-> **这是 M1 唯一必须用户亲自操作的一步。** 我不碰密钥材料。
+> **这是 M1 唯一必须用户亲自操作的一步。** AI 不碰密钥材料。
+>
+> **当前状态（2026-08-07）**：
+> - ✓ 密钥对已生成在 `~/.duet-updater/updater.key`（无口令），权限 0600
+> - ✓ 公钥已写进 `shell/src-tauri/tauri.conf.json`，与签名 key ID 对得上
+>   （`C8E416816471A7C9`，已用真包验证过）
+> - ⬜ **私钥进 GitHub Secrets —— 等人执行**：
+>   ```bash
+>   gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.duet-updater/updater.key
+>   gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body ""
+>   ```
+>
+> ★ **接手的 AI 注意**：这一步**不要代做**。把私钥、口令、令牌这类凭据
+> 输入到任何地方（含 `gh secret set`）是硬约束，用户明确授权也不解除。
+> 没有这个 Secret，CI 签不出 `.sig`，`U1.2.2` 一定失败——
+> 遇到就停下来找人，不要试图绕过。
 
 ### ○ U1.2.2 · 发一个真实版本并验证四类产物
 

@@ -93,6 +93,27 @@ jobs:
         if: steps.existing.outputs.exists != 'true'
         run: make check-docs && make check-doc-commands && make check-doc-budget && make check-index
 
+      # ★ 签名密钥没配就**在这里失败**，别让 macOS runner 白跑。
+      #
+      # 没有它 tauri-action 会一路跑到打包完才报
+      # `failed to sign updater artifact`，那时已经烧掉十几分钟的
+      # 10 倍计费额度，而报错信息还看不出根因。
+      - name: 前置检查 · 更新签名密钥
+        if: ${{ !inputs.dry_run }}
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SIGNING_KEY:-}" ]; then
+            echo "::error::缺少 secret TAURI_SIGNING_PRIVATE_KEY —— 客户端会拒绝一切更新。"
+            echo "补齐方式（**必须由人执行**，不要让 AI 代做）："
+            echo "  gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.duet-updater/updater.key"
+            echo "  gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body \"\""
+            echo "密钥还没生成的话见 docs/spec/release-and-update.md「私钥存三处」。"
+            exit 1
+          fi
+          echo "✓ 更新签名密钥已配置"
+
       - name: 生成 release notes
         if: steps.existing.outputs.exists != 'true'
         run: bash scripts/release/release-notes.sh "${{ steps.meta.outputs.tag }}" > notes.md
@@ -207,6 +228,29 @@ jobs:
           includeUpdaterJson: true
           args: --target universal-apple-darwin
 
+      # dry run 也走签名与 ad-hoc：不签的话这条流水线验证不到签名链路，
+      # 而那恰恰是最容易在真发版当天才炸的一环。
       - name: 仅构建（dry run）
         if: ${{ inputs.dry_run }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: '-'
         run: cd shell && pnpm install --frozen-lockfile && pnpm tauri build --target universal-apple-darwin
+
+      # 产出物齐不齐**在流水线里断言**，不靠人事后去 Release 页面数。
+      # 少一类就是「用户装得上但更新不了」，而那要等到下一次发版才会暴露。
+      - name: 校验四类产物齐备
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          names=$(gh release view "$TAG" --json assets --jq '[.assets[].name] | join(" ")')
+          echo "产物: $names"
+          for pat in '\.dmg$' '\.app\.tar\.gz$' '\.app\.tar\.gz\.sig$' '^latest\.json$'; do
+            echo "$names" | tr ' ' '\n' | grep -qE "$pat" \
+              || { echo "::error::缺少产物: $pat"; exit 1; }
+          done
+          echo "✓ .dmg / .app.tar.gz / .sig / latest.json 四类齐备"
