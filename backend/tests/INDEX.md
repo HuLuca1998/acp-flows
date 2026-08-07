@@ -131,3 +131,10 @@
 | `TestListRuntimes_EmptyIsArrayNotNull` | `internal/api/runtimes_test.go` | api | ★ `runtimes` 空时是 `[]` 不是 `null`——新用户第一次打开设置页正是这个状态，前端对 null 调 `.map()` 会白屏 |
 | `TestListRuntimes_MissingDetectorDoesNotBreakOtherEndpoints` | `internal/api/runtimes_test.go` | api | ★ 没配检测器时不回 200 空列表（那会把「检测不了」显示成「一个都没装」），且不连累其他端点 |
 | `TestListRuntimes_DetectsOncePerRequest` | `internal/api/runtimes_test.go` | api | 一次请求只探一轮——探测要拉子进程，重复探测会让设置页明显变慢 |
+| `TestProbe` | `internal/gitx/probe_test.go` | gitx | 用真 git 仓库探测：仓库/普通目录/路径不存在/路径是文件四种情形；**非 git 仓库不算错误**（当成错误的话用户得先去命令行 git init） |
+| `TestProbe_WritesNothing` | `internal/gitx/probe_test.go` | gitx | ★★ 探测**不往用户仓库写一个字节**——同时比 `git status` 与完整文件列表（只比 status 抓不到写进 .gitignore 或被忽略路径的情况） |
+| `TestProbe_EmptyRepo` | `internal/gitx/probe_test.go` | gitx | 刚 `git init` 还没有 commit 时 HEAD 指向不存在的引用——这是「新建文件夹→git init→加进 Duet」的真实路径，不能崩 |
+| `TestNewProject` | `internal/domain/model/project_test.go` | domain | 构造项目：**相对路径被拒**（相对路径在 duetd 的工作目录下解析，那是用户完全不知道的位置）；末尾斜杠被规整；根目录的显示名不能是空字符串 |
+| `TestProject_PathIsNormalized` | `internal/domain/model/project_test.go` | domain | `/a/b`、`/a/b/`、`/a/./b`、`/a/c/../b` 规整成同一个 Path——否则用户从 Finder 拖两次会看到两条一样的记录 |
+| `TestProject_RenameDoesNotTouchPath` | `internal/domain/model/project_test.go` | domain | ★ 改显示名**不动 path**——两者跟着一起变的话 Duet 会去操作一个不存在的目录 |
+| `TestProject_RenameRejectsBlank` | `internal/domain/model/project_test.go` | domain | 空白名被拒且不落地（界面上会显示成一行空白，看起来像记录丢了） |
