@@ -109,6 +109,17 @@ export default tseslint.config(
     },
   },
 
+  // ★ src/api/ 是唯一允许裸 fetch 的地方。
+  //
+  // 上面那条规则的本意是「网络调用集中在 api 层」，而不是「永远不许 fetch」——
+  // SSE 走不了 openapi-fetch（它处理的是一次性 JSON 响应，不吐流），
+  // 而 EventSource 带不了 Authorization 头（真机上 /v1/events 一路 401）。
+  // 具体理由写在 src/api/events.ts 的文件头。
+  {
+    files: ['src/api/**/*.ts'],
+    rules: { 'no-restricted-globals': 'off' },
+  },
+
   // platform/ 是唯一可以 import Tauri 的地方
   {
     files: ['src/platform/**/*.{ts,tsx}'],
