@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { listRuntimes } from '@/api/system'
 import { NAV_PAGES, type PageId } from '@/app/pages'
+import type { Runtime } from '@/models/runtime'
 import { Skeleton } from '@/ui/Skeleton'
 
 import styles from './Rail.module.css'
@@ -20,8 +23,43 @@ export type RailProps = {
   width?: number
 }
 
+/**
+ * Runtime 状态 → 词条 key 的**显式映射**。
+ *
+ * ★ 不许写成 `rail.runtimeState.${status}`：动态拼接之后静态分析查不出
+ * 词条缺失，删掉一条也没有任何检查会红（docs/rules/i18n.md §4）。
+ *
+ * ★ 认不出的状态用兜底文案，**不把原始码显示给用户**——
+ * `not_authenticated` 这种字符串对他没有意义。
+ */
+const RUNTIME_STATE_KEY: Record<string, string> = {
+  ready: 'rail.runtimeState.ready',
+  not_installed: 'rail.runtimeState.not_installed',
+  not_authenticated: 'rail.runtimeState.not_authenticated',
+  probe_failed: 'rail.runtimeState.probe_failed',
+}
+
+function runtimeStateKey(status: string | undefined): string {
+  return (status === undefined ? undefined : RUNTIME_STATE_KEY[status]) ?? 'rail.runtimeState.unknown'
+}
+
 export function Rail({ currentPage, onNavigate, collapsed = false, width }: RailProps) {
   const { t } = useTranslation()
+  const [runtimes, setRuntimes] = useState<Runtime[] | null>(null)
+  const [probeFailed, setProbeFailed] = useState(false)
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        setRuntimes(await listRuntimes())
+      } catch {
+        // ★ 查不到**不能让左栏整个白掉**。后端没起来时用户最需要的正是这条
+        // 左栏——他要点进设置页看看怎么回事，而抛异常会让整棵组件树塌掉。
+        setProbeFailed(true)
+        setRuntimes([])
+      }
+    })()
+  }, [])
 
   return (
     <aside
@@ -63,12 +101,41 @@ export function Rail({ currentPage, onNavigate, collapsed = false, width }: Rail
       </section>
       )}
 
+      {/* 折叠成 48px 图标条时不显示——硬塞会溢出 */}
       {!collapsed && (
-      <footer className={styles.runtimeBar}>
-        <span className={styles.runtimeLabel}>{t('rail.runtime')}</span>
-        <span className={styles.runtimeHint}>{t('rail.runtimeUnknown')}</span>
-      </footer>
+        <footer className={styles.runtimeBar}>
+          <span className={styles.runtimeLabel}>{t('rail.runtime')}</span>
+          {renderRuntimes()}
+        </footer>
       )}
     </aside>
   )
+
+  function renderRuntimes() {
+    // 还没查回来：留空而不是先说「没有」——闪一下「没有」再变成两个，
+    // 比慢半拍更让人怀疑自己看错了
+    if (runtimes === null) {
+      return <span className={styles.runtimeHint}>{t('rail.runtimeProbing')}</span>
+    }
+    if (runtimes.length === 0) {
+      return (
+        <span className={styles.runtimeHint}>
+          {t(probeFailed ? 'rail.runtimeProbeFailed' : 'rail.runtimeNone')}
+        </span>
+      )
+    }
+
+    return runtimes.map((r) => (
+      // ★ data-status 既给样式用，也给测试用：ready 与 not_authenticated
+      // 对用户是两件事——后者意味着他得去登录，界面不说他就一直等
+      <span key={r.name} className={styles.runtimeRow} data-runtime={r.name} data-status={r.status}>
+        <span className={styles.runtimeDot} aria-hidden="true" />
+        <span className={styles.runtimeName}>
+          {r.name}
+          {r.active_version !== undefined && r.active_version !== '' && ` ${r.active_version}`}
+        </span>
+        <span className={styles.runtimeState}>{t(runtimeStateKey(r.status))}</span>
+      </span>
+    ))
+  }
 }

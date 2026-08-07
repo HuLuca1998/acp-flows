@@ -82,7 +82,7 @@
 .runtimeBar {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   margin-top: auto;
   padding: var(--space-3);
   border-top: 1px solid var(--color-neutral-900);
@@ -97,6 +97,53 @@
   color: var(--color-neutral-500);
   font-family: var(--font-mono);
   font-size: 11px;
+}
+
+/* 一行一个 Runtime，照设计稿：圆点 + 名称版本 + 右对齐的状态词。 */
+.runtimeRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+
+  /* 左栏可以被拖窄，名称长了要截断而不是把整条栏撑开 */
+  min-width: 0;
+  color: var(--color-neutral-400);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.runtimeDot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+
+  /* 默认是「没在就绪」的灰。就绪由下面的 data-status 覆盖成强调色——
+     这样新增一个状态时，不写规则也是灰的，不会误报成就绪。 */
+  background: var(--color-neutral-600);
+}
+
+.runtimeRow[data-status='ready'] .runtimeDot {
+  background: var(--color-accent-400);
+}
+
+/* 未安装 / 未登录 / 检测失败都要用户去做点什么，用同一个警示色 */
+.runtimeRow[data-status='not_installed'] .runtimeDot,
+.runtimeRow[data-status='not_authenticated'] .runtimeDot,
+.runtimeRow[data-status='probe_failed'] .runtimeDot {
+  background: var(--color-fail);
+}
+
+.runtimeName {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.runtimeState {
+  margin-left: auto;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
 }
 
 .rail {
