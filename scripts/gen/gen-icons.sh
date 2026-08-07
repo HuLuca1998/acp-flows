@@ -13,7 +13,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC="$ROOT/design/icon/duet.svg"
+# 两个源：app 图标是彩色的（Dock 里显示），菜单栏图标是纯黑 template（系统自动反色）
+DEFAULT_SRC="$ROOT/design/icon/duet.svg"
+TRAY_SRC="$ROOT/design/icon/duet-tray.svg"
+SRC="$DEFAULT_SRC"
 # 输出目录可覆盖，供 check-icons.sh 生成到临时目录后与仓库内产物比对。
 OUT="${ICON_OUT_DIR:-$ROOT/shell/src-tauri/icons}"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/duet-icons.XXXXXX")"
@@ -57,8 +60,9 @@ fi
 # ── 光栅化 ──────────────────────────────────────────────────────────────────
 
 # render <边长> <输出 png 路径>
+# render <边长> <输出 png 路径> [源 svg，默认 $SRC]
 render() {
-  size="$1"; dest="$2"
+  size="$1"; dest="$2"; SRC="${3:-$DEFAULT_SRC}"
   case "$RENDERER" in
     sips) sips -s format png -Z "$size" "$SRC" --out "$dest" >/dev/null 2>&1 \
             || die "sips 光栅化失败：${size}px" \
@@ -83,6 +87,14 @@ render 32   "$OUT/32x32.png"
 render 128  "$OUT/128x128.png"
 render 256  "$OUT/128x128@2x.png"
 render 1024 "$OUT/icon.png"
+
+# ── 菜单栏图标 ──────────────────────────────────────────────────────────────
+#
+# ★ 与 app 图标是**两个源文件**，不是同一张图缩小。
+# 菜单栏图标是 template image：纯黑 + alpha、无背景板、线更粗，
+# 系统按明暗主题自动反色。拿彩色的 app 图标缩下去，在深色菜单栏上会糊成一团。
+render 22 "$OUT/tray.png"      "$TRAY_SRC"
+render 44 "$OUT/tray@2x.png"   "$TRAY_SRC"
 
 # ── icon.icns ───────────────────────────────────────────────────────────────
 # iconutil 只吃目录名以 .iconset 结尾、文件名严格按 icon_<W>x<H>[@2x].png 的目录。

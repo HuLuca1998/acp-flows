@@ -70,5 +70,31 @@ if [[ -d backend ]]; then
   if [[ -n $leak ]]; then say "生产代码禁止 import tests/testutil（见 testing-strategy.md §2）" "$leak"; fi
 fi
 
+# ── 7. Shell：变量引用后紧跟非 ASCII 必须用 ${var} ────────────
+#
+# ★ 真踩过（2026-08-07，services.sh 起不来）：
+#   echo "端口 $port）"     在 LC_CTYPE=C 下报 `port?: unbound variable`
+# C locale 里 bash 用 isalnum() 判断变量名边界，全角括号的首字节 \xef
+# 会被吞进变量名。开发机通常是 UTF-8 locale 所以看不出来，**CI 与
+# 非交互 shell 是 C locale**——于是"本地好好的，一上 CI 就崩"。
+#
+# 修法是显式界定：${port}）。中文注释与文案是本仓库的常态，这个组合会反复出现。
+naked=$(python3 - <<'PY' || true
+import pathlib, re
+pat = re.compile(rb'\$[a-zA-Z_][a-zA-Z0-9_]*(?=[\x80-\xff])')
+for p in sorted(pathlib.Path('scripts').rglob('*.sh')):
+    for n, raw in enumerate(p.read_bytes().split(b'\n'), start=1):
+        # 注释不会被 bash 求值，不可能触发这个 bug——
+        # 跳过它才能在注释里放反例示例教下一个人。
+        if raw.lstrip().startswith(b'#'):
+            continue
+        for m in pat.finditer(raw):
+            print(f"{p}:{n}: {m.group().decode()}")
+PY
+)
+if [[ -n $naked ]]; then
+  say "变量后紧跟中文时必须写 \${var}——C locale 下 bash 会把多字节首字节吞进变量名" "$naked"
+fi
+
 if [[ $fail -eq 1 ]]; then exit 1; fi
 echo "✓ 命名与文件组织规范检查通过"

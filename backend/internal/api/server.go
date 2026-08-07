@@ -4,7 +4,7 @@
 //
 // 目标形态是 handler 接口由 api/openapi.yaml 生成（铁律 2），当前是 M0 的
 // 最小骨架，只有 /v1/system/version，供 make dev-web 冒烟。
-// 生成器接入见 docs/plan/milestones/M0-acp-foundation.md U0.10.1。
+// 生成器接入见 docs/plan/roadmap.md 的「已经就绪的地基」（原单元 U0.10.1，编号已废弃）。
 package api
 
 import (
@@ -25,6 +25,9 @@ type Config struct {
 	Version string
 	// Commit 是构建时的 commit hash。
 	Commit string
+	// Update 是更新用例。为 nil 时更新端点返回 update_not_configured
+	// 而不是 panic —— 纯 Web 部署可以不接发布源。
+	Update updateService
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -45,6 +48,11 @@ func NewRouter(cfg Config) (http.Handler, error) {
 			Commit:   cfg.Commit,
 		})
 	})
+
+	// 更新链路：只检查、只判断能不能更新。**下载与安装是 Tauri updater 的事**，
+	// duetd 会在更新时被替换掉，让它管自己的替换过程是错的（docs/adr/0002）。
+	mux.HandleFunc("POST /v1/system/update/check", handleCheckUpdate(cfg.Update))
+	mux.HandleFunc("POST /v1/system/update/prepare", handlePrepareUpdate(cfg.Update))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

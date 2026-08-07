@@ -6,6 +6,10 @@ name: ci
 #      —— 否则被跳过的 required check 会让 PR 永远 pending
 #   ③ 便宜的先跑，让违规尽早暴露
 #
+# ★ 每个 job 都必须有 timeout-minutes。GitHub 的默认上限是 **6 小时**，
+#   而 macOS runner 按 10 倍计费——一个卡死的 shell job 就能烧掉
+#   60 小时的额度。上限按实测耗时的 3–5 倍给：够宽松不误杀，卡死时能止损。
+#
 # changes 除了探测「改了什么」，还探测「有没有脚手架」：
 # 子项目尚未创建时（M0 之前）相关 job 直接跳过，而不是在 setup-go 上硬失败。
 # 这样 CI 从第一天起就能跑通——一个跑不动的检查等于没有检查。
@@ -28,6 +32,7 @@ jobs:
   changes:
     name: changes
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     outputs:
       backend:  ${{ steps.filter.outputs.backend == 'true'  && steps.scaffold.outputs.backend == 'true' }}
       frontend: ${{ steps.filter.outputs.frontend == 'true' && steps.scaffold.outputs.frontend == 'true' }}
@@ -72,6 +77,7 @@ jobs:
   guard:
     name: guard
     runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,6 +120,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.contract == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +158,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -183,6 +191,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -204,6 +213,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.shell == 'true'
     runs-on: macos-14
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -214,15 +224,23 @@ jobs:
       # ★ tauri.conf.json 的 externalBin 声明了 binaries/duetd-<triple>，
       # 文件不在时**任何** cargo 命令都会失败（连 clippy 都跑不了），
       # 报的是 `resource path binaries/duetd-<triple> doesn't exist`。
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - name: 编 duetd sidecar
-        run: bash scripts/release/build-sidecar.sh
+      # sidecar 只是给 cargo 一个「文件存在」的占位——clippy 不会执行它。
+      # 真编一遍 Go 要 30–60s，而这里跑在 **10 倍计费**的 macOS runner 上。
+      # 用一个空文件顶替，把 Go 编译整个省掉。
+      # 真实产物由 release workflow 编（那里才需要能跑的二进制）。
+      - name: 放置 sidecar 占位
+        run: |
+          set -euo pipefail
+          mkdir -p shell/src-tauri/binaries
+          for triple in aarch64-apple-darwin x86_64-apple-darwin; do
+            : > "shell/src-tauri/binaries/duetd-$triple"
+            chmod +x "shell/src-tauri/binaries/duetd-$triple"
+          done
 
+      # clippy --all-targets 已经编过 test 目标了，再跑 cargo test 只是
+      # 把同一批产物链接一遍。壳这一层没有单元测试（行为只能靠真包验，
+      # 见 shell/src-tauri/src/CLAUDE.md），所以不值得为它多花一轮 macOS 时间。
       - run: cd shell/src-tauri && cargo clippy --all-targets -- -D warnings
-      - run: cd shell/src-tauri && cargo test
 
   # ── 汇总门禁 ★ 分支保护只 required 这一个 ─────────────────────
   # 被跳过的 job 算通过；失败或被取消才算不通过。
@@ -232,6 +250,7 @@ jobs:
     if: always()
     needs: [changes, guard, contract, backend, frontend, shell]
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - name: 检查所有 job 结果
         run: |
@@ -254,6 +273,7 @@ jobs:
       && needs.changes.outputs.has_backend == 'true'
       && needs.changes.outputs.has_frontend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

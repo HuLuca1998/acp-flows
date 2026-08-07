@@ -19,7 +19,10 @@
 
 | 函数 | 文件 | 签名 | 一句话说明 |
 |---|---|---|---|
-| _（尚无条目）_ | | | |
+| `STORAGE_KEYS` | `persisted.ts` | `Record<'locale'\|'railOpen'\|'contextOpen'\|'page', string>` | 界面偏好在 localStorage 里的键，集中登记避免拼错 |
+| `readPersisted` | `persisted.ts` | `<T>(key: string, fallback: T) => T` | 读界面偏好；**坏值/隐私模式一律退回 fallback，绝不抛** |
+| `writePersisted` | `persisted.ts` | `(key: string, value: unknown) => void` | 写界面偏好；写失败静默忽略（存不下不是功能故障） |
+| `usePersistedState` | `persisted.ts` | `<T>(key: string, initial: T) => [T, (next: T) => void]` | 像 `useState` 但重开应用后还在，用于折叠状态/语言/当前页 |
 
 <!--
 登记示例，新增时照抄这个格式：

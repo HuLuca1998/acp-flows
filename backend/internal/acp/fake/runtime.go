@@ -194,7 +194,7 @@ func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameW
 		return nil
 
 	case protocol.MethodSessionCancel:
-		// 只记录，不做任何事 —— 取消语义是 U0.4.2 与 S0.6 的题目。
+		// 只记录，不做任何事 —— 取消语义是 M3 的 U3.1.1 与 U3.2.1 的题目。
 		// ★ 这里绝不能顺手去重：去重是被测代码的职责。
 		return nil
 

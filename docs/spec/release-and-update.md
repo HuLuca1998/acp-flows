@@ -164,10 +164,26 @@ Apple 公证的开关在 workflow 里已预留，将来买了开发者账号只�
 
 ```bash
 cd shell
-pnpm exec tauri signer generate -w ~/.duet-updater/updater.key --password ""
-gh secret set TAURI_SIGNING_PRIVATE_KEY --body "$(cat ~/.duet-updater/updater.key)"
-# 把输出的公钥写回 shell/src-tauri/tauri.conf.json 的 plugins.updater.pubkey
+# ① 生成密钥对。输出会把私钥打到 stdout —— 重定向掉，别让它进终端历史或日志
+pnpm exec tauri signer generate -w ~/.duet-updater/updater.key -p "" --ci > /dev/null 2>&1
+chmod 700 ~/.duet-updater && chmod 600 ~/.duet-updater/updater.key
+
+# ② 公钥写进 tauri.conf.json 的 plugins.updater.pubkey（公钥是公开信息，随包分发）
+#    .pub 文件的内容本身就是 base64，整段原样填进去
+
+# ③ 私钥进 GitHub Secrets。**这一步必须由人自己跑**
+gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.duet-updater/updater.key
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body ""
 ```
+
+> **AI 协作者注意**：① 与 ② 可以代做，**③ 不行**。
+> 把私钥、口令、令牌这类凭据输入到任何地方（含 `gh secret set`）是硬约束，
+> 用户明确授权也不解除。代做的部分务必把 stdout 重定向掉——
+> `signer generate` 会把私钥打印出来，一旦进了对话记录或 CI 日志就等于泄露。
+
+**当前状态（2026-08-07）**：① ② 已完成（公钥已在 `tauri.conf.json` 里，
+私钥在 `~/.duet-updater/updater.key`，无口令）。**③ 待人工执行**——
+在此之前 release workflow 签不出 `.sig`，客户端也就装不上更新。
 
 > ⚠️ **私钥丢失 = 所有已安装客户端再也收不到更新**（公钥硬编码在旧版本里）。
 > 只能让用户手动重新下载安装。`~/.duet-updater/` 要加进隔离守卫的受保护列表。

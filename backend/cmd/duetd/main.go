@@ -24,10 +24,19 @@ import (
 	"time"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
+	"github.com/HuLuca1998/acp-flows/backend/internal/release"
 	"github.com/HuLuca1998/acp-flows/backend/internal/store"
 )
+
+// defaultReleaseManifest 是发布源上的 latest.json。
+//
+// ★ 必须与 shell/src-tauri/tauri.conf.json 的 plugins.updater.endpoints 一致：
+// 分成两个真源的话，界面说「有更新」而 updater 说「没有」，
+// 用户会点一个永远不动的按钮。
+const defaultReleaseManifest = "https://github.com/HuLuca1998/acp-flows/releases/latest/download/latest.json"
 
 // 构建时注入：go build -ldflags "-X main.version=1.5.0 -X main.commit=abc1234"
 var (
@@ -51,6 +60,11 @@ func run() error {
 	var (
 		port = flag.Int("port", 0, "监听端口，0 表示随机分配")
 		dev  = flag.Bool("dev", false, "开发模式：固定端口 7777，token 取自 DUET_DEV_TOKEN")
+		// updater 由 Tauri 壳在拉起 sidecar 时带上。纯 Web 形态下不带，
+		// 检查更新会直接返回 unsupported —— 浏览器里没有 updater，
+		// 提示了更新却点不动会把用户卡在没有出路的界面上。
+		updaterAvailable   = flag.Bool("updater", false, "本进程由 Tauri 壳拉起，具备自动更新能力")
+		releaseManifestURL = flag.String("release-manifest", defaultReleaseManifest, "发布源 latest.json 的地址")
 	)
 	flag.Parse()
 
@@ -103,7 +117,27 @@ func run() error {
 		return err
 	}
 
-	handler, err := api.NewRouter(api.Config{Token: token, Version: version, Commit: commit})
+	// 更新链路。发布源与 Tauri updater 查**同一个 latest.json**——
+	// 两个真源会让界面说「有更新」而 updater 说「没有」。
+	//
+	// UpdaterAvailable 由 --updater 决定：Tauri 壳拉起 sidecar 时带上它。
+	// 纯 Web 形态下为 false，检查更新直接返回 unsupported 且不发网络请求。
+	updateSvc, err := system.NewUpdateService(system.UpdateConfig{
+		CurrentVersion:   version,
+		UpdaterAvailable: *updaterAvailable,
+		Source:           release.NewHTTPSource(*releaseManifestURL, nil),
+		Works:            db.Works(),
+	})
+	if err != nil {
+		return fmt.Errorf("build update service: %w", err)
+	}
+
+	handler, err := api.NewRouter(api.Config{
+		Token:   token,
+		Version: version,
+		Commit:  commit,
+		Update:  updateSvc,
+	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
 	}

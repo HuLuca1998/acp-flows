@@ -141,6 +141,24 @@ frontend:
 
 ---
 
+## 4.5 额度：macOS runner 是 10 倍计费 ★
+
+每月的 Actions 额度有限，而 **macOS runner 按 10 倍扣**。
+下面几条都是实测省下来的，加新 job 时照着做：
+
+| 做法 | 省掉什么 |
+|---|---|
+| **每个 job 必须有 `timeout-minutes`** | GitHub 默认上限 **6 小时**——一个卡死的 macOS job 就能烧掉 60 小时额度。按实测耗时的 3–5 倍给 |
+| `concurrency` + `cancel-in-progress` | 连续推送时自动取消上一轮 |
+| 路径过滤（`changes` job）+ 各 job 的 `if` 守卫 | 只改文档时不跑 macOS |
+| macOS job 里**不编 Go sidecar**，用空文件占位 | 每次 30–60s。`clippy` 只要求文件存在，不会执行它 |
+| macOS job 里**不跑 `cargo test`** | `clippy --all-targets` 已经编过 test 目标；壳这层没有单元测试（行为只能靠真包验） |
+| 打 universal 包时第二次 `build.sh` 带 `--skip-frontend` | 前端 dist 与架构无关，重复 `pnpm install + build` 白烧一分多钟 |
+| 发布前置检查放 Linux job | 密钥没配时**在 1 倍计费的阶段**就失败，而不是在 macOS 上打包完才报 |
+
+> **判断标准**：这一步的产物，macOS 上和 Linux 上是不是同一个？
+> 是的话就挪去 Linux，或者直接省掉。
+
 ## 5. 其他必配项
 
 ```yaml

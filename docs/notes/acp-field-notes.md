@@ -300,7 +300,7 @@ for (const n of updates.slice(before)) yield // ← 然后才补发
 | 2 | 笔记说 codex 档位是 `read-only`/`agent`/`agent-full-access`；设计稿角色表把 codex 绑到 `auto` | **笔记为准。** `auto` 是 codex **旧版本**（0.16.0）的档名，1.1.7 已改。设计稿用的是过时档名。open-questions Q4b 成立 |
 | 3 | 笔记（2026-07-31）未提 `session/set_mode` 废弃；子代理查到官方已挂废弃告示 | **两者都对，时间差。** 迁移方向是 `session/set_config_option`（按 `category` 取 `mode`）。**新代码直接写 `set_config_option`**，`set_mode` 只作降级 |
 | 4 | 笔记只说取消要发 `session/cancel`；规范要求**同时用 `cancelled` 应答所有 pending 的权限请求** | **规范为准**（A 级 > B 级）。笔记写于该细节被注意到之前 |
-| **5** | `acp-integration.md` §11.2 写 v1 的 `sessionUpdate` 判别值「共 **11** 个」；`M0-acp-foundation.md` U0.4.1 R1 / U0.5.1 R6 写「**9** 类」 | **都不对，实际是 13 个**（下 §7.2）。已就地修正三处并接入穷举测试。**这类"数一数有几个"的结论必须由测试守住**——文档里的数字会漂移，`grep -c` 不会 |
+| **5** | `acp-integration.md` §11.2 写 v1 的 `sessionUpdate` 判别值「共 **11** 个」；当时的 M0 里程碑（编号已废弃）写「**9** 类」 | **都不对，实际是 13 个**（下 §7.2）。已就地修正三处并接入穷举测试。**这类"数一数有几个"的结论必须由测试守住**——文档里的数字会漂移，`grep -c` 不会 |
 
 ---
 

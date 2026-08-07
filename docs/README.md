@@ -24,7 +24,8 @@
 |---|---|---|
 | 1 | 根 [`AGENTS.md`](../AGENTS.md) | 5 分钟，**必读** |
 | 2 | [`spec/architecture.md`](spec/architecture.md) §1–3 | 10 分钟，看清进程模型 |
-| 3 | [`plan/roadmap.md`](plan/roadmap.md) | 3 分钟，看现在做到哪 |
+| 3 | [`plan/acceptance.md`](plan/acceptance.md) | ★ 3 分钟，看**用户能验收什么**——技术单元都要能对上其中一条 |
+| 4 | [`plan/roadmap.md`](plan/roadmap.md) | 3 分钟，看现在做到哪 |
 | 4 | [`adr/0001-tech-stack.md`](adr/0001-tech-stack.md) | 3 分钟，知道为什么是 Go+Tauri |
 
 **不要一上来通读 `spec/`** —— 那三份加起来 60k token。
@@ -100,7 +101,8 @@
 
 | 文档 | 内容 |
 |---|---|
-| [`roadmap.md`](plan/roadmap.md) | M0–M4 总览与当前进度 |
+| [`acceptance.md`](plan/acceptance.md) | ★ **验收清单（用户视角）** —— V0–V15，每条是使用者能自己操作、自己判断成败的一件事。**不含任何技术名词** |
+| [`roadmap.md`](plan/roadmap.md) | M0–M4 总览与当前进度（技术施工图） |
 | [`open-questions.md`](plan/open-questions.md) | **仍需人拍板的问题** —— 卡住时先查这里 |
 | [`milestones/README.md`](plan/milestones/README.md) | 里程碑体系与编号规则 |
 
@@ -108,11 +110,12 @@
 
 | 章 | 做什么 | 状态 |
 |---|---|---|
-| [`M0`](plan/milestones/M0-acp-foundation.md) | ACP 地基：协议层、Fake Runtime、工程门禁 | **进行中** |
-| [`M1`](plan/milestones/M1-release-and-update.md) | 发布与客户端自动更新 | 待开始 |
-| [`M2`](plan/milestones/M2-golden-path.md) | 主链路垂直切片（端到端跑通一条真实工作流） | 待开始 |
-| [`M3`](plan/milestones/M3-memory-and-skill.md) | 记忆与 Skill 三层 | 待开始 |
-| [`M4`](plan/milestones/M4-product-surface.md) | 产品化界面与报表 | 待开始 |
+| [`M0`](plan/milestones/M0-foundation.md) | 基础框架：窗口布局、七页导航、多语言、设置页、骨架占位（V0 系列） | **进行中** |
+| [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新（V1–V3） | 待开始 |
+| [`M2`](plan/milestones/M2-talk-and-observe.md) | 能提需求，看得见 AI 在干什么（V4–V6） | 待开始 |
+| [`M3`](plan/milestones/M3-control.md) | 能管住 AI：动文件先问、随时能喊停（V7 V8） | 待开始 |
+| [`M4`](plan/milestones/M4-trust.md) | 值得信任：恢复、计划、证据、决策（V9–V12） | 待开始 |
+| [`M5`](plan/milestones/M5-polish.md) | 越用越顺手：记忆、报表、英文（V13–V15） | 待开始 |
 
 ### 顶层三份
 

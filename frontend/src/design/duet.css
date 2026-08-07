@@ -42,6 +42,18 @@
   --z-tooltip: 60; /* tooltip 与输入框浮层 */
 }
 
+/* ★ 全局 border-box 基线。
+ *
+ * 没有它，`width: 420px` + padding 的实际占位是 431px——
+ * 所有「拖到上限」「三栏加起来正好铺满」这类计算都会差一截，
+ * 症状是莫名其妙多出来的横向滚动条。踩过一次（左栏拖拽被钳制在 420
+ * 却量到 431），所以放在这里一次性解决，不靠每个组件自己记得写。 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: var(--s-canvas);
@@ -96,6 +108,16 @@ body {
   font: 400 11px/1.2 var(--font-body);
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* 靠近视口右缘的控件用它：默认的居中 tooltip 会溢出视口，
+ * 把整个页面撑出横向滚动条。**不能靠给父级加 overflow:hidden 解决**——
+ * 那会把 tooltip 本身裁掉（设计规范 §05「浮层父级不得 overflow:hidden」）。 */
+[data-tt-align='end'] [data-tt]:hover::after,
+[data-tt-align='end'][data-tt]:hover::after {
+  right: 0;
+  left: auto;
+  transform: none;
 }
 
 a {

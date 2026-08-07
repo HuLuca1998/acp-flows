@@ -1,13 +1,18 @@
+/* 应用骨架布局。设计规范 §06，结构照 design/ACP Duet 1a.dc.html。
+ * 尺寸与颜色一律 var()，禁止裸 px 与写死 hex。 */
+
 .shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--s-canvas);
 }
 
+/* 窗口栏统一收纳三个折叠开关（⧉ 左栏 · ▤ 计划 · ◫ 右栏）+ 面包屑 */
 .titlebar {
   display: flex;
   z-index: var(--z-titlebar);
+  flex-shrink: 0;
   gap: var(--space-3);
   align-items: center;
   height: var(--layout-titlebar-h);
@@ -16,35 +21,84 @@
   box-shadow: inset 0 -1px 0 var(--color-neutral-900);
 }
 
-.brand {
-  color: var(--color-neutral-300);
-  font-size: 12.5px;
-  font-weight: 500;
+/* macOS 交通灯占位：真窗口里由系统绘制。
+ * 留出等宽空间，否则从浏览器切到 App 时窗口栏会横向跳一下。 */
+
+/* Overlay 模式下系统在左上角画交通灯（红黄绿），这里给它让出位置。
+   宽度按 macOS 的实际占位取——少了会被盖住，多了窗口栏左边空一块。 */
+.trafficLights {
+  flex-shrink: 0;
+  width: 68px;
 }
 
-.state {
-  color: var(--color-neutral-500);
-  font-family: var(--font-mono);
-  font-size: 11px;
+.breadcrumb {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--color-neutral-400);
+  font-size: 12.5px;
+}
+
+.crumbMuted {
+  color: var(--color-neutral-600);
+}
+
+/* 拖拽由 data-tauri-drag-region 属性驱动（见 App.tsx），不是 CSS。
+   -webkit-app-region 是 Electron 的机制，Tauri 不认。 */
+
+.titlebarRight {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-1);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .main {
   display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: var(--space-6);
-  align-items: center;
   justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--color-bg);
 }
 
-.hint {
-  margin: 0;
-  color: var(--color-neutral-600);
+/* 计划悬浮面板。设计稿里它按住标题可拖动——拖动在 M4，这里先定位与层级。 */
+.planPanel {
+  position: fixed;
+  top: calc(var(--layout-titlebar-h) + var(--space-4));
+  right: var(--space-6);
+  z-index: var(--z-plan-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: var(--layout-right-w);
+  padding: var(--space-4);
+
+  /* 规范 §03：浮层圆角 lg */
+  border-radius: var(--radius-lg);
+  background: var(--s-raised);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900), 0 8px 20px rgb(0 0 0 / 55%);
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-neutral-300);
   font-size: 12.5px;
 }
 
-.actions {
-  display: flex;
-  gap: var(--space-2);
+.planHint {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
 }

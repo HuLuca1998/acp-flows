@@ -63,17 +63,33 @@ report("key 里出现中文（禁止用中文原文当 key）",
 # ── 4. 代码里用到但词条不存在 / 词条存在但没用到 ──────────────
 src = pathlib.Path("frontend/src")
 if src.exists():
-    used, dynamic = set(), []
+    used, required, dynamic = set(), set(), []
     for f in list(src.rglob("*.ts")) + list(src.rglob("*.tsx")):
         if "/i18n/" in str(f): continue
-        text = f.read_text(errors="ignore")
-        used |= set(re.findall(r"""\bt\(\s*['"]([a-zA-Z0-9_.]+)['"]""", text))
+        raw = f.read_text(errors="ignore")
+        # 注释不会被求值，注释里的反例示例（t(`error.${code}`) 这种教学用法）
+        # 不是违规。不跳过的话，写文档教下一个人怎么做反而会让检查变红。
+        text = "\n".join(
+            ln for ln in raw.splitlines()
+            if not ln.lstrip().startswith(("//", "*", "/*"))
+        )
+        # ★ 两个方向要**分开判定**，合成一个会丢掉其中一个：
+        #
+        # ① t('x') 里的字面量**一定**是 i18n key —— 缺词条就该红。
+        required |= set(re.findall(r"""\bt\(\s*['"]([a-zA-Z0-9_.]+)['"]""", text))
+        #
+        # ② 其余点分字面量（hintKey="x" / 注册表 titleKey / 错误码映射的值）
+        #    只用来标记「这个 key 有人用」。它们无法与普通字符串区分，
+        #    所以不能反过来要求「必须存在于词条表」——那会把
+        #    'application/json' 之类的字符串误判成缺失的词条。
+        literals = set(re.findall(r"""['"]([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)['"]""", text))
+        used |= literals & set(zh)
         # 动态拼 key：t('a.' + x) / t(`a.${x}`)
         if re.search(r"""\bt\(\s*(['"][^'"]*['"]\s*\+|`[^`]*\$\{)""", text):
             dynamic.append(str(f))
 
-    report("代码里用到但词条不存在", used - set(zh))
-    report("词条存在但代码里没用到", set(zh) - used, "删掉，或确认是动态引用后加注释豁免")
+    report("代码里用到但词条不存在", required - set(zh))
+    report("词条存在但代码里没用到", set(zh) - used - required, "删掉，或确认是动态引用后加注释豁免")
     report("动态拼接的 key（静态分析查不出缺失/未使用）", set(dynamic),
            "改成显式的 Record<T, TranslationKey> 映射，见 docs/rules/i18n.md §4")
 
