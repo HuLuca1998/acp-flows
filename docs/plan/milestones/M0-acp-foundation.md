@@ -414,7 +414,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | R3 | 能力矩阵可序列化给前端 | 与 `openapi.yaml` 的 `CapabilityMatrix` schema 一致 |
 | R4 | **上层零品牌判断** | `grep -rn 'codex\|claude' internal/{app,domain,api}` 结果为空，接进 CI |
 
-> R4 直接接进 `scripts/check-naming.sh`，成为一条常驻检查。
+> R4 直接接进 `scripts/check/check-naming.sh`，成为一条常驻检查。
 
 ### ○ U0.7.2 · Runtime 注册表与多版本并存
 
@@ -534,7 +534,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | | |
 |---|---|
 | `goal` | `make dev-web` 能起来，`GET /v1/system/version` 有响应，无 token 一律 401 |
-| `allowed_changes` | `backend/cmd/duetd/**` · `backend/internal/api/**` · `scripts/dev-web.sh` |
+| `allowed_changes` | `backend/cmd/duetd/**` · `backend/internal/api/**` · `scripts/dev/dev-web.sh` |
 | `forbidden_changes` | 手写 handler 接口——必须由 `openapi.yaml` 生成；不在 `api` 层写业务判断 |
 | `stop_conditions` | 生成器无法产出符合分层要求的接口 |
 

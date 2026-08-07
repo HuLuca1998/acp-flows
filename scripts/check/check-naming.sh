@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 命名与文件组织规范检查。规则见 docs/rules/coding-standards.md。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 fail=0
 MAX_LINES=400

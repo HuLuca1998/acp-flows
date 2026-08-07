@@ -4,7 +4,7 @@
 # ★ 只碰开发数据目录。用户真实数据在 ~/.acpflows，本脚本一步都不会走到那里
 #   （铁律 6）。生产环境的重置走 `duetd --reset`，那条路径有备份与二次确认。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 readonly DEV_HOME="${DUET_DATA_DIR:-$HOME/.duet-dev}"
 readonly DB_DIR="$DEV_HOME/.acpflows"          # DUET_DATA_DIR 是家目录替身，见 pitfalls P-16
@@ -27,9 +27,9 @@ fi
 
 # 有服务在跑时先停：删掉正在被写的库会留下 -wal/-shm 残骸，
 # 下次启动可能拿到一个半死不活的库，症状极难排查。
-if bash scripts/services.sh status 2>/dev/null | grep -q '运行中'; then
+if bash scripts/dev/services.sh status 2>/dev/null | grep -q '运行中'; then
   echo "· 检测到服务在跑，先停掉"
-  bash scripts/services.sh stop all
+  bash scripts/dev/services.sh stop all
 fi
 
 rm -f "$DB_DIR"/duet.db "$DB_DIR"/duet.db-wal "$DB_DIR"/duet.db-shm

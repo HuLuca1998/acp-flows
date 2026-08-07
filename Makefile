@@ -24,36 +24,40 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-milestones check-toolchain check-index check-icons lint test cover ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons lint test cover ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
 check-docs: ## 检查关键目录是否都有填实的 AGENTS.md + CLAUDE.md
-	@bash scripts/check-agent-docs.sh
+	@bash scripts/check/check-agent-docs.sh
 
 .PHONY: check-doc-commands
 check-doc-commands: ## 文档里提到的 make 目标与脚本是否真实存在
-	@bash scripts/check-doc-commands.sh
+	@bash scripts/check/check-doc-commands.sh
 
 .PHONY: check-doc-links
 check-doc-links: ## 文档里的相对链接指向的文件真实存在
-	@bash scripts/check-doc-links.sh
+	@bash scripts/check/check-doc-links.sh
 
 .PHONY: check-doc-budget
 check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大文档读法块
-	@bash scripts/check-doc-budget.sh
+	@bash scripts/check/check-doc-budget.sh
+
+.PHONY: check-fanout
+check-fanout: ## 目录扇出：平铺文件过多时逼着分包
+	@bash scripts/check/check-dir-fanout.sh
 
 .PHONY: check-milestones
 check-milestones: ## 里程碑单元的四要素与验收标准断言是否齐备
-	@bash scripts/check-milestones.sh
+	@bash scripts/check/check-milestones.sh
 
 .PHONY: check-toolchain
 check-toolchain: ## ★ 工具链版本声明自洽（这类问题只在 CI 上出现）
-	@bash scripts/check-toolchain.sh
+	@bash scripts/check/check-toolchain.sh
 
 .PHONY: docs-scaffold
 docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store
-	@bash scripts/scaffold-agent-docs.sh "$(DIR)"
+	@bash scripts/gen/scaffold-agent-docs.sh "$(DIR)"
 
 # ══ 索引一致性（挡住重复造轮子 / 重复写测试）══════════════════════
 .PHONY: check-index
@@ -61,24 +65,24 @@ check-index: check-util-index check-test-index check-i18n ## 校验工具库索�
 
 .PHONY: check-i18n
 check-i18n: ## 中英词条 key 一致 + 无缺失/未使用（见 docs/rules/i18n.md）
-	@bash scripts/check-i18n.sh
+	@bash scripts/check/check-i18n.sh
 
 .PHONY: check-util-index
 check-util-index: ## 工具库 INDEX.md 是否与实际导出函数一致
-	@bash scripts/check-util-index.sh
+	@bash scripts/check/check-util-index.sh
 
 .PHONY: check-test-index
 check-test-index: ## 测试 INDEX.md 是否与实际测试一致
-	@bash scripts/check-test-index.sh
+	@bash scripts/check/check-test-index.sh
 
 # ══ 契约代码生成 ════════════════════════════════════════════════
 .PHONY: gen
 gen: ## 由 api/openapi.yaml 生成 Go 服务端接口与 TS 客户端（改完 spec 必跑）
-	@bash scripts/gen-api.sh
+	@bash scripts/gen/gen-api.sh
 
 .PHONY: check-gen
 check-gen: gen ## 校验生成物与 spec 一致（CI 用；有 diff 即失败）
-	@bash scripts/check-gen.sh
+	@bash scripts/check/check-gen.sh
 
 # ══ 测试 ═══════════════════════════════════════════════════════
 .PHONY: test
@@ -102,7 +106,7 @@ ifeq ($(call has,$(BACKEND)/go.mod),yes)
 	@# 生成物由 openapi.yaml 决定，人改不了，不该进覆盖率门槛
 	@grep -v '/internal/api/gen/' $(BACKEND)/coverage.raw > $(BACKEND)/coverage.out
 	@rm -f $(BACKEND)/coverage.raw
-	@bash scripts/check-coverage.sh
+	@bash scripts/check/check-coverage.sh
 else
 	@echo "· 跳过 cover：$(BACKEND)/go.mod 尚未创建"
 endif
@@ -161,13 +165,13 @@ endif
 # `resource path binaries/duetd-<triple> doesn't exist`。
 .PHONY: sidecar
 sidecar: ## 编出 Tauri 需要的 duetd sidecar（带 rust triple 后缀）
-	@bash scripts/build-sidecar.sh
+	@bash scripts/release/build-sidecar.sh
 
 .PHONY: lint-shell
 lint-shell: ## cargo clippy（-D warnings）
 ifeq ($(call has,$(SHELLDIR)/src-tauri/Cargo.toml),yes)
 	@if command -v cargo >/dev/null 2>&1; then \
-		bash scripts/build-sidecar.sh; \
+		bash scripts/release/build-sidecar.sh; \
 		cd $(SHELLDIR)/src-tauri && cargo clippy --all-targets -- -D warnings; \
 	else \
 		echo "· 跳过 lint-shell（本机没有 Rust 工具链）"; \
@@ -181,7 +185,7 @@ endif
 test-shell: ## cargo test
 ifeq ($(call has,$(SHELLDIR)/src-tauri/Cargo.toml),yes)
 	@if command -v cargo >/dev/null 2>&1; then \
-		bash scripts/build-sidecar.sh; \
+		bash scripts/release/build-sidecar.sh; \
 		cd $(SHELLDIR)/src-tauri && cargo test; \
 	else \
 		echo "· 跳过 test-shell（本机没有 Rust 工具链）"; \
@@ -193,11 +197,11 @@ endif
 # ══ 开发 ═══════════════════════════════════════════════════════
 .PHONY: icons
 icons: ## 由 design/icon/duet.svg 重新生成全部图标尺寸
-	@bash scripts/gen-icons.sh
+	@bash scripts/gen/gen-icons.sh
 
 .PHONY: check-icons
 check-icons: ## 图标产物是否与源 SVG 同步
-	@bash scripts/check-icons.sh
+	@bash scripts/check/check-icons.sh
 
 .PHONY: probe
 probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
@@ -210,23 +214,23 @@ probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行�
 # ★ 不要裸跑 go run / pnpm dev —— 那会绕过 PID 记账，导致进程越积越多。
 .PHONY: dev
 dev: ## ★ 起前后端（幂等）。调级别： make dev LOG=acp=trace
-	@DUET_LOG="$(LOG)" bash scripts/services.sh start all
+	@DUET_LOG="$(LOG)" bash scripts/dev/services.sh start all
 
 .PHONY: dev-stop
 dev-stop: ## ★ 停掉前后端。**用完必须停**
-	@bash scripts/services.sh stop all
+	@bash scripts/dev/services.sh stop all
 
 .PHONY: dev-status
 dev-status: ## 看谁在跑
-	@bash scripts/services.sh status
+	@bash scripts/dev/services.sh status
 
 .PHONY: dev-logs
 dev-logs: ## 跟踪后端日志
-	@bash scripts/services.sh logs backend
+	@bash scripts/dev/services.sh logs backend
 
 .PHONY: dev-restart
 dev-restart: ## 重启（后端改代码后必须 —— go run 不会自动重载）
-	@DUET_LOG="$(LOG)" bash scripts/services.sh restart all
+	@DUET_LOG="$(LOG)" bash scripts/dev/services.sh restart all
 
 .PHONY: logs-db
 logs-db: ## 查落库的日志（最近 30 条）。完整查询见 debug skill
@@ -235,7 +239,7 @@ logs-db: ## 查落库的日志（最近 30 条）。完整查询见 debug skill
 
 .PHONY: db-reset
 db-reset: ## 删掉开发库并重建（开发期最省事的"回滚"；不碰 ~/.acpflows）
-	@bash scripts/db-reset.sh
+	@bash scripts/dev/db-reset.sh
 
 .PHONY: dev-web
 dev-web: dev ## dev 的别名（历史文档里用过这个名字）
@@ -247,11 +251,11 @@ dev-app: ## Tauri 壳联调（需要 Rust 工具链）
 # ══ worktree（规范见 docs/rules/git-workflow.md §4）════════════════════
 .PHONY: wt
 wt: ## 建并行工作区： make wt NAME=feat/acp-session-cancel
-	@bash scripts/worktree.sh add "$(NAME)"
+	@bash scripts/dev/worktree.sh add "$(NAME)"
 
 .PHONY: tidy
 tidy: ## ★ 合并 PR 后必跑：清理已合并的分支、worktree、远端残留引用
-	@bash scripts/tidy.sh
+	@bash scripts/dev/tidy.sh
 
 .PHONY: wt-list
 wt-list: ## 列出当前所有 worktree
@@ -260,7 +264,7 @@ wt-list: ## 列出当前所有 worktree
 # ══ 构建 ═══════════════════════════════════════════════════════
 .PHONY: build
 build: ## 构建 duetd + 前端 dist
-	@bash scripts/build.sh
+	@bash scripts/release/build.sh
 
 .PHONY: build-app
 build-app: build ## 构建 Duet.app（含 minisign 签名，需 TAURI_SIGNING_PRIVATE_KEY）

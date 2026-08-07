@@ -4,7 +4,7 @@
 # 放弃 release-please 后（adr/0007 修订 2），CHANGELOG.md 这个文件不再维护——
 # GitHub Release 页面就是变更日志。本脚本产出那段正文。
 #
-#   scripts/release-notes.sh v0.2.0 > notes.md
+#   scripts/release/release-notes.sh v0.2.0 > notes.md
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 

@@ -3,7 +3,7 @@
 #
 # 覆盖率是下限不是目标——它只用来发现"完全没测的地方"。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 profile="backend/coverage.out"
 if [[ ! -f $profile ]]; then

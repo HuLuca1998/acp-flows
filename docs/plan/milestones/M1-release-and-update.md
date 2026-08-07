@@ -214,7 +214,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | `main` 只能经 PR + `ci` 汇总门禁合入，且每条规则都被反向验证过一次，而不是「配了就以为生效」 |
-| `allowed_changes` | `scripts/setup-branch-protection.sh` · `docs/rules/git-workflow.md` §5 的表 |
+| `allowed_changes` | `scripts/release/setup-branch-protection.sh` · `docs/rules/git-workflow.md` §5 的表 |
 | `forbidden_changes` | **不把单个 job 设为 required check**（`ci.md` 禁止清单第 2 条）；不改 `enforce_admins`；不放宽 `required_linear_history` |
 | `stop_conditions` | `git-workflow.md` §5 的 required checks 表（`ci / backend` `ci / frontend` `ci / docs` `ci / contract` 四项）与 `ci.md` 规则 2（只 required `ci` 一项）**直接矛盾** —— 按 `docs/AGENTS.md`「一件事只在一处写」合并到 `ci.md`，`git-workflow.md` 改成链接。合并后仍存疑则停下来上报 |
 
@@ -316,7 +316,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 壳负责拉起 `duetd`、健康检查、崩溃重启、退出时优雅关闭；App 崩溃后残留的 `duetd` 在下次启动被回收 |
-| `allowed_changes` | `shell/src-tauri/src/sidecar.rs` · `shell/src-tauri/src/models/**` · `shell/src-tauri/src/utils/**` · `shell/src-tauri/tauri.conf.json` 的 `bundle.externalBin` · `scripts/build.sh` · `shell/src-tauri/tests/**` |
+| `allowed_changes` | `shell/src-tauri/src/sidecar.rs` · `shell/src-tauri/src/models/**` · `shell/src-tauri/src/utils/**` · `shell/src-tauri/tauri.conf.json` 的 `bundle.externalBin` · `scripts/release/build.sh` · `shell/src-tauri/tests/**` |
 | `forbidden_changes` | **不得通过 Rust IPC 绕过 HTTP 调后端逻辑**（`shell/AGENTS.md` 最重要的一条）；壳里不解析业务响应体；不改 `backend/**`；测试不访问 `$HOME/.acpflows` |
 | `stop_conditions` | `duetd` 尚不存在（M0 U0.10.1 未合入）→ 用 `shell/src-tauri/tests/fixtures/stub-duetd` 桩进程完成本单元，真机联调等 M0；需要按进程组杀孙进程而当前抽象做不到 |
 
@@ -328,7 +328,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | R2 | 桩进程崩溃后被重启，且重启次数有上限 | 连续杀 4 次，断言前 3 次被重启、第 4 次后状态置为 `sidecar_failed` 且不再重启 |
 | R3 | 退出时先 `SIGTERM`、超时再 `SIGKILL` | 用忽略 SIGTERM 的桩进程，断言最终退出且耗时 ≈ 宽限期（±200ms） |
 | R4 | 上次崩溃残留的 `duetd` 在下次启动被回收 | 写一个指向存活桩进程的 pid 文件 → 启动壳 → 断言 `kill -0 <pid>` 退出码 `!= 0` |
-| R5 | sidecar 二进制文件名带 target triple 后缀 | 跑 `bash scripts/build.sh --target aarch64-apple-darwin`，断言 `shell/src-tauri/binaries/duetd-aarch64-apple-darwin` 存在 |
+| R5 | sidecar 二进制文件名带 target triple 后缀 | 跑 `bash scripts/release/build.sh --target aarch64-apple-darwin`，断言 `shell/src-tauri/binaries/duetd-aarch64-apple-darwin` 存在 |
 | R6 | 壳与后端只经 HTTP 通信 | `grep -rn 'invoke\|IpcMessage' shell/src-tauri/src` 的结果全部落在 `commands/` 内；`commands/` 内无任何业务端点调用 |
 | R7 | 桩进程与真 `duetd` 的接口断言完全相同 | 同一批断言用表驱动跑两遍（真 `duetd` 用例带构建标签，M0 未就绪时跳过） |
 
@@ -366,7 +366,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 建立 `frontend/` 的构建、测试、lint、类型检查与契约生成物，使 CI 的 `frontend` / `contract` 两个 job 不再被脚手架守卫跳过 |
-| `allowed_changes` | `frontend/package.json` · `frontend/pnpm-lock.yaml` · `frontend/vite.config.ts` · `frontend/tsconfig.json` · `frontend/eslint.config.js` · `frontend/.stylelintrc.json` · `frontend/src/{app,design,api,i18n}/**` · `frontend/tests/**` · `scripts/gen-api.sh` |
+| `allowed_changes` | `frontend/package.json` · `frontend/pnpm-lock.yaml` · `frontend/vite.config.ts` · `frontend/tsconfig.json` · `frontend/eslint.config.js` · `frontend/.stylelintrc.json` · `frontend/src/{app,design,api,i18n}/**` · `frontend/tests/**` · `scripts/gen/gen-api.sh` |
 | `forbidden_changes` | 不写任何业务页面（S1.8）；`src/platform/` 之外不得 import `@tauri-apps/*`；不新增未经批准的第三方依赖；不改 `api/openapi.yaml` |
 | `stop_conditions` | 撞上 `open-questions.md` **Q14 / Q15 / Q17 / Q19**（设置页 tab 选中态、输入框、空/错误态、toast 均无设计条目）—— 本单元只做骨架，**不实现这四类控件** |
 
@@ -380,7 +380,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | R4 | `src/platform/` 之外 import `@tauri-apps/*` 被 ESLint 拦下 | 在 `src/app/` 临时 import，同一命令退出码 `!= 0` |
 | R5 | 中英词条同进同退 | 只往 `zh-CN.json` 加一条，`make check-i18n` 退出码 `!= 0` |
 | R6 | TS 客户端生成物与 spec 一致 | 改 `api/openapi.yaml` 不跑 `make gen`，`make check-gen` 退出码 `!= 0` |
-| R7 | `make dev-web` 能起来并打开 | `scripts/dev-web.sh` 起服务后 `curl -sf http://localhost:5173` 返回 200 |
+| R7 | `make dev-web` 能起来并打开 | `scripts/dev/dev-web.sh` 起服务后 `curl -sf http://localhost:5173` 返回 200 |
 
 ### ○ U1.4.2 · 平台适配层与自动更新的 Web 降级
 
@@ -416,7 +416,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | tag 触发后产出一个 universal 的 `Duet.app` / `.dmg`，内嵌两个架构的 `duetd` |
-| `allowed_changes` | `scripts/make-universal.sh`（新增）· `scripts/build.sh` · `.github/workflows/release.yml` 的 `build` / `publish` job · `shell/src-tauri/tauri.conf.json` 的 `bundle` |
+| `allowed_changes` | `scripts/make-universal.sh`（新增）· `scripts/release/build.sh` · `.github/workflows/release.yml` 的 `build` / `publish` job · `shell/src-tauri/tauri.conf.json` 的 `bundle` |
 | `forbidden_changes` | **不在 PR 上跑构建**（`ci.md` §3）；不改 `.github/workflows/ci.yml`；不把构建产物提交进仓库；不改 `plugins.updater`（U1.5.2 的边界） |
 | `stop_conditions` | `lipo` 无法合成两个架构的产物；`release-and-update.md` §4 的图写着 `macos-14` + `macos-13` 两个 runner，而 `release.yml` 的 matrix 两行都是 `macos-14` —— 二者不一致，裁定后同步修正文档或 workflow，不要两边各留一套 |
 
@@ -491,7 +491,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | duetd 报出自己的版本与构建信息，并在零下载的前提下报出 `idle` / `available` / `unsupported` |
-| `allowed_changes` | `backend/internal/api/system/**` · `backend/internal/app/system/**` · `backend/internal/platform/buildinfo.go` · `backend/tests/system/**` · `scripts/build.sh` 的 ldflags · `api/openapi.yaml` 的 `/system/version` 与 `/system/update/check` 两节 |
+| `allowed_changes` | `backend/internal/api/system/**` · `backend/internal/app/system/**` · `backend/internal/platform/buildinfo.go` · `backend/tests/system/**` · `scripts/release/build.sh` 的 ldflags · `api/openapi.yaml` 的 `/system/version` 与 `/system/update/check` 两节 |
 | `forbidden_changes` | 不改 M0 U0.10.1 拥有的路由骨架与鉴权中间件；不在 `api` 层写业务判断；**duetd 不下载安装包**（`release-and-update.md` §8 末句）；后端不返回中文文案，只返回 `Problem.type` 错误码 |
 | `stop_conditions` | M0 U0.10.1 未合入 → 停，等它；需要改 `UpdateStatus` schema 的既有字段 |
 
@@ -835,7 +835,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 > R6 的 `--exclude-dir=gen` 是必要的：`api/openapi.yaml` 的 `RuntimeName` 是
 > `enum: [claude, codex]`，生成物里必然出现这两个字面量。
 > 若判定生成物也必须为空，那就是契约要改成开放字符串 —— **属于 `contract_revision`，停下来上报**，
-> 不要在本单元里悄悄放宽 `scripts/check-naming.sh`。
+> 不要在本单元里悄悄放宽 `scripts/check/check-naming.sh`。
 
 ### ○ U1.9.2 · 探针门禁与切换 / 退回
 

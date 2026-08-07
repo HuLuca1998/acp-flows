@@ -2,8 +2,8 @@
 # 校验提交信息：Conventional Commits + 必填的「先红的测试」。
 # 规则见 docs/rules/git-workflow.md §2。
 #
-#   scripts/check-commit-msg.sh <base-sha> <head-sha>
-#   scripts/check-commit-msg.sh                        # 校验 HEAD 相对 origin/main
+#   scripts/check/check-commit-msg.sh <base-sha> <head-sha>
+#   scripts/check/check-commit-msg.sh                        # 校验 HEAD 相对 origin/main
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 

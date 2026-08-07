@@ -10,11 +10,11 @@
 #   · 幂等：已经在跑就复用，不重启
 #   · PID 文件 + 端口双重记账，stop 一定能停干净
 #
-#   scripts/services.sh start [backend|frontend|all]
-#   scripts/services.sh stop  [backend|frontend|all]
-#   scripts/services.sh status
-#   scripts/services.sh restart [...]
-#   scripts/services.sh logs backend
+#   scripts/dev/services.sh start [backend|frontend|all]
+#   scripts/dev/services.sh stop  [backend|frontend|all]
+#   scripts/dev/services.sh status
+#   scripts/dev/services.sh restart [...]
+#   scripts/dev/services.sh logs backend
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -59,7 +59,7 @@ start_one() {
   if [[ -n $holder ]]; then
     echo "✗ 端口 $port 被 pid $holder 占用：$(ps -p "$holder" -o comm= 2>/dev/null || echo 未知)" >&2
     echo "  这多半是之前没停干净的实例。停掉它：" >&2
-    echo "    scripts/services.sh stop $svc      # 如果是我们的" >&2
+    echo "    scripts/dev/services.sh stop $svc      # 如果是我们的" >&2
     echo "    kill $holder                        # 如果是别的" >&2
     echo "  ★ 不要改端口绕开 —— 那正是端口越占越多的原因。" >&2
     return 1
@@ -157,13 +157,13 @@ case "${1:-}" in
   logs)    tail -f "$(log_file "${2:-backend}")" ;;
   *)
     cat >&2 <<EOF
-用法: scripts/services.sh <命令> [backend|frontend|all]
+用法: scripts/dev/services.sh <命令> [backend|frontend|all]
 
   start    启动（幂等：已在跑就复用，不重启）
   stop     停止（PID + 端口双重兜底，杀进程组防孤儿）
   restart  重启
   status   看谁在跑
-  logs     跟踪日志： scripts/services.sh logs backend
+  logs     跟踪日志： scripts/dev/services.sh logs backend
 
 端口写死：backend $BACKEND_PORT · frontend $FRONTEND_PORT
 EOF

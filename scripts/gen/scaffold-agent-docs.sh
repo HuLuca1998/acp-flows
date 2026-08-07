@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 从模板为指定目录生成 AGENTS.md + CLAUDE.md 骨架。
-# 用法： scripts/scaffold-agent-docs.sh backend/internal/store
+# 用法： scripts/gen/scaffold-agent-docs.sh backend/internal/store
 #
 # 已存在的文件不会被覆盖。
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 dir="${1:-}"
 if [[ -z $dir ]]; then

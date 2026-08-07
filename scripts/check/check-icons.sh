@@ -6,7 +6,7 @@
 #
 # 前提：gen-icons.sh 的输出是确定性的（同一 SVG 连跑三次 sha256 相同，已验证）。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 SVG=design/icon/duet.svg
 DIR=shell/src-tauri/icons
@@ -23,7 +23,7 @@ fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
-if ! ICON_OUT_DIR="$tmp" bash scripts/gen-icons.sh >/dev/null 2>&1; then
+if ! ICON_OUT_DIR="$tmp" bash scripts/gen/gen-icons.sh >/dev/null 2>&1; then
   echo "· 跳过图标检查：gen-icons.sh 跑不起来（多半是本机缺光栅化工具）"
   echo "  这不算失败——CI 上装齐工具后才做强校验。"
   exit 0

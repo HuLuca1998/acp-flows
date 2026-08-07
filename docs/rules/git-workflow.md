@@ -84,7 +84,7 @@ Co-Authored-By: ...
 铁律 1 要求测试先行。提交信息里必须写出**哪个测试先失败了**。
 
 - `test` `docs` `chore` `ci` 类提交可写 `不适用`
-- 其他 type 写 `不适用` 会被 CI 拦下（`scripts/check-commit-msg.sh`）
+- 其他 type 写 `不适用` 会被 CI 拦下（`scripts/check/check-commit-msg.sh`）
 
 ```
 ✓ 先红的测试: TestSessionCancelIsIdempotent
@@ -161,7 +161,7 @@ CI 因为基础设施问题跑不出来（runner 排队不动、Actions 被账�
 3. **在回复里明确说「这是绕过分支保护」**，不要静悄悄地做
 
 ```bash
-make check-docs && make check-index && bash scripts/check-naming.sh   # 先本地复跑
+make check-docs && make check-index && bash scripts/check/check-naming.sh   # 先本地复跑
 gh pr merge <n> --squash --delete-branch --admin                       # 再绕过
 ```
 
@@ -240,7 +240,7 @@ make tidy                                # 清理已合并的 worktree + 分支 
 
 ## 5. main 分支保护
 
-用 `gh` 一次性配好（见 `scripts/setup-branch-protection.sh`）：
+用 `gh` 一次性配好（见 `scripts/release/setup-branch-protection.sh`）：
 
 | 规则 | 值 |
 |---|---|
@@ -257,7 +257,7 @@ make tidy                                # 清理已合并的 worktree + 分支 
 >
 > 单个 job（`backend` / `frontend` / …）会被路径过滤跳过，
 > 而 GitHub 会永远等一个不会来的结果 → **PR 卡死**。
-> 完整原理见 [`ci.md`](ci.md) 规则 2。`scripts/setup-branch-protection.sh` 里写死了 `["ci"]`。
+> 完整原理见 [`ci.md`](ci.md) 规则 2。`scripts/release/setup-branch-protection.sh` 里写死了 `["ci"]`。
 
 ---
 

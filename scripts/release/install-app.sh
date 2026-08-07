@@ -5,7 +5,7 @@
 # Gatekeeper 会显示「未认证开发者」。这个脚本去掉 quarantine 属性，
 # 让它能正常打开。
 #
-#   bash scripts/install-app.sh ~/Downloads/Duet.app
+#   bash scripts/release/install-app.sh ~/Downloads/Duet.app
 set -euo pipefail
 
 app="${1:-/Applications/Duet.app}"

@@ -10,7 +10,7 @@
 #   L1（skill / 目录 AGENTS.md）  —— 超了说明该拆或该下沉
 #   L2 大文档必须有「读法」块      —— 否则 AI 会整篇读，一次吃掉 10% 上下文
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # 中文约 2.5 字符/token（英文约 4）。取 2.5 是保守估计。
 readonly CHARS_PER_TOK=2.5

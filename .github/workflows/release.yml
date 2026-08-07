@@ -95,7 +95,7 @@ jobs:
 
       - name: 生成 release notes
         if: steps.existing.outputs.exists != 'true'
-        run: bash scripts/release-notes.sh "${{ steps.meta.outputs.tag }}" > notes.md
+        run: bash scripts/release/release-notes.sh "${{ steps.meta.outputs.tag }}" > notes.md
 
       - uses: actions/upload-artifact@v4
         if: steps.existing.outputs.exists != 'true'
@@ -140,8 +140,8 @@ jobs:
       # duetd 作为 Tauri sidecar，文件名必须带 target triple 后缀
       - name: 编译 duetd 与前端 dist
         run: |
-          bash scripts/build.sh --target aarch64-apple-darwin
-          bash scripts/build.sh --target x86_64-apple-darwin
+          bash scripts/release/build.sh --target aarch64-apple-darwin
+          bash scripts/release/build.sh --target x86_64-apple-darwin
 
       - name: 检测 Apple 证书
         id: signing
@@ -152,7 +152,7 @@ jobs:
             echo "apple=true" >> "$GITHUB_OUTPUT"
           else
             echo "apple=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::未配置 Apple 证书：产物做 ad-hoc 签名，安装时跑 scripts/install-app.sh"
+            echo "::notice::未配置 Apple 证书：产物做 ad-hoc 签名，安装时跑 scripts/release/install-app.sh"
           fi
 
       # ★ 必须是两个互斥的步骤，不能靠 tauri-action 自己判空。
@@ -195,7 +195,7 @@ jobs:
           # Apple Silicon 要求 arm64 可执行文件必须有签名——只靠链接器那份
           # linker-signed 不覆盖 bundle，Gatekeeper 会直接判「已损坏」。
           # 加上这行才退化成正常的「未认证开发者」提示，那一层由
-          # scripts/install-app.sh 解除隔离标记来过。（adr/0007 修订 5，实测踩过）
+          # scripts/release/install-app.sh 解除隔离标记来过。（adr/0007 修订 5，实测踩过）
           APPLE_SIGNING_IDENTITY: '-'
         with:
           projectPath: shell

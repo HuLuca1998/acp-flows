@@ -68,7 +68,7 @@ if [[ $fail -eq 1 ]]; then
   echo
   echo "上面的链接指向不存在的文件。"
   echo "常见原因：文档被移动/改名后引用没跟着改。"
-  echo "改完再跑一次 bash scripts/check-doc-links.sh"
+  echo "改完再跑一次 bash scripts/check/check-doc-links.sh"
   exit 1
 fi
 

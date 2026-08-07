@@ -9,20 +9,54 @@
 > 本仓库没有人类逐行审阅。**没有检查手段的规则等于不存在。**
 > 这个目录就是让规则真正生效的地方。
 
+## 四个子目录 —— 新脚本按职责放，不要堆在根上
+
+```
+scripts/
+├── check/     14 条检查 + 扇出检查本身。规则的执行者
+├── gen/       代码 / 图标 / 文档骨架的生成
+├── dev/       本地开发：起服务、清数据库、worktree、收尾
+└── release/   构建、打包、安装、发版说明、分支保护
+```
+
+> **根目录只放 `AGENTS.md` 与 `CLAUDE.md`。** 2026-08-07 之前这里平铺了 27 个
+> 脚本，本文这张索引表当时只列了 13 个 —— 索引漂移就是平铺过量的第一个症状。
+> 规则与阈值见 [`coding-standards.md`](../docs/rules/coding-standards.md) §1.5，
+> 由 `make check-fanout` 强制。
+>
+> **`check/` 已有 15 个文件，正好在上限**。再加检查之前先想想：
+> 能不能并进某个已有脚本？真要加就得先把 `check/` 再分一层。
+
 | 脚本 | 干什么 | 谁调 |
 |---|---|---|
-| `check-agent-docs.sh` | 关键目录是否都有填实的 `AGENTS.md` + `CLAUDE.md` | `make check-docs`、CI |
-| `scaffold-agent-docs.sh` | 从模板生成两份文档骨架 | `make docs-scaffold` |
-| `check-util-index.sh` | 工具库 `INDEX.md` 与实际导出函数是否一致 | `make check-util-index`、CI |
-| `check-test-index.sh` | 测试 `INDEX.md` 与实际测试是否一致 | `make check-test-index`、CI |
-| `check-naming.sh` | 垃圾桶文件名、文件行数、Get 前缀、TS enum、越层 import | CI |
-| `check-commit-msg.sh` | Conventional Commits + 必填的「先红的测试」 | CI |
-| `check-coverage.sh` | 分包覆盖率门槛 | `make cover`、CI |
-| `worktree.sh` | 并行工作区管理 | `make wt` / `wt-clean` |
-| `gen-api.sh` | 由 `api/openapi.yaml` 生成 Go 接口与 TS 客户端 | `make gen`、CI |
-| `dev-web.sh` | 起 `duetd` + `vite` | `make dev-web` |
-| `build.sh` | 编 `duetd` + 前端 `dist` | `make build`、CI |
-| `setup-branch-protection.sh` | 一次性配置 `main` 分支保护 | 手动 |
+| `check/check-agent-docs.sh` | 关键目录是否都有填实的 `AGENTS.md` + `CLAUDE.md` | `make check-docs`、CI |
+| `check/check-doc-commands.sh` | 文档里提到的 make 目标与脚本真实存在 | `make check-doc-commands`、CI |
+| `check/check-doc-links.sh` | 文档里的相对链接指向的文件真实存在 | `make check-doc-links`、CI |
+| `check/check-doc-budget.sh` | 上下文预算：L0 常驻 / L1 阶段 / L2 读法块 | `make check-doc-budget`、CI |
+| `check/check-dir-fanout.sh` | **目录扇出**：平铺文件过多时逼着分包 | `make check-fanout`、CI |
+| `check/check-milestones.sh` | 里程碑单元四要素与验收断言齐备 | `make check-milestones`、CI |
+| `check/check-util-index.sh` | 工具库 `INDEX.md` 与实际导出函数是否一致 | `make check-index`、CI |
+| `check/check-test-index.sh` | 测试 `INDEX.md` 与实际测试是否一致 | `make check-index`、CI |
+| `check/check-naming.sh` | 垃圾桶文件名、文件行数、Get 前缀、TS enum、越层 import | CI |
+| `check/check-commit-msg.sh` | Conventional Commits + 必填的「先红的测试」 | CI |
+| `check/check-coverage.sh` | 分包覆盖率门槛 | `make cover`、CI |
+| `check/check-gen.sh` | 生成物与 `api/openapi.yaml` 一致 | `make check-gen`、CI |
+| `check/check-toolchain.sh` | 工具链版本声明自洽 | `make check-toolchain`、CI |
+| `check/check-i18n.sh` | 两种语言的词条一致 | `make check-index`、CI |
+| `check/check-icons.sh` | 图标产物与源 SVG 一致 | `make check-icons`、CI |
+| `gen/gen-api.sh` | 由 `api/openapi.yaml` 生成 Go 接口与 TS 客户端 | `make gen`、CI |
+| `gen/gen-icons.sh` | 由 `design/icon/duet.svg` 生成全套图标 | 手动 |
+| `gen/scaffold-agent-docs.sh` | 从模板生成两份文档骨架 | `make docs-scaffold` |
+| `dev/services.sh` | 起 / 停 / 查 `duetd` + `vite` | `make dev` / `dev-stop` / `dev-status` |
+| `dev/dev-web.sh` | 已退役，转发到 `services.sh` | `make dev-web` |
+| `dev/db-reset.sh` | 清开发态数据库 | `make db-reset` |
+| `dev/worktree.sh` | 并行工作区管理 | `make wt` / `wt-clean` |
+| `dev/tidy.sh` | 合并 PR 后清理分支 / worktree / 远端残留 | `make tidy` |
+| `release/build.sh` | 编 `duetd` + 前端 `dist` | `make build`、CI |
+| `release/build-sidecar.sh` | 只编 Tauri 需要的 `duetd` sidecar（带 rust triple 后缀） | `make sidecar`、CI |
+| `release/install-app.sh` | 安装 `.app` 并解除隔离标记 | 手动 |
+| `release/release-notes.sh` | 从 conventional commits 生成发版说明 | 发版流程 |
+| `release/setup-branch-protection.sh` | 一次性配置 `main` 分支保护 | 手动 |
 
 ## 不负责什么
 

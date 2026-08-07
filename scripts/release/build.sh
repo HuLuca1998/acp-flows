@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 编 duetd + 前端 dist。
-#   scripts/build.sh [--target <rust-triple>]
+#   scripts/release/build.sh [--target <rust-triple>]
 #
 # duetd 会作为 Tauri sidecar 使用，文件名必须带 target triple 后缀（Tauri 约定）。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 TARGET=""
 if [[ ${1:-} == "--target" ]]; then

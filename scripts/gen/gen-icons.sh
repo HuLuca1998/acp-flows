@@ -2,7 +2,7 @@
 # 干什么：把 design/icon/duet.svg 光栅化成 macOS 打包需要的全部图标产物，
 #         写进 shell/src-tauri/icons/（32x32.png / 128x128.png / 128x128@2x.png /
 #         icon.png / icon.icns / icon.ico），并逐个核对实际像素尺寸。
-# 谁调用：改完 design/icon/duet.svg 之后手动跑 `./scripts/gen-icons.sh`。
+# 谁调用：改完 design/icon/duet.svg 之后手动跑 `./scripts/gen/gen-icons.sh`。
 #         图标产物是提交进仓库的构建输入，不在 CI 里重新生成。
 #
 # 退出码：
@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC="$ROOT/design/icon/duet.svg"
 # 输出目录可覆盖，供 check-icons.sh 生成到临时目录后与仓库内产物比对。
 OUT="${ICON_OUT_DIR:-$ROOT/shell/src-tauri/icons}"
@@ -192,7 +192,7 @@ fi
 
 if [ "$FAILED" -ne 0 ]; then
   die "产物核对未通过" \
-    "先看上面哪一行是 ✗，再重跑：  ./scripts/gen-icons.sh" \
+    "先看上面哪一行是 ✗，再重跑：  ./scripts/gen/gen-icons.sh" \
     "如果反复不过，多半是 design/icon/duet.svg 的 viewBox 不是 0 0 1024 1024。"
 fi
 

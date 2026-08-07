@@ -30,7 +30,7 @@
 
 `util.go` `utils.go` `helper.go` `helpers.go` `common.go` `misc.go`
 
-**文件名不说明内容 = 垃圾桶。** 这四个名字由 `scripts/check-naming.sh` 在 CI 拦下。
+**文件名不说明内容 = 垃圾桶。** 这四个名字由 `scripts/check/check-naming.sh` 在 CI 拦下。
 
 文件名即主题：一眼看不出里面装什么，就是名字起错了。
 

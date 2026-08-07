@@ -5,7 +5,7 @@
 # 退出码：0 = 全部齐备；1 = 有缺失或未填实。
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 missing=()
 unfilled=()

@@ -4,7 +4,7 @@
 #   · 代码里用到的 key 必须存在
 #   · 词条文件里的 key 必须被用到
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 DIR="frontend/src/i18n/locales"
 ZH="$DIR/zh-CN.json"

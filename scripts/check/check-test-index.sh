@@ -7,7 +7,7 @@
 # 规则见 docs/rules/testing-strategy.md §8。
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 fail=0
 

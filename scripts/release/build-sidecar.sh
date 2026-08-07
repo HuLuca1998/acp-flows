@@ -3,10 +3,10 @@
 #
 # 为什么单独拆出来：tauri.conf.json 的 externalBin 声明了
 # `binaries/duetd-<rust-triple>`，文件不在时**任何** cargo 命令都会失败——
-# 包括只想跑 clippy 的时候。而 scripts/build.sh 会连前端一起编，
+# 包括只想跑 clippy 的时候。而 scripts/release/build.sh 会连前端一起编，
 # 为了跑一次 lint 去编一遍前端太浪费。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 if [[ ! -f backend/go.mod ]]; then
   echo "· 跳过 sidecar：backend/go.mod 尚未创建"

@@ -6,7 +6,7 @@
 # 索引是被校验的清单，不是文档。规则见 docs/rules/coding-standards.md §1.4。
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 fail=0
 

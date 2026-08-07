@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 并行工作区管理。规范见 docs/rules/git-workflow.md §4。
 #
-#   scripts/worktree.sh add feat/acp-session-cancel
-#   scripts/worktree.sh clean
+#   scripts/dev/worktree.sh add feat/acp-session-cancel
+#   scripts/dev/worktree.sh clean
 #
 # 工作区一律建在仓库根的 .worktree/ 下（已 gitignore），
 # 目录名 = 分支名把 / 换成 -。

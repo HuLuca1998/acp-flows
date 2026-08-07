@@ -6,8 +6,8 @@
 #   · 残留的 worktree 占磁盘，且 `git worktree list` 里全是死链接
 #   · 远端已删的 origin/* 引用会让 `git branch -a` 和补全变成噪音
 #
-#   scripts/tidy.sh          清理
-#   scripts/tidy.sh --check  只报告不动手（CI 用）
+#   scripts/dev/tidy.sh          清理
+#   scripts/dev/tidy.sh --check  只报告不动手（CI 用）
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 

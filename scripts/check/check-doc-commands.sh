@@ -9,7 +9,7 @@
 #     它引用的路径就必须真的存在——本脚本对已完成的单元不放行（见文末那段检查）
 #   - docs/plan/open-questions.md  它是**已知缺口登记表**，登记「某某还不存在」正是它的职责
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 fail=0
 

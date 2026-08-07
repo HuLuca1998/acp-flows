@@ -9,7 +9,7 @@
 # 版本写死在这里，不用 @latest：
 # 生成器版本一变，生成物就变，CI 的 check-gen 会在一个与本次改动无关的 PR 上炸。
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 readonly OAPI_CODEGEN_VERSION=v2.4.1
 readonly SPEC=api/openapi.yaml
