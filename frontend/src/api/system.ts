@@ -1,3 +1,4 @@
+import type { Runtime } from '@/models/runtime'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 
 import { api, unwrap } from './client'
@@ -19,4 +20,18 @@ export async function checkUpdate(): Promise<UpdateStatus> {
  */
 export async function prepareUpdate(): Promise<UpdatePrepareResult> {
   return unwrap(await api.POST('/system/update/prepare'))
+}
+
+/**
+ * 查本机装了哪些 ACP Runtime、能不能用。
+ *
+ * ★ **只看，不改**：不写用户的 `~/.claude` 与 `~/.codex`，
+ * 也不发起任何会产生费用的模型调用。
+ *
+ * 失败时抛错——调用方要把「检测不了」和「一个都没装」分开显示，
+ * 后者会让用户去安装已经装好的东西。
+ */
+export async function listRuntimes(): Promise<Runtime[]> {
+  const body = unwrap(await api.GET('/runtimes'))
+  return body.runtimes
 }

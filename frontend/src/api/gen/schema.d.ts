@@ -205,6 +205,29 @@ export interface components {
              * @example codex
              */
             name: string;
+            /**
+             * @description ★ **三态之外必须有第四态 `probe_failed`。**
+             *     只用 `installed` / `authenticated` 两个布尔表达不了「检测本身失败了」——
+             *     那时 `installed=false` 与「确实没装」无法区分，界面会把一个
+             *     可能是假的结论告诉用户，还附上一句「请先安装」。
+             *     检测不出来就说检测不出来，不猜。
+             * @enum {string}
+             */
+            status: "ready" | "not_installed" | "not_authenticated" | "probe_failed";
+            /**
+             * @description 怎么修。**命令由后端给，前端不许按 `name` 拼**——
+             *     `if name === 'codex'` 出现在 adapter 之外即视为设计失败
+             *     （见 docs/rules/design-principles.md §4.4）。
+             *     前端只把 `command` 原样显示出来，文案按 `status` 查 i18n 词条。
+             */
+            remedy?: {
+                /**
+                 * @description 用户可以直接复制去终端敲的一整条命令
+                 * @example codex login
+                 * @example npm i -g @anthropic-ai/claude-code
+                 */
+                command?: string;
+            };
             installed: boolean;
             /** @example 0.63.0 */
             active_version?: string;

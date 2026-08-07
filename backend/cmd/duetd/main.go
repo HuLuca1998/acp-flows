@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
@@ -137,6 +138,9 @@ func run() error {
 		Version: version,
 		Commit:  commit,
 		Update:  updateSvc,
+		// 环境检测用内置注册表。**不缓存**：用户装完 codex 回来刷新一下
+		// 就该看到变化，而缓存的表现是「照着提示装好了，界面还是说没装」。
+		Runtimes: runtime.Detector{},
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)

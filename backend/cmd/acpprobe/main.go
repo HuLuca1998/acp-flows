@@ -129,6 +129,10 @@ func probe(ctx context.Context, spec runtimeSpec) (*report, error) {
 
 	cmd := exec.CommandContext(ctx, bin, spec.args...)
 	cmd.Env = cleanEnv(spec.envRemove)
+	// ctx 到期时只有直接子进程会被 kill。真实的 ACP Runtime 是 node 启动器
+	// 再 fork 出实际进程，孙子进程继承着下面这三个管道活下去，Wait() 就一直
+	// 等不到 EOF——`make probe` 表现为"卡住不动"，而不是干脆地超时报错。
+	cmd.WaitDelay = time.Second
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

@@ -120,3 +120,14 @@
 | `TestPrepareUpdate_ReadyWhenNoActiveWork` | `internal/api/update_test.go` | api | 放行时 `prepared`/`blocked` 必须是**空数组不是 null**——前端对 null 调 `.map()` 会白屏 |
 | `TestPrepareUpdate_BlockedIsStillTwoHundred` | `internal/api/update_test.go` | api | ★ `blocked` 是业务结论不是错误，**仍回 200**：回 4xx 前端会当成请求出错，把「哪些工作在跑」的列表丢掉 |
 | `TestUpdateEndpoints_WithoutServiceDoNotPanic` | `internal/api/update_test.go` | api | 未配置更新服务时返回 `update_not_configured` 而不是 panic（纯 Web 部署可以不接发布源） |
+| `TestDetect` | `internal/acp/runtime/detect_test.go` | acp | 四态可区分：ready / not_installed / not_authenticated / probe_failed；未登录时给的是 `codex login` 这种能直接敲的命令 |
+| `TestDetectorKeepsEveryField` | `internal/acp/runtime/detector_test.go` | acp | 适配层不丢字段——丢了 Remedy 用户就看不到该敲什么命令，而少写一行赋值编译器不会管 |
+| `TestDetectorZeroValueUsesRegistry` | `internal/acp/runtime/detector_test.go` | acp | 零值 Detector 走内置注册表（duetd 就是这么构造的）；空 PATH 下每条都必须给出安装命令 |
+| `TestDetectExtractsVersionNumber` | `internal/acp/runtime/detect_test.go` | acp | 从四种真实的 `--version` 输出里抽出版本号；抽不出时原样保留不弄丢信息 |
+| `TestDetectNeverPrompts` | `internal/acp/runtime/detect_test.go` | acp | ★ 检测**零模型开销**——假 runtime 记下每次 argv，断言只出现声明过的两组参数，多一次调用就红 |
+| `TestDetectAllIsolatesFailures` | `internal/acp/runtime/detect_test.go` | acp | ★ 一个 runtime 卡住不连累另一个，且必须并发——串行的话装 5 个就要等 5 倍超时 |
+| `TestDetectIsIdempotent` | `internal/acp/runtime/detect_test.go` | acp | 连查两次结论一致（设置页会反复打开） |
+| `TestListRuntimes_MapsEveryStatus` | `internal/api/runtimes_test.go` | api | 四种状态各自映射成什么逐条锁死；`installed`/`authenticated` 从 `status` **推导**而非各存一份（两份真源必然漂移） |
+| `TestListRuntimes_EmptyIsArrayNotNull` | `internal/api/runtimes_test.go` | api | ★ `runtimes` 空时是 `[]` 不是 `null`——新用户第一次打开设置页正是这个状态，前端对 null 调 `.map()` 会白屏 |
+| `TestListRuntimes_MissingDetectorDoesNotBreakOtherEndpoints` | `internal/api/runtimes_test.go` | api | ★ 没配检测器时不回 200 空列表（那会把「检测不了」显示成「一个都没装」），且不连累其他端点 |
+| `TestListRuntimes_DetectsOncePerRequest` | `internal/api/runtimes_test.go` | api | 一次请求只探一轮——探测要拉子进程，重复探测会让设置页明显变慢 |

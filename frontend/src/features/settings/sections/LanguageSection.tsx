@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/ui/Button'
 import { STORAGE_KEYS, writePersisted } from '@/utils/persisted'
 
-import styles from './Settings.module.css'
+import styles from '../Settings.module.css'
 
 /** 支持的语言。加一种语言 = 往这张表加一行。 */
 const LANGUAGES = [

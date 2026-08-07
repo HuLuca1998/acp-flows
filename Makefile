@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons lint test cover ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -50,6 +50,12 @@ check-fanout: ## 目录扇出：平铺文件过多时逼着分包
 .PHONY: check-milestones
 check-milestones: ## 里程碑单元的四要素与验收标准断言是否齐备
 	@bash scripts/check/check-milestones.sh
+
+.PHONY: check-commits
+check-commits: ## ★ 本分支相对 main 的提交信息格式（含「先红的测试」）
+	@# 并进 make check 是因为真的漏跑过一次：commit 完直接 push，
+	@# 到 CI 才发现 scope 用了取值表里没有的词，白跑一轮 CI。
+	@bash scripts/check/check-commit-msg.sh
 
 .PHONY: check-toolchain
 check-toolchain: ## ★ 工具链版本声明自洽（这类问题只在 CI 上出现）

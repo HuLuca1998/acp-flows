@@ -203,7 +203,7 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 
 **用户拿到什么**：设置页的环境检测。这是 V3。
 
-### ○ U1.3.1 · Runtime 检测与可执行的修复提示
+### ✓ U1.3.1 · Runtime 检测与可执行的修复提示  ·  `dc2248a`
 
 | | |
 |---|---|

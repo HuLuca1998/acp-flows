@@ -11,6 +11,7 @@
 #   ③ 单元编号唯一，且归属正确的里程碑（U2.x 只能在 M2）
 #   ④ 子计划编号与单元编号自洽（U2.6.1 必须在 S2.6 之下）
 #   ⑤ 每个里程碑都有目标 / 完成标志 / 全局停止条件
+#   ⑦ roadmap 的「现在做」指针指向一个真实存在且尚未完成的单元
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -26,6 +27,7 @@ MILESTONE_SECTIONS = ["## 目标", "## 完成标志", "## 全局停止条件"]
 
 problems = []
 unit_ids = collections.Counter()
+unit_status = {}                          # uid → ○ ◐ ✓ ⊘
 unit_total = 0
 crit_total = 0
 
@@ -54,7 +56,8 @@ for path in files:
     subplans = set(re.findall(r"^## (S[0-9][0-9A-Za-z.]*)", text, flags=re.M))
 
     for i in range(1, len(parts), 3):
-        uid, body = parts[i + 1], parts[i + 2]
+        mark, uid, body = parts[i], parts[i + 1], parts[i + 2]
+        unit_status[uid] = mark
         unit_total += 1
         unit_ids[uid] += 1
         where = f"{path}:{uid}"
@@ -136,6 +139,28 @@ for d in RULING_DIRS:
                     problems.append(
                         f"{path}: 提到 {uid}，但里程碑里没有这个单元——"
                         f"裁定没有落进计划")
+
+# ⑦ ★ roadmap 的「现在做」指针
+#
+# playbook §4.6 让接手的 AI「读 roadmap 找到下一个该做的单元」。
+# 那一行一旦指向已完成的单元，下一轮 AI 要么重做一遍，要么得自己
+# 翻六份里程碑文档重新找起点——这正是这份指针本来要省掉的事。
+#
+# 指针过期不会让任何别的检查变红，所以必须在这里守住。
+ROADMAP = pathlib.Path("docs/plan/roadmap.md")
+if ROADMAP.exists():
+    text = ROADMAP.read_text(encoding="utf-8")
+    m = re.search(r"\*\*现在做\*\*\s*\|\s*`(U[0-9][0-9A-Za-z.]*)`", text)
+    if not m:
+        problems.append(f"{ROADMAP}: 找不到「现在做」指针——"
+                        f"接手的 AI 会不知道从哪开始（见 ai-playbook §4.6）")
+    else:
+        uid = m.group(1)
+        if uid not in unit_status:
+            problems.append(f"{ROADMAP}: 「现在做」指向 {uid}，但里程碑里没有这个单元")
+        elif unit_status[uid] == "✓":
+            problems.append(f"{ROADMAP}: 「现在做」指向 {uid}，但它已经是 ✓ 了——"
+                            f"做完一个单元要回来改这一行")
 
 if problems:
     print("✗ 里程碑规划有结构缺陷：")
