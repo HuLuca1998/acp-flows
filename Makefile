@@ -182,6 +182,10 @@ logs-db: ## 查落库的日志（最近 30 条）。完整查询见 debug skill
 	@sqlite3 -header -box "$${DUET_DATA_DIR:-$$HOME/.duet-dev}/.acpflows/duet.db" \
 	  "SELECT seq, ts, CASE level WHEN -8 THEN 'TRACE' WHEN -4 THEN 'DEBUG' WHEN 0 THEN 'INFO' WHEN 4 THEN 'WARN' ELSE 'ERROR' END AS lv, component, msg FROM logs ORDER BY seq DESC LIMIT 30;"
 
+.PHONY: db-reset
+db-reset: ## 删掉开发库并重建（开发期最省事的"回滚"；不碰 ~/.acpflows）
+	@bash scripts/db-reset.sh
+
 .PHONY: dev-web
 dev-web: dev ## dev 的别名（历史文档里用过这个名字）
 

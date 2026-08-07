@@ -34,6 +34,7 @@
 | macOS 打开 App 提示「已损坏」（不是「未认证开发者」） | [P-15](#p-15) |
 | 开发库连上了但表是空的 / 找不到 db 文件 | [P-16](#p-16) |
 | `PRAGMA foreign_keys` 返回 0，怀疑外键没生效 | [P-17](#p-17) |
+| 备份出来的 db 打开后报 `no such table` | [P-18](#p-18) |
 
 ---
 
@@ -223,6 +224,21 @@
   对比 `journal_mode` 是**库属性**，谁连都是 `wal`。
 - **解决** 要验证应用侧，跑 `TestOpen_R1_ForeignKeysPragmaIsOn`，不要看 CLI。
 - **状态** 活跃。
+
+### P-18
+
+**WAL 模式下 `cp duet.db` 拷不到数据 —— 备份必须用 `VACUUM INTO`**
+
+- **症状** 备份文件大小正常，但打开后 `no such table: xxx`，或者行数比原库少。
+- **根因** WAL 模式下已提交的数据可能还在 `-wal` 文件里没 checkpoint 到主库。
+  只拷 `duet.db` 等于拷了个空壳。
+- **解决** `VACUUM INTO '<目标路径>'` —— 一致性快照，不需要停写。
+  注意它**要求目标文件不存在**，否则报 `output file already exists`，
+  所以文件名带时间戳且不要预创建。
+- **教训** 这条是探针实测发现的，而当时 `database.md` §5 写的正是「备份 `duet.db`
+  到 `duet.db.bak`」——**文档里一个看起来无害的措辞，落成代码就是用户数据丢失**。
+  裁定见 [`adr/0008`](../adr/0008-schema-migration-and-init.md) D4。
+- **状态** 活跃。失效条件：改用非 WAL 模式（不会发生）。
 
 ---
 

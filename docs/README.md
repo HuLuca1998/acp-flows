@@ -94,6 +94,7 @@
 | [`0005`](adr/0005-persistence.md) | 只用 SQLite，不上 MySQL |
 | [`0006`](adr/0006-open-question-rulings.md) | 42 条待拍板问题的裁定 |
 | [`0007`](adr/0007-release-revision-from-prior-art.md) | 按前作 `ai-workflows` 修订发布流程的 6 处 |
+| [`0008`](adr/0008-schema-migration-and-init.md) | 迁移时机、降级保护、`VACUUM INTO` 备份、一键初始化 |
 
 ### plan/ · 接下来做什么
 

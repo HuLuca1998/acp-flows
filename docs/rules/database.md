@@ -141,8 +141,43 @@ internal/store/migration/
 5. 启动时按版本顺序执行，全部在**一个事务**里
 6. **每个迁移必须有测试**：空库跑通 + 从上一版本升级跑通
 
-> 破坏性迁移（删列、改类型）在桌面应用上尤其危险——用户没有 DBA，没有备份。
-> 迁移前自动备份 `duet.db` 到 `duet.db.bak-<version>`。
+### 5.1 备份：**必须用 `VACUUM INTO`**，不能用文件拷贝
+
+```sql
+VACUUM INTO '~/.acpflows/backup/duet-v<fromVersion>-<ts>.db';
+```
+
+实测（本仓库探针）：
+
+| 做法 | WAL 里还有未 checkpoint 数据时 |
+|---|---|
+| `cp duet.db backup.db` | ✗ 副本报 **`no such table`** —— 数据在 `-wal` 里，主库文件是空壳 |
+| `VACUUM INTO` | ✓ 数据完整，一致性快照，不需要停写 |
+
+- **只在确实有待应用迁移时备份**，否则每次启动都拷一份会吃光磁盘
+- `VACUUM INTO` **要求目标不存在**（否则报 `output file already exists`），
+  文件名带时间戳，且不要预创建
+- **备份失败即中止迁移** —— 没有退路的迁移不许开始
+
+### 5.2 降级保护：旧版程序遇到更高 schema 必须**拒绝启动**
+
+```
+MAX(schema_migrations.version) > 本二进制内嵌的最高版本  →  非零退出
+```
+
+自动更新意味着降级会真实发生（回滚、多机、从备份恢复旧 App）。
+**旧代码读新 schema 不会崩溃——它会静默产生错误结果**，那比崩溃危险得多。
+
+### 5.3 种子数据与迁移**分开**
+
+迁移只管 schema。种子数据走独立的幂等 seed 步骤，
+`INSERT ... ON CONFLICT(id) DO NOTHING`，按稳定 ID。
+
+**不要塞进迁移**：迁移的 checksum 被锁死，改了就报错；
+但种子内容（推荐角色集、默认设置）一定会随产品演进。
+
+> 完整设计与取舍见 [`../adr/0008`](../adr/0008-schema-migration-and-init.md)：
+> 迁移在 `listen` 之前跑、失败不自动恢复、一键初始化的两个层面、与更新流程的咬合。
 
 ---
 
