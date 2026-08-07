@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 # 编 duetd + 前端 dist。
-#   scripts/release/build.sh [--target <rust-triple>]
+#   scripts/release/build.sh [--target <rust-triple>] [--skip-frontend]
+#
+# ★ 打 universal 包时本脚本要跑两次（两个架构的 sidecar），
+# 第二次务必带 --skip-frontend —— 前端 dist 与架构无关，
+# 重复 pnpm install + build 是在 **10 倍计费**的 macOS runner 上白烧一分多钟。
 #
 # duetd 会作为 Tauri sidecar 使用，文件名必须带 target triple 后缀（Tauri 约定）。
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 TARGET=""
+SKIP_FRONTEND=0
+args=()
+for a in "$@"; do
+  if [[ $a == "--skip-frontend" ]]; then SKIP_FRONTEND=1; else args+=("$a"); fi
+done
+set -- "${args[@]+"${args[@]}"}"
+
 if [[ ${1:-} == "--target" ]]; then
   TARGET="${2:-}"
 fi
@@ -48,7 +59,9 @@ else
   echo "· 跳过 duetd：backend/go.mod 尚未创建"
 fi
 
-if [[ -f frontend/package.json ]]; then
+if [[ $SKIP_FRONTEND == 1 ]]; then
+  echo "· 跳过前端：--skip-frontend（dist 与架构无关，不必重复编）"
+elif [[ -f frontend/package.json ]]; then
   echo "→ 前端 dist"
   (cd frontend && pnpm install --frozen-lockfile && pnpm build)
 else

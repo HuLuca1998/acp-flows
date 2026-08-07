@@ -128,7 +128,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.exists != 'true'
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -161,8 +161,10 @@ jobs:
       # duetd 作为 Tauri sidecar，文件名必须带 target triple 后缀
       - name: 编译 duetd 与前端 dist
         run: |
+          # 第二次跳过前端：dist 与架构无关，重复编是在 10 倍计费的
+          # macOS runner 上白烧一分多钟。
           bash scripts/release/build.sh --target aarch64-apple-darwin
-          bash scripts/release/build.sh --target x86_64-apple-darwin
+          bash scripts/release/build.sh --target x86_64-apple-darwin --skip-frontend
 
       - name: 检测 Apple 证书
         id: signing
