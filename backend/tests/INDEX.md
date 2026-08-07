@@ -242,3 +242,10 @@
 | `TestStart_ReportsTurnFailure` | `internal/app/work/service_test.go` | app | AI 那一轮跑挂了要发 `state_change → failed` **并带原因**——静默的话用户对着「正在澄清需求」永远等 |
 | `TestStart_NoTurnWhenWorktreeFails` | `internal/app/work/service_test.go` | app | worktree 没切成就不跑 AI——没有现场可以让它干活 |
 | `TestStart_NilRunnerDoesNotPanic` | `internal/app/work/service_test.go` | app | 没配 runner 时（只跑 API 冒烟）不崩 |
+| `TestAskPermission_R1_BlocksUntilAnswered` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R1：★★ Fake 主动发 `session/request_permission` 并**阻塞等应答**——不阻塞的话上层裁决逻辑没有真实对手方，测试会以为「问过了」而 Agent 根本没等答案 |
+| `TestAskPermission_R2_CancelledEndsTurnAsCancelled` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R2：应答 `cancelled` 时这一轮以 **cancelled** 收尾而非脚本里的 `end_turn`——用户拒了却显示「完成」比不问更糟 |
+| `TestAskPermission_R5_NeverTimesOut` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R5：★★ 权限请求**没有超时**（干等 2s 这一轮仍未结束）——真 Agent 会一直等用户，Fake 自作主张超时的话上层「等用户裁决」的逻辑测不出来 |
+| `TestAskPermission_R4_OptionIDRoundTripsVerbatim` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R4：★★ `optionId` **原样回传**。脚本用一组 id 与 kind 语义相反的选项（`opt-allow` 的 kind 是 `reject_once`），按类别猜 id 的实现在这里翻车；同时断言 Fake 没有「顺手纠正」它们 |
+| `TestNewSession_R3_UndeclaredCapabilityIsAbsentOnTheWire` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R3：声明的能力**表现为真实协议行为**——不声明 modes 时 `session/new` 响应里真的没有那个字段，否则测的是我们自己的探针代码 |
+| `TestAskPermission_CarriesToolCall` | `internal/acp/fake/permission_test.go` | acp | 权限请求带 `toolCallId` 与 `sessionId`——不带的话界面只能问「要不要允许？」而说不出允许什么 |
+| `TestAskPermission_TwoAsksInOneTurn` | `internal/acp/fake/permission_test.go` | acp | 一轮里问两次，各自阻塞各自等应答（真 Agent 一轮问三五次是常态）；只处理第一次的实现会在这里挂住 |

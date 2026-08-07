@@ -55,6 +55,7 @@ type Runtime struct {
 	stderr  io.Writer
 	rec     *recorder
 	latency Latency
+	asks    *permissionAsks
 
 	// neverStops 让所有轮次都不响应 session/prompt（预设 NeverStops）。
 	neverStops bool
@@ -91,6 +92,7 @@ func New(opts Options) *Runtime {
 		clock:   opts.Clock,
 		stderr:  stderr,
 		rec:     newRecorder(),
+		asks:    newPermissionAsks(),
 		latency: opts.Latency,
 	}
 }
@@ -170,6 +172,19 @@ func (r *Runtime) Serve(ctx context.Context, in io.Reader, out io.Writer) error 
 
 // dispatch 把一条入站消息交给对应的处理。
 func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameWriter, f wireFrame) error {
+	// ★ 没有 method 但有 id = 客户端在**回我们的反向请求**（权限应答）。
+	// 不先认出来的话，它会掉进 default 分支，被当成「不认识的方法」回一个
+	// -32601 —— 而真正在等应答的那一轮会永远挂着。
+	if f.Method == "" && len(f.ID) > 0 {
+		var id int64
+		if err := json.Unmarshal(f.ID, &id); err != nil {
+			_, _ = fmt.Fprintf(r.stderr, "fake: 入站响应的 id 非法: %s\n", f.ID)
+			return nil
+		}
+		r.handleAskResponse(id, f.Result)
+		return nil
+	}
+
 	switch f.Method {
 	case protocol.MethodInitialize:
 		return w.respond(f.ID, protocol.InitializeResponse{
@@ -256,6 +271,22 @@ func (r *Runtime) replay(ctx context.Context, w *frameWriter, promptID json.RawM
 		if !sleepCtx(ctx, r.latency.delayFor(i, time.Duration(step.Delay))) {
 			return
 		}
+		if step.Ask != nil {
+			outcome, ok := r.ask(ctx, w, step.Ask)
+			if !ok {
+				return // ctx 结束或断流，安静收场
+			}
+			// ★ 客户端说取消，这一轮就以 cancelled 收尾，**不照脚本里的
+			// stop_reason 走**。照走的话，用户按了「拒绝」而界面显示「完成」——
+			// 比不问更糟。
+			if outcome.Outcome == "cancelled" {
+				_ = w.respond(promptID, protocol.PromptResponse{
+					StopReason: protocol.StopReasonCancelled,
+				})
+				return
+			}
+			continue
+		}
 		if len(step.Emit) == 0 {
 			continue
 		}
@@ -301,6 +332,10 @@ func (r *Runtime) armSilence() {
 }
 
 // Close 停止 Fake 并断开管道。可重复调用。
+// Close 关掉 Fake。
+//
+// ★ 要解除所有 pending 的权限等待，否则回放 goroutine 会永久挂在
+// select 上，测试进程结束时报 goroutine 泄漏。
 func (r *Runtime) Close() error {
 	r.mu.Lock()
 	if r.closed {
@@ -311,6 +346,9 @@ func (r *Runtime) Close() error {
 	closeOut := r.closeOut
 	cancel := r.cancelServe
 	r.mu.Unlock()
+
+	// 解除所有 pending 的权限等待，否则回放 goroutine 永久挂在 select 上
+	r.asks.abortAll()
 
 	if cancel != nil {
 		cancel()
