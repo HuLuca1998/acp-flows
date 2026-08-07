@@ -58,14 +58,28 @@ E2E（Playwright）在 `main` 上跑，不阻塞 PR —— 它慢，且依赖构
 
 ---
 
-## 3. 发版：手动触发，双通道
+## 3. 发版：在本机跑，手动触发
 
-**不用 release-please**（`adr/0007` 修订 2）。发布只手动触发，且只在 `main` 上跑：
+**不用 release-please**（`adr/0007` 修订 2）。发布只手动触发，且只从干净的 `main` 出发：
 
 ```bash
-gh workflow run release -f version=0.2.0   # 正式版
-gh workflow run release                    # 预发布快照
+bash scripts/release/publish-local.sh 0.2.0             # 正式版
+bash scripts/release/publish-local.sh 0.2.0 --dry-run   # 只构建不发布
 ```
+
+### 为什么在本机而不在 GitHub Actions（2026-08-08 改）
+
+macOS runner 按 **10 倍**计费，而 universal 包要编两个架构的 Rust。
+真发版试了三次，两次挂在环境上——`rust target 被 rust-cache 覆盖`、
+`门禁被误提交的半成品带红`——每次都是十几分钟额度换一条错误信息。
+本机编译不花额度、出问题当场能看能改。
+
+`.github/workflows/release.yml` 已 `gh workflow disable`，**文件保留不删**：
+本机脚本的每一步都与它一一对应，将来恢复 CI 发版时那里就是参照。
+恢复只需 `gh workflow enable release.yml`（私钥仍在 Secrets 里）。
+
+**预发布快照通道暂时没有本机版本**——需要时照 `release.yml` 的
+`plan` job 补一段版本号生成即可。
 
 | 填了 version | 版本号 | Release 类型 | 谁会收到 |
 |---|---|---|---|

@@ -166,9 +166,21 @@ minisign -Vm Duet_<X.Y.Z>_universal.app.tar.gz \
 | | |
 |---|---|
 | `goal` | 跑通一次真实发版，产出用户能下载的 `.dmg` |
-| `allowed_changes` | `.github/workflows/release.yml` · `scripts/release/**` |
+| `allowed_changes` | `scripts/release/**` · `.github/workflows/release.yml`（已停用，只改说明） |
 | `forbidden_changes` | 用 `--admin` 绕过分支保护；重打已发布的 tag |
 | `stop_conditions` | 构建产物缺任何一类；签名验证不过 |
+
+> **2026-08-08 改成在本机发版。** macOS runner 按 10 倍计费，而 universal 包
+> 要编两个架构的 Rust；真发版试了三次、两次挂在环境上，每次十几分钟额度只
+> 换回一条错误信息。现在跑：
+>
+> ```bash
+> bash scripts/release/publish-local.sh 0.0.1
+> ```
+>
+> `release.yml` 已 `gh workflow disable`，文件保留——本机脚本与它的步骤
+> 一一对应，将来恢复 CI 发版时那就是参照。**别顺手把它重新启用**，
+> 原因写在文件头。
 
 **验收标准**
 
