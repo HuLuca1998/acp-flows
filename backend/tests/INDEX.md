@@ -171,3 +171,11 @@
 | `TestPrompt_OnlyEndTurnIsSuccess` | `internal/acp/session/session_test.go` | acp | ★ R2：五种结束原因只有 `end_turn` 算正常；`max_tokens` 当成功的话，用户拿到截断的改动而界面显示「完成」 |
 | `TestPrompt_EveryUpdateKindIsHandled` | `internal/acp/session/session_test.go` | acp | ★ R5：穷举 13 类事件都有去处；新增一类而没接住时会红，否则它静默消失、界面像是 AI 少说了点什么 |
 | `TestPrompt_CarriesTextThrough` | `internal/acp/session/session_test.go` | acp | 文本原样带出，且思考摘要与正式消息**不混成一路**（界面上是两种显示） |
+| `TestPublish_DoesNotFanOutWhenStoreFails` | `internal/eventbus/bus_test.go` | eventbus | ★★ R5：**落库失败就不扇出**——反过来会「前端收到了，重启后库里没有」，这种不一致比丢事件更糟；负例（颠倒顺序）立刻红 |
+| `TestPublish_SeqIsMonotonic` | `internal/eventbus/bus_test.go` | eventbus | R1：序号单调递增、无洞 |
+| `TestPublish_SeqContinuesAcrossRestart` | `internal/eventbus/bus_test.go` | eventbus | ★ R1 的另一半：序号**跨重启接续**——从 1 重来的话前端按 seq 去重会把新事件当旧的丢掉 |
+| `TestSubscribe_ClosingReleasesSubscriber` | `internal/eventbus/bus_test.go` | eventbus | R3：订阅者被回收，**防泄漏** |
+| `TestSubscribe_ContextCancelReleasesSubscriber` | `internal/eventbus/bus_test.go` | eventbus | ★ ctx 取消也回收——SSE 客户端断开走的正是这条路径，不会有人来调 Close |
+| `TestPublish_SlowSubscriberDoesNotBlockOthers` | `internal/eventbus/bus_test.go` | eventbus | ★ R4：一个卡住的页面不该让 AI 的进度整个停下来 |
+| `TestPublish_FansOutToAllSubscribers` | `internal/eventbus/bus_test.go` | eventbus | 扇出给所有订阅者，不是只给第一个 |
+| `TestSubscription_CloseIsIdempotent` | `internal/eventbus/bus_test.go` | eventbus | 重复 Close 不 panic（SSE 清理路径会走两遍） |
