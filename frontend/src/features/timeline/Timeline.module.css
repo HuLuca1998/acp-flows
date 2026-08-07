@@ -1,0 +1,71 @@
+/* 时间线。照 design/ACP Duet 1a.dc.html 的对话主区。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.item {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-neutral-400);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* 三种形态，与 event-registry 的 EventShape 一一对应。
+ * 加一种形态时这里加一条，注册表里改一个字段——没有第三处要改。 */
+
+/* 气泡：文本流。设计规范 §01——卡片一律 inset 描边，不用 border */
+.bubble {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+}
+
+/* 卡片：有结构的一坨，比气泡更重一层 */
+.card {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--s-raised);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+}
+
+/* 单行：一句话说完的状态变化，不给背景免得喧宾夺主 */
+.line {
+  align-items: baseline;
+  color: var(--color-neutral-600);
+  font-size: 11.5px;
+}
+
+.label {
+  flex: none;
+  color: var(--color-neutral-700);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.text {
+  /* min-width: 0 不能省：一段长文本会把整行撑开，
+     进而把主区顶出横向滚动条。 */
+  min-width: 0;
+
+  /* 长内容换行而不是溢出——时间线是读的，不是扫的 */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
