@@ -134,7 +134,7 @@
 > 而 `agent_message_chunk` 的顺序就是用户看到的字序。
 > 实测 200 条通知里第一条到手的是 seq 3。
 
-### ○ U2.2.3 · 两个 Agent 的差异内化
+### ◐ U2.2.3 · 两个 Agent 的差异内化  ·  `68b32af`（**R4 待真 Agent 验证**）
 
 | | |
 |---|---|
@@ -152,6 +152,50 @@
 | R3 | 共同实现只有一份 | 断言两个 adapter 各自 < 150 行 |
 | R4 | 同一批断言跑遍两个真实 Agent 与 Fake | 测试代码里零 `if impl ==` |
 | R5 | 探针读出的能力矩阵 == Fake 声明的能力 | 让 Fake 声明不支持会话模式，断言矩阵对应项为不通过 |
+
+> **2026-08-08：R1 R2 R3 R5 完成，R4 只做了一半。**
+> 「同一批断言跑遍两端」已经做到——样例数据是 `acp-field-notes` §7.1 里
+> 实测记下的两端真实形态，测试代码里零 `if impl ==`。
+> **但还没跑过真 Agent**：那需要一个能同时驱动 claude-agent-acp 与 codex-acp
+> 的集成测试，而它依赖 Work 的创建（要有 cwd、要有会话）。
+>
+> 接手的人：做 Work 创建之后补一个 `//go:build integration` 的集成测试，
+> 拿同一批断言跑真 Agent。`make probe` 已经能拉起两端，可以照它的做法。
+
+## S2.4 · 把一次需求变成一个「工作」
+
+**用户拿到什么**：提一个需求，就有一个看得见、停得掉、恢复得了的「工作」。
+这是 V5 与 V6 真正连起来的地方。
+
+### ○ U2.4.1 · 新建工作：worktree、会话、时间线接线
+
+> **2026-08-08 新登记。** `M2` 前面四个单元各自留了一笔欠账，
+> **全都卡在同一个前提上**：没有「一个工作」这个概念。
+> 分开补的话，每一笔都要重新理解同一套上下文，所以并成一个单元。
+
+| | |
+|---|---|
+| `goal` | 用户对一个项目提需求，生成一个工作：有独立 worktree、有 ACP 会话、时间线实时显示 |
+| `allowed_changes` | `backend/internal/domain/model/work.go` · `backend/internal/app/work/**` · `backend/internal/gitx/**` 的 worktree · `backend/internal/store/**` 的工作仓储 · `backend/internal/api/**` 的 `/works` · `frontend/src/features/chat/**` · `api/openapi.yaml` 的 `/works` |
+| `forbidden_changes` | 往用户项目目录写任何 Duet 自己的文件；worktree 建在项目目录里（必须在 `~/.acpflows/worktrees`，见 `open-questions.md` Q30） |
+| `stop_conditions` | 发现 worktree 与用户已有分支冲突而产品语义未定 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 每个工作有独立 worktree，互不干扰 | 断言两个工作的文件改动互不可见（补 `U2.1.1` 的 R4） |
+| R2 | worktree 在 `~/.acpflows/worktrees`，**不在用户项目里** | 断言创建前后用户项目的 `git status` 无变化 |
+| R3 | 系统提示词只在首轮发 | 断言第二轮的请求里不含它（补 `U2.2.2` 的 R3） |
+| R4 | 时间线实时显示这个工作的事件 | 断言 SSE 推来的事件出现在界面上（补 `U2.3.2` 的接线） |
+| R5 | 同一批断言跑遍两个真实 Agent | `//go:build integration`，测试代码里零 `if impl ==`（补 `U2.2.3` 的 R4） |
+| R6 | 关掉应用再打开，工作还在且能接着看 | 重启后断言工作与它的事件都还在 |
+
+> **R2 是这个单元最要紧的一条。** 用户把自己的代码目录交给 Duet，
+> 而 worktree 是 Duet 唯一会大量写文件的地方——写错位置的话，
+> 他的仓库里会突然多出一堆分支和目录。
+>
+> `make probe` 已经能拉起两端真 Agent，R5 可以照它的做法。
 
 ---
 
