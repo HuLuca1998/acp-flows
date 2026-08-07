@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-docs check-doc-commands check-doc-links check-doc-budget check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
+check: check-docs check-doc-commands check-doc-links check-doc-budget check-milestones check-index check-icons lint test ## 提交前必跑：文档 + 索引 + 预算 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-docs
@@ -42,6 +42,10 @@ check-doc-links: ## 文档里的相对链接指向的文件真实存在
 .PHONY: check-doc-budget
 check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大文档读法块
 	@bash scripts/check-doc-budget.sh
+
+.PHONY: check-milestones
+check-milestones: ## 里程碑单元的四要素与验收标准断言是否齐备
+	@bash scripts/check-milestones.sh
 
 .PHONY: docs-scaffold
 docs-scaffold: ## 为目录生成文档骨架： make docs-scaffold DIR=backend/internal/store

@@ -23,7 +23,7 @@ description: 在 HuLuca1998/acp-flows 建 GitHub issue 时使用。触发场景�
 <type>(<scope>): <祈使语气的一句话>
 ```
 
-`type` / `scope` 取值与提交信息一致，见 [`docs/git-workflow.md`](../../docs/rules/git-workflow.md) §2。
+`type` / `scope` 取值与提交信息一致，见 [`docs/rules/git-workflow.md`](../../docs/rules/git-workflow.md) §2。
 
 ```
 ✓ fix(acp): session/cancel 未等 stopReason 就返回，游标可能丢失
@@ -62,7 +62,7 @@ description: 在 HuLuca1998/acp-flows 建 GitHub issue 时使用。触发场景�
 | 标签 | 含义 |
 |---|---|
 | `bug` `feat` `docs` `chore` | 类型，与 type 对应 |
-| `M0` `M1` `M2` `M3` `M4` | 归属里程碑，见 [`docs/roadmap.md`](../../docs/plan/roadmap.md) |
+| `M0` `M1` `M2` `M3` `M4` | 归属里程碑，见 [`docs/plan/roadmap.md`](../../docs/plan/roadmap.md) |
 | `blocked` | 被别的 issue 卡住，必须写清被谁卡住 |
 | `needs-decision` | 需要人拍板才能继续（对应产品里的 D2） |
 

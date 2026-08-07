@@ -96,6 +96,10 @@ jobs:
       - name: 文档的上下文预算（L0 常驻 / L1 阶段 / L2 读法块）
         run: bash scripts/check-doc-budget.sh
 
+      # 里程碑是另一个 AI 的施工图，缺一个字段它就会改不该改的
+      - name: 里程碑单元四要素与验收断言齐备
+        run: bash scripts/check-milestones.sh
+
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
         run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

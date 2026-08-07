@@ -30,7 +30,7 @@ grep -n "关键词" design/Duet\ Spec.dc.html
 # 需要看具体样式写法时再定位到行
 ```
 
-设计规范的中文纯文本要点已经整理进 [`../docs/frontend-guide.md`](../docs/spec/frontend-guide.md)，
+设计规范的中文纯文本要点已经整理进 [`../docs/spec/frontend-guide.md`](../docs/spec/frontend-guide.md)，
 **日常开发读那份就够**；只有当 frontend-guide 说不清、或需要核对原始样式时才回来读 HTML。
 
 ## 铁律 3 · 设计合规

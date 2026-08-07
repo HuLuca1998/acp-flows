@@ -6,9 +6,9 @@
 > 检查时机改为进设置页时检查。开工前先读那份 ADR。
 >
 > 体系与编号规则见 [`README.md`](README.md)。动手前必读
-> [`../release-and-update.md`](../../spec/release-and-update.md)（规格）、
+> [`../../spec/release-and-update.md`](../../spec/release-and-update.md)（规格）、
 > [`../adr/0002-release-and-auto-update.md`](../../adr/0002-release-and-auto-update.md)（已定的决策，不重新讨论）、
-> [`../ci.md`](../../rules/ci.md)（CI 设计规范）与 [`../git-workflow.md`](../../rules/git-workflow.md) §6（版本推导）。
+> [`../../rules/ci.md`](../../rules/ci.md)（CI 设计规范）与 [`../../rules/git-workflow.md`](../../rules/git-workflow.md) §6（版本推导）。
 
 > **读法**：本文 ~15k token，**不要整篇读**。一个里程碑章是子计划的菜单，
 > 你一次只做其中**一个**子计划。标准读法是三段：
@@ -20,8 +20,8 @@
 > ```
 >
 > ```bash
-> grep -n '^## ' docs/milestones/M1-release-and-update.md   # 全部子计划一览
-> grep -n '^## S1.7'  docs/milestones/M1-release-and-update.md   # 定位到你的那一节
+> grep -n '^## ' docs/plan/milestones/M1-release-and-update.md   # 全部子计划一览
+> grep -n '^## S1.7'  docs/plan/milestones/M1-release-and-update.md   # 定位到你的那一节
 > ```
 >
 > | 子计划 | 一句话 |
@@ -168,7 +168,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 让 workflow run 能被 runner 接单并跑完，使 M1 后续每一条验收标准都能在 CI 上取证，而不是靠 `--admin` 绕过 |
-| `allowed_changes` | `.github/workflows/ci.yml`（仅在确认根因在 workflow 侧时）· `docs/ci.md` 新增排障小节 · `docs/tech-debt.md` 登记行 |
+| `allowed_changes` | `.github/workflows/ci.yml`（仅在确认根因在 workflow 侧时）· `docs/rules/ci.md` 新增排障小节 · `docs/rules/tech-debt.md` 登记行 |
 | `forbidden_changes` | 不改分支保护规则本身；不删检查、不加 `continue-on-error`、不放宽断言以求变绿；本单元不夹带任何业务改动 |
 | `stop_conditions` | 排查后确认根因在**账号级**（billing / Actions 配额 / 组织策略 / 账号门禁）→ 停下来上报。改账号设置需要仓库所有者操作，AI 不得代为进行 |
 
@@ -180,7 +180,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | R2 | `changes` job 被真的分配到 runner | `gh api repos/HuLuca1998/acp-flows/actions/runs/<id>/jobs --jq '.jobs[].runner_name'` 每行非空、非 `null` |
 | R3 | `ci` 汇总门禁在一个 PR 上报出结论 | `gh pr checks <n> --json name,state --jq '.[]\|select(.name=="ci").state'` 输出 `SUCCESS` |
 | R4 | issue #3 关闭，且关闭评论里贴了 R1–R3 的实际命令输出 | `gh issue view 3 --json state --jq .state` 输出 `CLOSED` |
-| R5 | 根因与复现命令写进 `docs/ci.md` 的排障小节 | 该小节含「现象 / 根因 / 验证命令」三项，缺一即不通过 |
+| R5 | 根因与复现命令写进 `docs/rules/ci.md` 的排障小节 | 该小节含「现象 / 根因 / 验证命令」三项，缺一即不通过 |
 
 **测试**：本单元的「先红的测试」就是 issue #3 里那条复现命令 ——
 修复前它输出 `queued`（红），修复后输出 `in_progress`（绿）。两次输出都要贴进 PR。
@@ -190,7 +190,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 为 `guard` / `contract` 两个 job 与 `ci` 汇总门禁各准备一个**故意违规**的夹具，把「检查会红」本身变成一条常驻断言 |
-| `allowed_changes` | `scripts/test-guards.sh`（新增）· `Makefile` 的 `check` 目标链 · `.github/workflows/ci.yml` 的 `guard` job · `scripts/AGENTS.md` · `docs/ci.md` §7 |
+| `allowed_changes` | `scripts/test-guards.sh`（新增）· `Makefile` 的 `check` 目标链 · `.github/workflows/ci.yml` 的 `guard` job · `scripts/AGENTS.md` · `docs/rules/ci.md` §7 |
 | `forbidden_changes` | 负例夹具不得留在工作树里（一律在 `mktemp -d` 的副本上制造违规）；不修改被测检查脚本的判定逻辑；不给任何检查加豁免名单 |
 | `stop_conditions` | 某条检查无法在不污染工作树的前提下被反向验证 |
 
@@ -214,7 +214,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | `main` 只能经 PR + `ci` 汇总门禁合入，且每条规则都被反向验证过一次，而不是「配了就以为生效」 |
-| `allowed_changes` | `scripts/setup-branch-protection.sh` · `docs/git-workflow.md` §5 的表 |
+| `allowed_changes` | `scripts/setup-branch-protection.sh` · `docs/rules/git-workflow.md` §5 的表 |
 | `forbidden_changes` | **不把单个 job 设为 required check**（`ci.md` 禁止清单第 2 条）；不改 `enforce_admins`；不放宽 `required_linear_history` |
 | `stop_conditions` | `git-workflow.md` §5 的 required checks 表（`ci / backend` `ci / frontend` `ci / docs` `ci / contract` 四项）与 `ci.md` 规则 2（只 required `ci` 一项）**直接矛盾** —— 按 `docs/AGENTS.md`「一件事只在一处写」合并到 `ci.md`，`git-workflow.md` 改成链接。合并后仍存疑则停下来上报 |
 
@@ -266,7 +266,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 任何人（含 AI）手改 `tauri.conf.json` 的 `version` 或手写 `CHANGELOG.md` 时，`guard` job 直接红 |
-| `allowed_changes` | `scripts/check-version-source.sh`（新增）· `Makefile` 的 `check` 目标链 · `.github/workflows/ci.yml` 的 `guard` job · `scripts/AGENTS.md` · `docs/git-workflow.md` §6 |
+| `allowed_changes` | `scripts/check-version-source.sh`（新增）· `Makefile` 的 `check` 目标链 · `.github/workflows/ci.yml` 的 `guard` job · `scripts/AGENTS.md` · `docs/rules/git-workflow.md` §6 |
 | `forbidden_changes` | 不把违规降级为警告；`release-please--branches--main` 之外不设任何豁免；不改 `release-please-config.json`（那是 U1.2.1 的边界） |
 | `stop_conditions` | 在 PR 上无法区分 release-please 的提交与人的提交 |
 
@@ -288,7 +288,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 **阶段交付物**：无边框窗口能开、`duetd` 能被拉起并守住、端口与令牌能注入 WebView。
 
 > 规格在 [`../../shell/AGENTS.md`](../../../shell/AGENTS.md) 与
-> [`../architecture.md`](../../spec/architecture.md) §2、§6。**壳只做四件事**，第五件不要写进来。
+> [`../../spec/architecture.md`](../../spec/architecture.md) §2、§6。**壳只做四件事**，第五件不要写进来。
 
 ### ○ U1.3.1 · `src-tauri` 骨架与无边框窗口
 
@@ -436,7 +436,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | | |
 |---|---|
 | `goal` | 更新包被 minisign 签名、客户端强制校验；私钥有离线备份，**备份这件事本身是一条验收标准** |
-| `allowed_changes` | `shell/src-tauri/tauri.conf.json` 的 `plugins.updater`（`pubkey` / `endpoints`）· `.github/workflows/release.yml` 的签名与公证 step · `docs/release-and-update.md` §4 的 Secrets 清单 · `docs/open-questions.md` 的 Q6 行 |
+| `allowed_changes` | `shell/src-tauri/tauri.conf.json` 的 `plugins.updater`（`pubkey` / `endpoints`）· `.github/workflows/release.yml` 的签名与公证 step · `docs/spec/release-and-update.md` §4 的 Secrets 清单 · `docs/plan/open-questions.md` 的 Q6 行 |
 | `forbidden_changes` | **私钥、口令、任何密钥材料一律不得进仓库**，测试夹具也不行；不把 Apple 公证改成默认开启；不改构建矩阵（U1.5.1 的边界） |
 | `stop_conditions` | 撞上 `open-questions.md` **Q6**（私钥离线备份放哪、谁保管）—— 这是人拍板项，**AI 不得替它决定备份位置**；撞上 **Q5**（要不要买 Apple 开发者证书） |
 
@@ -449,7 +449,7 @@ S1.2 版本推导  S1.3 Tauri 壳  S1.4 前端骨架  S1.6 系统端点  S1.9 Ru
 | R3 | 篡改安装包后校验失败 | 往 `.tar.gz` 追加 1 字节，同一条 `minisign -V` 退出码 `!= 0` |
 | R4 | `endpoints` 指向 GitHub Release 的 `latest.json` | `jq -r '.plugins.updater.endpoints[0]' shell/src-tauri/tauri.conf.json` 匹配 `.../releases/latest/download/latest.json` |
 | R5 | 仓库里没有任何私钥材料 | `git grep -n 'untrusted comment: minisign secret key'` 无输出；密钥扫描工具退出码 0 |
-| R6 | **私钥已离线备份**，位置与保管人由人指定 | `docs/open-questions.md` 的 Q6 行已标注「结论 + 日期 + 出处」并移入「已决」表；**未标注前本单元不得标 `✓`** |
+| R6 | **私钥已离线备份**，位置与保管人由人指定 | `docs/plan/open-questions.md` 的 Q6 行已标注「结论 + 日期 + 出处」并移入「已决」表；**未标注前本单元不得标 `✓`** |
 | R7 | Apple 公证保持关闭，且开关可用 | 断言公证 step 带 `if: env.APPLE_ID != ''` 守卫；不填 `APPLE_*` secrets 时该 step 结论为 `skipped` 而不是 `failure` |
 
 > **R6 不是文书工作。** 公钥硬编码在每个已发布的旧版本里；私钥丢了，

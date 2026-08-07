@@ -22,7 +22,7 @@
 | 调 API | `src/api/` |
 | 原生能力 | `src/platform/` |
 | 常量、枚举 | `src/constants/` |
-| 用户可见文案格式化 | 走 i18n，见 [`../../../docs/i18n.md`](../../../docs/rules/i18n.md) |
+| 用户可见文案格式化 | 走 i18n，见 [`../../../docs/rules/i18n.md`](../../../docs/rules/i18n.md) |
 
 **hook 不进这里** —— hook 有生命周期与副作用，不是纯函数。
 

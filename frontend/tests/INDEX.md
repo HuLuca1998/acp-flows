@@ -1,7 +1,7 @@
 # 测试索引 · frontend
 
 > **写任何新测试前，先在本表里按「行为」搜一遍。**
-> 规则见 [`../../docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
+> 规则见 [`../../docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
 > `make check-test-index` 会逐项比对，不一致即红。
 
 ## 登记规则

@@ -1,7 +1,7 @@
 # 工具库索引 · frontend/src/utils
 
 > **写任何新工具函数前，先在本表里搜一遍。** 规则同后端，见
-> [`../../../docs/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.3–§1.4。
+> [`../../../docs/rules/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.3–§1.4。
 >
 > 新增 / 删除 / 改签名后必须同步本表。`make check-util-index` 会逐项比对，不一致即红。
 

@@ -5,7 +5,7 @@
 
 出现即视为不合规，改动回滚。
 
-**设计与组织**（完整清单见 `docs/design-principles.md` §8）
+**设计与组织**（完整清单见 `docs/rules/design-principles.md` §8）
 
 - ✗ **品牌判断离开 adapter** —— `grep -rn 'codex\|claude' backend/internal/{app,domain,api}` 必须是空的。
   claude 与 codex 的差异一律在 `acp/adapter/` 内部填平，上层只表达意图与查询能力
@@ -31,7 +31,7 @@
 - ✗ 把 Agent 的转述当证据（证据必须由应用直接采集）
 - ✗ 提交信息里写没有命令输出支撑的结论
 
-**国际化**（完整清单见 `docs/i18n.md` §8）
+**国际化**（完整清单见 `docs/rules/i18n.md` §8）
 
 - ✗ 组件里硬编码用户可见文本 —— 一律 `t('key')`
 - ✗ 翻译状态词 / 标识符 / 命令 / 路径 / ID —— 它们在中英两版里都保持英文等宽

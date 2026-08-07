@@ -6,7 +6,7 @@ description: 开始任何一个开发单元时使用——写新功能、修缺�
 # 一个开发单元的执行流程
 
 > 铁律 1：先写会失败的测试，跑一次确认它是红的，再写实现。
-> 完整规范见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md)。
+> 完整规范见 [`docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md)。
 
 ## 步骤
 
@@ -18,10 +18,10 @@ description: 开始任何一个开发单元时使用——写新功能、修缺�
 
 **不读文档就动手是本仓库最常见的失败模式。** 尤其是：
 
-- 改领域逻辑 → `docs/domain-model.md`
+- 改领域逻辑 → `docs/spec/domain-model.md`
 - 改接口 → `api/AGENTS.md`（**先改 spec**）
 - 改 UI → `design/Duet Spec.dc.html` 找对应条目
-- 写代码 → `docs/coding-standards.md`（命名、文件归属）
+- 写代码 → `docs/rules/coding-standards.md`（命名、文件归属）
 
 ### ② 写下边界
 
@@ -79,7 +79,7 @@ make check          # 文档 + 索引 + lint + 全部测试
 
 ### ⑦ 收尾：抽取、登记、债务体检
 
-**债务体检**（见 [`docs/tech-debt.md`](../../docs/rules/tech-debt.md)）：
+**债务体检**（见 [`docs/rules/tech-debt.md`](../../docs/rules/tech-debt.md)）：
 
 - [ ] 我这次是不是「照着现有的错误模式又写了一遍」？
 - [ ] 挡路的烂代码铲了吗？铲平是**独立提交**吗？
@@ -107,7 +107,7 @@ make check          # 文档 + 索引 + lint + 全部测试
 验证: cd backend && go test ./internal/acp/... -count=1 → ok, 退出码 0
 ```
 
-格式见 [`docs/git-workflow.md`](../../docs/rules/git-workflow.md) §2。
+格式见 [`docs/rules/git-workflow.md`](../../docs/rules/git-workflow.md) §2。
 「先红的测试」是必填项，CI 会校验。
 
 ## 自查：最好用的一条

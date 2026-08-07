@@ -1,10 +1,10 @@
 # M2 · 主链路垂直切片
 
 > 体系与编号规则见 [`README.md`](README.md)。动手前必读
-> [`../domain-model.md`](../../spec/domain-model.md)（**主要规格来源**，115 条不变量）、
-> [`../architecture.md`](../../spec/architecture.md) §4（13 类事件封闭枚举）、
-> [`../frontend-guide.md`](../../spec/frontend-guide.md) §9（渲染器注册表）、
-> [`../i18n.md`](../../rules/i18n.md)、[`../open-questions.md`](../open-questions.md) P2。
+> [`../../spec/domain-model.md`](../../spec/domain-model.md)（**主要规格来源**，115 条不变量）、
+> [`../../spec/architecture.md`](../../spec/architecture.md) §4（13 类事件封闭枚举）、
+> [`../../spec/frontend-guide.md`](../../spec/frontend-guide.md) §9（渲染器注册表）、
+> [`../../rules/i18n.md`](../../rules/i18n.md)、[`../open-questions.md`](../open-questions.md) P2。
 
 > **读法**：本文 ~21k token（占上下文 10%），**不要整篇读**。
 > 一个里程碑章是子计划的菜单，你一次只做其中**一个**。标准读法是四段：
@@ -17,8 +17,8 @@
 > ```
 >
 > ```bash
-> grep -n '^## ' docs/milestones/M2-golden-path.md      # 全部子计划一览
-> grep -n '^## S2.6' docs/milestones/M2-golden-path.md  # 定位到你的那一节
+> grep -n '^## ' docs/plan/milestones/M2-golden-path.md      # 全部子计划一览
+> grep -n '^## S2.6' docs/plan/milestones/M2-golden-path.md  # 定位到你的那一节
 > ```
 >
 > | 子计划 | 一句话 | 层 |
@@ -32,7 +32,7 @@
 > | S2.13 ● | E2E 黄金路径与常驻守卫 | 端到端 |
 >
 > **115 条不变量的分配表**告诉你这一节要守哪几条，写实现前先查：
-> `grep -n '不变量分配' docs/milestones/M2-golden-path.md`
+> `grep -n '不变量分配' docs/plan/milestones/M2-golden-path.md`
 
 ## 目标
 

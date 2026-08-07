@@ -5,7 +5,7 @@ description: 连接、查询、调试、修改 Duet 的 SQLite 数据库时使�
 
 # 数据库操作
 
-> 设计规范在 [`docs/database.md`](../../docs/rules/database.md)（表怎么建、模型怎么写）。
+> 设计规范在 [`docs/rules/database.md`](../../docs/rules/database.md)（表怎么建、模型怎么写）。
 > **本文只管「怎么连、怎么查、怎么调、怎么改」。**
 
 ## 三条红线
@@ -115,7 +115,7 @@ SELECT id, state FROM works WHERE project_id = 'acp-engine' ORDER BY created_at 
 处理顺序：
 1. 先确认这个查询**真的需要**索引（数据量小的表全表扫更快）
 2. 需要 → 加**版本化迁移**建索引，不要用 CLI 直接 `CREATE INDEX`
-3. 加完在 `docs/database.md` §4 的意义上说明它服务哪个查询
+3. 加完在 `docs/rules/database.md` §4 的意义上说明它服务哪个查询
 
 ### 看应用发出的真实 SQL
 
@@ -218,4 +218,4 @@ rm -f ~/.duet-dev/duet.db* && make dev-web
 6. **写一个能复现它的测试**（用临时库）→ 修完这个测试就是回归防线
 
 **第 6 步不能省。** 手动查明白了但没留下测试，下一轮 AI 会再踩一次
-（见 `docs/tech-debt.md`）。
+（见 `docs/rules/tech-debt.md`）。

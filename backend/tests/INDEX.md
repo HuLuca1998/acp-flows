@@ -3,7 +3,7 @@
 > **写任何新测试前，先在本表里按「行为」搜一遍。**
 > AI 反复写重复测试的根因是不知道已经测过什么——本表就是用来挡这个的。
 >
-> 规则见 [`../../docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
+> 规则见 [`../../docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §8。
 > `make check-test-index` 会逐项比对，不一致即红。
 
 ## 登记规则

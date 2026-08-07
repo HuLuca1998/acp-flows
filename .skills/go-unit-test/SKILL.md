@@ -6,7 +6,7 @@ description: 在本仓库写或改任何 Go 测试文件时使用（*_test.go、
 # Go 测试 · 项目特化规范
 
 > 通用方法论（契约优先、真实实例真实数据）见全局 `go-unit-testing` skill。
-> 本文只写**本项目特有**的东西。完整策略见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md)。
+> 本文只写**本项目特有**的东西。完整策略见 [`docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md)。
 
 ## 测试放哪
 
@@ -80,7 +80,7 @@ db := testutil.TempSQLite(t)     // 临时文件，不是 :memory:
 
 ## 假测试图鉴 —— 写完对着自查
 
-完整版见 [`docs/testing-strategy.md`](../../docs/rules/testing-strategy.md) §3。速查：
+完整版见 [`docs/rules/testing-strategy.md`](../../docs/rules/testing-strategy.md) §3。速查：
 
 | ✗ | 为什么假 |
 |---|---|

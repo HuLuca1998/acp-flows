@@ -141,7 +141,7 @@ Codex 读同一套 `AGENTS.md`（`.agents/skills` 与 `.claude/skills` 软链到
 **不要给：**
 
 - 整个仓库的文件列表
-- 完整的设计稿 HTML（250KB，用 `docs/frontend-guide.md` 代替）
+- 完整的设计稿 HTML（250KB，用 `docs/spec/frontend-guide.md` 代替）
 - 上一轮的聊天记录（传契约，不传对话）
 
 **绝不给：**
