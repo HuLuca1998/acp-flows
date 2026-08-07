@@ -8,7 +8,6 @@
   "nav.settings": "设置",
   "common.action.later": "稍后",
   "common.state.comingSoon": "即将上线",
-  "page.chat.hint": "这里将来是对话时间线：AI 的消息、工具调用、思考摘要、权限请求，边做边显示。",
   "page.plan.hint": "这里将来是计划面板：任务拆成了几块、改过几版、每次为什么改。",
   "page.memory.hint": "这里将来是项目记忆：AI 总结的经验条目，新经验要你点头才生效。",
   "page.skill.hint": "这里将来是 Skill 库：版本化的工作流定义，可发布与回滚。",
@@ -120,5 +119,15 @@
   "timeline.event.evidence": "证据",
   "timeline.event.checkpoint": "检查点",
   "timeline.event.unknown": "这条记录来自更新过的 AI，当前版本还不认识它",
-  "timeline.empty": "还没有任何记录。你提出需求之后，AI 做的每一步都会显示在这里。"
+  "timeline.empty": "还没有任何记录。你提出需求之后，AI 做的每一步都会显示在这里。",
+  "chat.needProject": "先添加一个项目，然后就能在这里提需求了。去「设置 → 项目管理」加一个本地文件夹。",
+  "chat.placeholder": "说说你想让 AI 做什么",
+  "chat.inputLabel": "需求描述",
+  "chat.start": "开始",
+  "chat.starting": "正在开始…",
+  "chat.error.work_project_not_a_repo": "这个文件夹不是 git 仓库。在它里面跑一次 git init 就好。",
+  "chat.error.work_project_not_found": "找不到这个文件夹，它可能被移动或删除了。",
+  "chat.error.project_path_not_absolute": "项目路径不完整，请重新添加这个项目。",
+  "chat.error.work_prompt_required": "先说说你想让 AI 做什么。",
+  "chat.error.unknown": "没能开始这个工作。稍后再试一次，或者到设置页看看后台服务还在不在。"
 }
