@@ -130,5 +130,18 @@ if [[ -n $badsyntax ]]; then
   say "shell 脚本语法错误（bash -n）——中文注释里的全角括号是常见来源" "$badsyntax"
 fi
 
+# ── 10. 上层代码不许出现 Runtime 品牌名 ──────────────────────
+#
+# U2.2.3 的 R2 明写这条要接进 CI。上层一旦写 `if name == "codex"`，
+# 加第三个 Runtime 就要在几十个地方改 if，而每漏一处都是一个
+# 只在那个 Runtime 下出现的 bug。
+#
+# 差异要么在 adapter 里填平，要么升级成能力查询——
+# 两条路都不该让上层知道品牌。
+brands=$(python3 "$(dirname "$0")/lib/no_brand_in_upper.py" || true)
+if [[ -n $brands ]]; then
+  say "app / domain / api 里出现了 Runtime 品牌名——差异应在 adapter 内填平或升级为能力查询" "$brands"
+fi
+
 if [[ $fail -eq 1 ]]; then exit 1; fi
 echo "✓ 命名与文件组织规范检查通过"
