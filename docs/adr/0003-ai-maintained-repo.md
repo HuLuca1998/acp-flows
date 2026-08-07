@@ -33,13 +33,13 @@
 
 | 规则 | 强制手段 |
 |---|---|
-| 关键目录必须有填实的 `AGENTS.md` + `CLAUDE.md` | `scripts/check-agent-docs.sh` |
-| 工具库不许重复造轮子 | `scripts/check-util-index.sh` |
-| 测试不许重复写 | `scripts/check-test-index.sh` |
-| 垃圾桶文件名、文件超长、Get 前缀、TS enum、越层 import | `scripts/check-naming.sh` |
-| 测试先行（提交必须写「先红的测试」） | `scripts/check-commit-msg.sh` |
-| 分包覆盖率门槛 | `scripts/check-coverage.sh` |
-| 中英词条一致、无硬编码文案 | `scripts/check-i18n.sh` + ESLint |
+| 关键目录必须有填实的 `AGENTS.md` + `CLAUDE.md` | `scripts/check/check-agent-docs.sh` |
+| 工具库不许重复造轮子 | `scripts/check/check-util-index.sh` |
+| 测试不许重复写 | `scripts/check/check-test-index.sh` |
+| 垃圾桶文件名、文件超长、Get 前缀、TS enum、越层 import | `scripts/check/check-naming.sh` |
+| 测试先行（提交必须写「先红的测试」） | `scripts/check/check-commit-msg.sh` |
+| 分包覆盖率门槛 | `scripts/check/check-coverage.sh` |
+| 中英词条一致、无硬编码文案 | `scripts/check/check-i18n.sh` + ESLint |
 | 契约先行 | `make check-gen` |
 | 分层依赖方向 | `golangci-lint` depguard |
 

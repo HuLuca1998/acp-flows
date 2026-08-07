@@ -251,7 +251,7 @@ S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
 | | |
 |---|---|
 | `goal` | PAT 加密写入 `~/.acpflows/credentials`，**不写入任何项目目录**，且任何进入 Agent 的载荷里都不可能出现它 |
-| `allowed_changes` | `backend/internal/ghx/credential.go` 及其测试 · `backend/internal/platform/keychain.go` · `backend/internal/acp/runtime/env.go` 的拒绝清单 · `scripts/check-naming.sh` |
+| `allowed_changes` | `backend/internal/ghx/credential.go` 及其测试 · `backend/internal/platform/keychain.go` · `backend/internal/acp/runtime/env.go` 的拒绝清单 · `scripts/check/check-naming.sh` |
 | `forbidden_changes` | 不实现远端操作（S4.4）；令牌不得进入日志、`Problem.detail`、事件 payload、SSE；不得透传 `GITHUB_TOKEN` / `GH_TOKEN` |
 | `stop_conditions` | 加密需要引入未经批准的第三方依赖；macOS keychain 不可用时的降级路径需要人定 |
 
@@ -264,7 +264,7 @@ S4.4 远端操作 = D3 ★         S4.2 报表页 ⛔ Q18
 | R3 | 落盘内容不含令牌明文 | 断言文件字节里不出现夹具令牌串 |
 | R4 | **spawn ACP 子进程时不透传 `GITHUB_TOKEN` / `GH_TOKEN`**（`acp-integration.md` §9.4） | 断言子进程环境变量表里两个键都不存在；宿主环境故意设上这两个变量再断言一次 |
 | R5 | 令牌不进日志与错误 | 触发一次鉴权失败，断言日志与 `Problem.detail` 里都不含令牌串，且 `Problem.type` 是机器可读错误码（`i18n.md` §3） |
-| R6 | **常驻检查**：全仓库禁止令牌字面量 | `grep -rn 'ghp_\|GITHUB_TOKEN\|GH_TOKEN' backend/internal/{acp,app,domain}` 为空，接进 `scripts/check-naming.sh` 与 CI |
+| R6 | **常驻检查**：全仓库禁止令牌字面量 | `grep -rn 'ghp_\|GITHUB_TOKEN\|GH_TOKEN' backend/internal/{acp,app,domain}` 为空，接进 `scripts/check/check-naming.sh` 与 CI |
 | R7 | 测试不碰真实令牌（铁律 6） | 全部用夹具串；HTTP 全部拦截，`testing-strategy.md` §5「永不出网」 |
 
 **测试**：R4 是最容易漏的一条——**环境变量也是上下文**（`acp-integration.md` §9.4 原文）。
@@ -425,7 +425,7 @@ R6 把这条约束从「记得别写」变成「写了就红」。
 | | |
 |---|---|
 | `goal` | `en-US.json` 补齐全部 key，`make check-i18n` 的四项校验全绿，且错误码与词条一一对应 |
-| `allowed_changes` | `frontend/src/i18n/locales/en-US.json` · `frontend/src/i18n/locales/zh-CN.json`（仅补缺失 key）· `frontend/src/i18n/resources.d.ts`（由生成器产出）· `scripts/check-i18n.sh` |
+| `allowed_changes` | `frontend/src/i18n/locales/en-US.json` · `frontend/src/i18n/locales/zh-CN.json`（仅补缺失 key）· `frontend/src/i18n/resources.d.ts`（由生成器产出）· `scripts/check/check-i18n.sh` |
 | `forbidden_changes` | **不翻译状态词、标识符、命令、路径、ID**（`i18n.md` §2）；不改组件逻辑；不新增中文原文当 key；不动态拼 key |
 | `stop_conditions` | 发现某个界面文案在后端硬编码返回（违反 `i18n.md` §3）——修后端属于跨单元改动，停下来 |
 

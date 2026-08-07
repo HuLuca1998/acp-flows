@@ -5,7 +5,7 @@ description: 需要把 Duet 跑起来时使用——起后端、起前端、在�
 
 # 起服务与页面测试
 
-> **不要裸跑 `go run ./cmd/duetd` 或 `pnpm dev`。** 一律走 `scripts/services.sh`。
+> **不要裸跑 `go run ./cmd/duetd` 或 `pnpm dev`。** 一律走 `scripts/dev/services.sh`。
 
 ## 为什么有这条规矩
 
@@ -34,9 +34,9 @@ make dev-logs       # 跟踪后端日志
 或直接用脚本（可指定单个服务）：
 
 ```bash
-scripts/services.sh start backend
-scripts/services.sh restart frontend
-scripts/services.sh logs backend
+scripts/dev/services.sh start backend
+scripts/dev/services.sh restart frontend
+scripts/dev/services.sh logs backend
 ```
 
 | | 端口 | 地址 |
@@ -114,7 +114,7 @@ kill <pid>            # 如果是别的程序
 
 ```bash
 make dev-logs                     # 后端
-scripts/services.sh logs frontend # 前端
+scripts/dev/services.sh logs frontend # 前端
 ```
 
 日志在 `~/.duet-dev/run/{backend,frontend}.log`。
@@ -125,7 +125,7 @@ scripts/services.sh logs frontend # 前端
 
 ```bash
 make dev-status       # 看 pid 是不是你以为的那个
-scripts/services.sh restart backend
+scripts/dev/services.sh restart backend
 ```
 
 > 后端是 `go run`，改代码**不会**自动重载，必须 restart。

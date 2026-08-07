@@ -78,12 +78,12 @@ ci:
 backend:
   - 'backend/**'
   - 'api/openapi.yaml'        # 契约变了后端生成物要重生成
-  - 'scripts/gen-api.sh'
-  - 'scripts/check-coverage.sh'
+  - 'scripts/gen/gen-api.sh'
+  - 'scripts/check/check-coverage.sh'
 frontend:
   - 'frontend/**'
   - 'api/openapi.yaml'        # 同上
-  - 'scripts/check-i18n.sh'
+  - 'scripts/check/check-i18n.sh'
 ```
 
 **新增跨目录依赖时必须同步更新过滤规则。**

@@ -340,7 +340,7 @@ S2.6 依赖 S2.3 + S2.4 + S2.5（派发一个 `Attempt` 同时需要 worktree、
 | | |
 |---|---|
 | `goal` | 让同一份 spec 同时产出三样东西，前端在后端零实现时对着 MSW handler 开发 |
-| `allowed_changes` | `scripts/gen-api.sh` · `Makefile` · `backend/internal/api/gen/**` · `frontend/src/api/**` · `frontend/tests/msw/**` |
+| `allowed_changes` | `scripts/gen/gen-api.sh` · `Makefile` · `backend/internal/api/gen/**` · `frontend/src/api/**` · `frontend/tests/msw/**` |
 | `forbidden_changes` | 不手写任何 handler 接口；不手改生成物；不在 `api` 层写业务判断 |
 | `stop_conditions` | 生成器产出的接口违反分层要求（同 M0 U0.10.1）；MSW handler 无法从 spec 生成 |
 
@@ -907,7 +907,7 @@ S2.6 依赖 S2.3 + S2.4 + S2.5（派发一个 `Attempt` 同时需要 worktree、
 | | |
 |---|---|
 | `goal` | 所有用户可见文案走 `t()`，状态词与标识符不翻译且等宽，两个 locale 文件同进同退 |
-| `allowed_changes` | `frontend/src/i18n/**` · `frontend/src/ui/StatusText.tsx` · `scripts/check-i18n.sh` · `frontend/eslint.config.js` · `Makefile` |
+| `allowed_changes` | `frontend/src/i18n/**` · `frontend/src/ui/StatusText.tsx` · `scripts/check/check-i18n.sh` · `frontend/eslint.config.js` · `Makefile` |
 | `forbidden_changes` | 用中文原文当 key；动态拼 key；只更新一个 locale 文件；翻译状态词 / 标识符 / 命令 / 路径 / ID |
 | `stop_conditions` | 后端返回了中文文案 → 停，回 S2.1 判定为 `contract_revision` |
 
@@ -1119,7 +1119,7 @@ S2.6 依赖 S2.3 + S2.4 + S2.5（派发一个 `Attempt` 同时需要 worktree、
 | | |
 |---|---|
 | `goal` | 一条 Playwright spec 跑真实 `duetd` + Fake Runtime + 临时数据目录，走完从创建项目到检查点落盘的全部 12 步 |
-| `allowed_changes` | `e2e/**` · `e2e/INDEX.md` · `backend/tests/fixtures/e2e/**` · `scripts/dev-web.sh` |
+| `allowed_changes` | `e2e/**` · `e2e/INDEX.md` · `backend/tests/fixtures/e2e/**` · `scripts/dev/dev-web.sh` |
 | `forbidden_changes` | 读写 `~/.acpflows` 或用户真实仓库；用 `data-testid` 兜底查询；跳过任何一步 |
 | `stop_conditions` | 某一步在界面上无法走通 → 停，回到对应子计划，不要在 E2E 里绕过去 |
 

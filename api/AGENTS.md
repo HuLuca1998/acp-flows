@@ -36,7 +36,7 @@
 | Go | `oapi-codegen` v2.4.1 | [`oapi-codegen.yaml`](oapi-codegen.yaml) | `backend/internal/api/gen/api.gen.go` |
 | TS | `openapi-typescript` 7 | 无 | `frontend/src/api/gen/schema.d.ts` |
 
-**版本写死在 `scripts/gen-api.sh` 里，不用 `@latest`** ——
+**版本写死在 `scripts/gen/gen-api.sh` 里，不用 `@latest`** ——
 生成器版本一变生成物就变，`check-gen` 会在一个与本次改动完全无关的 PR 上炸。
 
 生成物**进 git**：前端与 CI 直接读它，不能要求每个人先跑一遍生成器。

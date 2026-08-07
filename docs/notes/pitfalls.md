@@ -96,7 +96,7 @@
 - **症状** `make dev` 服务确实起来了，但命令不返回，一直卡着。
 - **根因** `make` 用管道捕获输出，后台进程持有那个管道的写端不放，管道读端就永远等不到 EOF。
 - **解决** 三处都要断开：`( ... ) </dev/null` 包住，内部 `nohup cmd </dev/null >log 2>&1 &`。
-- **状态** 已修（`scripts/services.sh`）。失效条件：改用 launchd / systemd 之类的进程管理器。
+- **状态** 已修（`scripts/dev/services.sh`）。失效条件：改用 launchd / systemd 之类的进程管理器。
 
 ---
 

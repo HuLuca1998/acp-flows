@@ -171,7 +171,7 @@ secret 不存在时它就是空字符串，而 `tauri-action` 会拿这个空串
 APPLE_SIGNING_IDENTITY: '-'
 ```
 
-再配一个 `scripts/install-app.sh` 解除隔离标记，把「未认证开发者」那层也过掉。
+再配一个 `scripts/release/install-app.sh` 解除隔离标记，把「未认证开发者」那层也过掉。
 
 **这个坑我凭推理不可能想到** —— ADR 0002 写的是「ad-hoc 签名，首次安装需手动放行」，
 没意识到不显式设 identity 会退化成「已损坏」。

@@ -3,7 +3,7 @@
 
   <!--
     Duet app icon - source of truth. Regenerate every product with:
-        ./scripts/gen-icons.sh
+        ./scripts/gen/gen-icons.sh
     Never hand-edit the PNG / ICNS / ICO under shell/src-tauri/icons/.
 
     NOTE  XML comments may not contain a double hyphen, so CSS custom-property

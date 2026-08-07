@@ -157,6 +157,55 @@ make check-util-index
 
 CI 在每个 PR 上跑。**索引不是文档，是被校验的清单。**
 
+### 1.5 目录扇出：平铺文件超过 15 个就要分包
+
+**一个目录下直接平铺的文件不得超过 15 个。**
+
+```bash
+make check-fanout      # CI 也跑
+```
+
+#### 为什么要管这件事
+
+平铺到一定程度之后，**目录名不再传达任何结构信息**，「这个新文件该放哪」
+失去答案，于是所有人继续往根上堆——这是一条单向的退化路径，没人会主动回头收拾。
+
+本仓库真实发生过：`scripts/` 堆到 27 个脚本时，它自己 `AGENTS.md` 里的
+脚本索引表只列了 13 个。**文档漂移是平铺过量的第一个症状**，
+而等到有人注意到漂移，通常已经积了半年。
+
+> 这条规则的作用不是「保持整洁」，是**在还改得动的时候强制做一次分类决策**。
+
+#### 发现超标时怎么办（按优先级）
+
+| 优先级 | 动作 | 判据 |
+|---|---|---|
+| 1 | **按职责分子目录** | 子目录名要能回答「新文件该放哪」。答不上来说明分类维度选错了 |
+| 2 | **合并职责重复的文件** | 平铺过多常常是同一件事写了好几份——先看能不能少几个 |
+| 3 | 加豁免 | 见下。**最后手段** |
+
+分子目录的维度要选**动词或职责**，不要选「大小」「新旧」这类没有预测力的维度：
+
+```
+✓ scripts/{check,gen,dev,release}/     新脚本一看就知道放哪
+✗ scripts/{misc,other,common}/         等于没分
+```
+
+#### 豁免
+
+确实分不动的，在 [`scripts/check/check-dir-fanout.sh`](../../scripts/check/check-dir-fanout.sh)
+的 `EXEMPT` 表里加一条，**并写清楚理由**。
+
+现有豁免只有生成物目录（由 `openapi.yaml` 决定，人改不了）。
+**豁免是需要解释的决定，不是默认状态**——加之前先诚实回答一句：
+真的分不动，还是只是不想改引用？
+
+#### 这条规则对 AI 协作者的意义
+
+工作过程中**顺手看一眼当前目录的文件数**。接近上限时，
+在动手加新文件之前先提出分包，而不是加完了等 CI 拦。
+CI 拦下来时，改动已经和分包混在一个 diff 里，审查成本翻倍。
+
 ---
 
 ## 2. 文件命名
@@ -360,8 +409,8 @@ import styles from './EventStream.module.css'
 |---|---|
 | Go 命名与常见坑 | `golangci-lint`（`revive` `stylecheck` `errcheck` `depguard`） |
 | Go 分层依赖方向 | `depguard` 规则，见 `backend/.golangci.yml` |
-| 禁止 `util.go`/`helper.go`/`common.go`/`misc.go` | `scripts/check-naming.sh`（CI） |
-| 文件行数上限 | `scripts/check-naming.sh` |
+| 禁止 `util.go`/`helper.go`/`common.go`/`misc.go` | `scripts/check/check-naming.sh`（CI） |
+| 文件行数上限 | `scripts/check/check-naming.sh` |
 | TS 命名与导入顺序 | ESLint（`@typescript-eslint` `import` `react-hooks` `unicorn/filename-case`） |
 | 禁止硬编码颜色/px | Stylelint + ESLint `no-restricted-syntax`，规则源自 `design/_ds/*/\_adherence.oxlintrc.json` |
 | 禁止前端越层 import `@tauri-apps/*` | ESLint `no-restricted-imports`（仅 `src/platform/` 例外） |

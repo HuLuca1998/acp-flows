@@ -1,8 +1,12 @@
 # M0 · 地基：ACP 协议层
 
-> **当前进度**：S0.1 完成 · S0.2 完成 U0.2.1 · S0.3 完成 U0.3.1、U0.3.2 部分 ·
-> S0.9 完成 U0.9.1 · S0.10 完成 U0.10.1。
-> 剩余关键路径：**U0.4.1/U0.4.2 Fake Runtime**（整套测试策略的支点，未开工）。
+> **当前进度**：S0.1 完成 · S0.2 完成 U0.2.1、**U0.2.3** · S0.3 完成 U0.3.1、U0.3.2 部分 ·
+> **S0.4 完成 U0.4.1** · S0.9 完成 U0.9.1 · S0.10 完成 U0.10.1。
+> **下一个该做的是 `U0.4.2`**（权限请求与能力矩阵编排），它是 S0.6 两段式取消的前置。
+>
+> **⚠️ 开工顺序已修正（2026-08-07）**：Fake Runtime **不是**第一个能开工的单元。
+> 它只允许 import `protocol`，而 `protocol` 包一直没建（U0.2.1 把类型自包含进了
+> `jsonrpc/`）。已补登记 **U0.2.3** 并完成，它是 S0.4 的硬前置。
 >
 > 体系与编号规则见 [`README.md`](README.md)。写代码前必读
 > [`../../spec/acp-integration.md`](../../spec/acp-integration.md)（规格）与
@@ -52,6 +56,7 @@ S0.1 工程地基
   ├─────────────────────────────────────────┐
   ▼                                         ▼
 S0.2 JSON-RPC 传输层                    S0.9 领域模型骨架
+  │  └ U0.2.3 protocol ★ ← fake 的唯一依赖   │
   ├──────────────┐                          │
   ▼              ▼                          │
 S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
@@ -169,6 +174,41 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 > 不清这些变量，`claude-agent-acp` 会误判自己嵌套而拒绝服务。
 > 见 [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) §5 坑 1。
 
+### ✓ U0.2.3 · `protocol` 线格式包 ★（补登记的地基单元）  ·  `8b3b422`
+
+> **为什么是补登记的**：`acp-integration.md` §3.3 规定 `fake` **只允许 import
+> `protocol`**，`jsonrpc` 也应建立在它之上。但 U0.2.1 把消息类型自包含进了
+> `jsonrpc/`，`protocol/` 一直没建——**S0.4 一开工就撞墙**。
+> 按本目录 README「发现单元拆错了 → 加新单元，不改已验收的」补此单元。
+> 编号排在 U0.2.2 之后，但**依赖上它是 S0.2 最底层的一个**。
+
+| | |
+|---|---|
+| `goal` | 建立 ACP v1 线格式的类型与枚举全集，使 `fake`（及后续 `session`/`adapter`）有一个**不依赖任何被测代码**的协议参照物 |
+| `allowed_changes` | `backend/internal/acp/protocol/**` · `backend/tests/INDEX.md` · `backend/.golangci.yml` 的 depguard 规则 |
+| `forbidden_changes` | **零 IO、零状态**——不 import 本包内任何其他子包，不 import 第三方库；不搬动 `jsonrpc` 的既有类型（那是独立的债务，见下） |
+| `stop_conditions` | 发现某个变体的载荷在 SDK schema 与真机报告之间冲突 → 先在 `acp-field-notes.md` §7 裁定 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | `SessionUpdate` 判别值**穷举 13 个**，与官方 v1 schema 一字不差 | 表驱动遍历全集；**新增/漏登记一个即红** |
+| R2 | 未知判别值**不报错**，解析出可辨识的「未知」态 | 喂 `"sessionUpdate":"nope_v3"`，断言无 error 且能取回原始判别值 |
+| R3 | `StopReason` 五值、`ToolKind` 十值、`ToolCallStatus` 四值、`PermissionOptionKind` 四值各自穷举且 `IsValid()` 拒绝表外取值 | 四个穷举测试 |
+| R4 | 编解码与官方 shape 逐字节一致 | golden：`testdata/` 下每个变体一份，`-update` 可重录 |
+| R5 | `plan_update` / `plan_removed` 被**认得**但标注为 unstable | 断言两者 `IsValid()` 为真且 `IsExperimental()` 为真 |
+| R6 | depguard 拦住 `protocol` import 本包内其他子包 | 故意写一行 import `jsonrpc`，`golangci-lint` 必须红 |
+
+> R1/R5 的依据是 `@agentclientprotocol/sdk@1.3.0` 的 `dist/schema/types.gen.d.ts`
+> （A 级），裁定过程见 [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) §7.2。
+> **R2 是最容易被写成假测试的一条**：断言"不报错"是恒真式，必须同时断言**取回了判别值**。
+
+**已知债务（本单元不还，登记在案）**：`jsonrpc/conn.go` 自带的
+`Request`/`Response`/`Error` 与 `protocol` 的错误码常量重复。
+搬迁会动到已验收的 U0.2.1 及其 13 个测试，**属于独立的重构单元**，
+按 [`tech-debt.md`](../../rules/tech-debt.md) 登记而不顺手做。
+
 ---
 
 ## S0.3 · 真机探针 ★（测试先行的落点）
@@ -228,9 +268,13 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 **阶段交付物**：一个可编排的假 Agent，让上层全部测试脱离真实 runtime。
 
-> 依赖 S0.3：**照着探针钉死的真实 shape 写**，不照假设写。
+> **两个前置，缺一个都开不了工：**
+> - **S0.3** —— **照着探针钉死的真实 shape 写**，不照假设写
+> - **U0.2.3 `protocol` 包** —— `fake` 只允许 import 它。若 `fake` 复用了
+>   `session` / `jsonrpc` 的实现，测试就变成「用被测代码验证被测代码」，
+>   参照物资格当场失效（`acp-integration.md` §3.3 第 2 条硬规则）
 
-### ○ U0.4.1 · 脚本回放与时序控制
+### ✓ U0.4.1 · 脚本回放与时序控制  ·  `1999457`
 
 | | |
 |---|---|
@@ -243,7 +287,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 
 | # | 标准 | 断言 |
 |---|---|---|
-| R1 | 按脚本顺序推送全部 9 类 `sessionUpdate` | 每类各一个测试，断言消费方收到且字段完整 |
+| R1 | 按脚本顺序推送全部 **13 类** `sessionUpdate` | 每类各一个测试，断言消费方收到且字段完整。**数量由 `protocol` 的穷举测试守住**，不靠本表的数字 |
 | R2 | 可配置每条事件的延迟 | 断言两条事件的到达间隔 ≥ 配置值 |
 | R3 | 可配置**乱序**推送 | 消费方按 `seq` 归位后顺序正确 |
 | R4 | 可配置**中途断流** | 断言消费方感知到断开而不是永久阻塞 |
@@ -292,7 +336,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | R3 | **真流式**：第一个 chunk 的到达远早于 turn 结束 | Fake 首 chunk 后延迟 2s 才结束，断言首 chunk 在 200ms 内到达 |
 | R4 | `stopReason` 五种取值**各有处理**，只有 `end_turn` 算正常 | 五个用例，断言 `max_tokens`/`refusal`/`max_turn_requests` 不被当成功 |
 | R5 | 系统提示词**只在首轮发** | 断言第二轮的 prompt 内容里不含系统提示词 |
-| R6 | 9 类 `sessionUpdate` **每类都有去处**（可以是显式丢弃） | 穷举测试：新增一类而未处理时必须红 |
+| R6 | **13 类** `sessionUpdate` **每类都有去处**（可以是显式丢弃） | 穷举测试：新增一类而未处理时必须红 |
 
 > R4、R5 分别对应前一个项目的 **H-5** 与 **H-3**；R3 对应 **H-2**。
 > 见 [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) §1。
@@ -370,7 +414,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | R3 | 能力矩阵可序列化给前端 | 与 `openapi.yaml` 的 `CapabilityMatrix` schema 一致 |
 | R4 | **上层零品牌判断** | `grep -rn 'codex\|claude' internal/{app,domain,api}` 结果为空，接进 CI |
 
-> R4 直接接进 `scripts/check-naming.sh`，成为一条常驻检查。
+> R4 直接接进 `scripts/check/check-naming.sh`，成为一条常驻检查。
 
 ### ○ U0.7.2 · Runtime 注册表与多版本并存
 
@@ -490,7 +534,7 @@ S0.3 真机探针 ★  S0.4 Fake Runtime ★        │
 | | |
 |---|---|
 | `goal` | `make dev-web` 能起来，`GET /v1/system/version` 有响应，无 token 一律 401 |
-| `allowed_changes` | `backend/cmd/duetd/**` · `backend/internal/api/**` · `scripts/dev-web.sh` |
+| `allowed_changes` | `backend/cmd/duetd/**` · `backend/internal/api/**` · `scripts/dev/dev-web.sh` |
 | `forbidden_changes` | 手写 handler 接口——必须由 `openapi.yaml` 生成；不在 `api` 层写业务判断 |
 | `stop_conditions` | 生成器无法产出符合分层要求的接口 |
 

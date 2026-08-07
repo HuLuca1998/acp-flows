@@ -1,7 +1,7 @@
 # Duet 应用图标
 
 `duet.svg` 是图标的**唯一真源**。`shell/src-tauri/icons/` 下的 PNG / ICNS / ICO 全部由
-[`../../scripts/gen-icons.sh`](../../scripts/gen-icons.sh) 从这份 SVG 生成。
+[`../../scripts/gen/gen-icons.sh`](../../scripts/gen/gen-icons.sh) 从这份 SVG 生成。
 
 > **改图标 = 改 `duet.svg` 然后重跑脚本。**
 > 直接改 PNG 的后果：下一次有人跑脚本，你的改动被静默覆盖，而且改动没有任何记录。
@@ -100,7 +100,7 @@
 ## 4. 怎么重新生成
 
 ```bash
-./scripts/gen-icons.sh
+./scripts/gen/gen-icons.sh
 ```
 
 产物写进 `shell/src-tauri/icons/`（Tauri 约定的文件名）：

@@ -88,7 +88,7 @@ gh workflow run release                    # 预发布快照
 仓库里的 `tauri.conf.json` 的 `version` **始终是 `0.0.0`**，
 发布时用 `jq` 注入——避免每次发版都产生一次「bump version」提交。
 
-release notes 由 `scripts/release-notes.sh` 从 conventional commits 生成，
+release notes 由 `scripts/release/release-notes.sh` 从 conventional commits 生成，
 写进 GitHub Release 正文。**`CHANGELOG.md` 这个文件不再维护**——
 GitHub Release 页面就是变更日志。
 
@@ -137,7 +137,7 @@ Apple 公证的开关在 workflow 里已预留，将来买了开发者账号只�
    Apple Silicon 要求 arm64 可执行文件必须有签名，只靠链接器那份不覆盖 bundle，
    Gatekeeper 会判「**已损坏**」而不是「未认证开发者」。前者用户会以为下载坏了
 
-配套 `scripts/install-app.sh` 解除隔离标记，把「未认证开发者」那层也过掉。
+配套 `scripts/release/install-app.sh` 解除隔离标记，把「未认证开发者」那层也过掉。
 
 ### Secrets 清单
 

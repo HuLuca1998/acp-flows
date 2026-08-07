@@ -389,7 +389,7 @@ S3.3 跨项目记忆 L3                           │
 | R4 | **不依赖 cwd 隐式发现** | 断言分发目录不等于 `cwd`，且不是 `cwd` 的子目录 |
 | R5 | 分发目录只含 Skill 内容 | 断言目录下的顶层项集合等于 `active` Skill 的 `name` 集合；断言不含 `.git` / `go.mod` / `package.json` |
 | R6 | `deprecated` 的 Skill 不出现在新注入清单，历史注入仍可解析（INV-SKL-5） | 两条断言，手法同 U3.2.3 R2 |
-| R7 | 上层零品牌判断 | `grep -rn 'plugins\|additionalDirectories' backend/internal --include=*.go` 的命中只落在 `internal/acp/adapter/`，接进 `scripts/check-naming.sh` |
+| R7 | 上层零品牌判断 | `grep -rn 'plugins\|additionalDirectories' backend/internal --include=*.go` 的命中只落在 `internal/acp/adapter/`，接进 `scripts/check/check-naming.sh` |
 | R8 | 注入契约对 claude / codex / fake 三个实现同时成立 | 扩展 M0 U0.8.2 的表驱动契约测试，**断言里零 `if impl ==`** |
 | R9 | `scripts/` 的执行触发一次权限裁决（INV-SKL-8） | 用 Fake Runtime 发起一次 `scripts/run_tests.sh` 调用，断言收到一次 `session/request_permission` |
 

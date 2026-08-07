@@ -389,7 +389,7 @@ internal/acp/adapter/
 | 一个 struct 的方法数 | **15 个** | 职责太多，拆类型 |
 | 函数参数个数 | **4 个** | 用 options struct |
 
-前两条由 `scripts/check-naming.sh` 在 CI 强制。
+前两条由 `scripts/check/check-naming.sh` 在 CI 强制。
 
 ### 5.2 包内文件按什么维度切
 

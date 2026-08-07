@@ -1,2 +1,2 @@
-构建时 scripts/build.sh 会把 duetd 二进制放进这里，
+构建时 scripts/release/build.sh 会把 duetd 二进制放进这里，
 文件名必须带 target triple 后缀（Tauri sidecar 约定）。

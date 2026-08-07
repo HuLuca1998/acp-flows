@@ -1,0 +1,117 @@
+[
+  {
+    "sessionUpdate": "user_message_chunk",
+    "content": { "type": "text", "text": "把 U0.4.1 的 Fake Runtime 实现出来" }
+  },
+  {
+    "sessionUpdate": "agent_message_chunk",
+    "messageId": "msg_01HZ7K3QW9",
+    "content": { "type": "text", "text": "我先读 acp-integration.md §12 的脚本格式。" },
+    "_meta": { "claudeCode": { "promptQueueing": true } }
+  },
+  {
+    "sessionUpdate": "agent_thought_chunk",
+    "messageId": "msg_01HZ7K3QW9",
+    "content": { "type": "text", "text": "脚本要能表达断流，否则 R4 测不了。" }
+  },
+  {
+    "sessionUpdate": "tool_call",
+    "toolCallId": "call_001",
+    "title": "编辑 backend/internal/acp/fake/script.go",
+    "name": "Edit",
+    "kind": "edit",
+    "status": "pending",
+    "locations": [{ "path": "/w/backend/internal/acp/fake/script.go", "line": 42 }],
+    "rawInput": { "file_path": "/w/backend/internal/acp/fake/script.go" }
+  },
+  {
+    "sessionUpdate": "tool_call_update",
+    "toolCallId": "call_001",
+    "status": "completed",
+    "content": [
+      {
+        "type": "diff",
+        "path": "/w/backend/internal/acp/fake/script.go",
+        "oldText": "",
+        "newText": "type Script struct {\n\tName string `json:\"name\"`\n}\n"
+      }
+    ]
+  },
+  {
+    "sessionUpdate": "plan",
+    "entries": [
+      { "content": "读 §12.3 脚本格式", "priority": "high", "status": "completed" },
+      { "content": "写 script.go 的失败测试", "priority": "high", "status": "in_progress" },
+      { "content": "补 golden 夹具", "priority": "medium", "status": "pending" }
+    ]
+  },
+  {
+    "sessionUpdate": "plan_update",
+    "plan": {
+      "type": "markdown",
+      "planId": "plan_01HZ7K4M2P",
+      "content": "## 步骤\n1. 脚本格式\n2. 时序控制\n"
+    }
+  },
+  {
+    "sessionUpdate": "plan_removed",
+    "planId": "plan_01HZ7K4M2P"
+  },
+  {
+    "sessionUpdate": "available_commands_update",
+    "availableCommands": [
+      {
+        "name": "review",
+        "description": "对当前 diff 做独立审查",
+        "input": { "hint": "要审查的路径" }
+      }
+    ]
+  },
+  {
+    "sessionUpdate": "current_mode_update",
+    "currentModeId": "read-only"
+  },
+  {
+    "sessionUpdate": "config_option_update",
+    "configOptions": [
+      {
+        "id": "reasoning_effort",
+        "name": "Reasoning effort",
+        "description": "How much effort the model spends reasoning",
+        "category": "thought_level",
+        "type": "select",
+        "currentValue": "medium",
+        "options": [
+          { "value": "low", "name": "Low" },
+          { "value": "medium", "name": "Medium" },
+          { "value": "high", "name": "High" }
+        ]
+      },
+      {
+        "id": "fast-mode",
+        "name": "Fast mode",
+        "category": "model_config",
+        "type": "boolean",
+        "currentValue": false
+      },
+      {
+        "id": "agent",
+        "name": "Agent",
+        "category": "",
+        "type": "boolean",
+        "currentValue": true
+      }
+    ]
+  },
+  {
+    "sessionUpdate": "session_info_update",
+    "title": "U0.4.1 Fake Runtime 脚本回放",
+    "updatedAt": "2026-08-07T04:15:30Z"
+  },
+  {
+    "sessionUpdate": "usage_update",
+    "used": 48213,
+    "size": 200000,
+    "cost": { "amount": 0.2841, "currency": "USD" }
+  }
+]

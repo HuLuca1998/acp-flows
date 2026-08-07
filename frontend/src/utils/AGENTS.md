@@ -28,7 +28,7 @@
 
 ## 禁止的文件名
 
-`util.ts` `utils.ts` `helper.ts` `common.ts` `misc.ts` —— 由 `scripts/check-naming.sh` 拦下。
+`util.ts` `utils.ts` `helper.ts` `common.ts` `misc.ts` —— 由 `scripts/check/check-naming.sh` 拦下。
 
 ## 索引是强制的
 

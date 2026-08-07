@@ -108,6 +108,38 @@ linters:
             - pkg: github.com/HuLuca1998/acp-flows/backend/tests
               desc: "生产代码禁止 import 测试辅助包"
 
+        # ── acp/protocol：线格式定义，最底层 ──────────────────
+        # 硬规则 1（docs/spec/acp-integration.md §3.3）：不 import 本包内任何其他
+        # 子包，也不做 IO。它一旦依赖了别人，就没资格当「独立的协议参照物」。
+        acp-protocol:
+          files:
+            - "**/internal/acp/protocol/**"
+          allow:
+            - $gostd
+          deny:
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal
+              desc: "protocol 只依赖标准库 —— 它是 fake 的唯一合法依赖，自己再依赖别人就形成环（docs/spec/acp-integration.md §3.3 硬规则 1）"
+
+        # ── acp/fake：只允许 import protocol ★ ────────────────
+        # 硬规则 2（同上）：Fake 若复用 session / jsonrpc 的实现，测试就变成
+        # 「用被测代码验证被测代码」——是 mock 喂 mock 的变体，只是伪装得更好。
+        # Fake 必须独立地按规范说话，才有资格当参照物。
+        acp-fake:
+          files:
+            - "**/internal/acp/fake/**"
+          allow:
+            - $gostd
+            - github.com/HuLuca1998/acp-flows/backend/internal/acp/protocol
+          deny:
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp/jsonrpc
+              desc: "Fake 只许 import protocol：复用 jsonrpc 的分帧实现，分帧写错时 Fake 和被测代码会一起错、测试照样绿（docs/spec/acp-integration.md §3.3 硬规则 2）"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp/session
+              desc: "同上 —— Fake 不许知道会话状态机怎么实现的"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/acp/adapter
+              desc: "同上 —— Fake 是 adapter 的参照物，不能反过来依赖它"
+            - pkg: github.com/HuLuca1998/acp-flows/backend/internal/domain
+              desc: "Fake 不认识任何业务概念（Work / Unit / Contract 不得出现在本包）"
+
         # ── 基础设施之间不互相依赖 ────────────────────────────
         infra:
           files:

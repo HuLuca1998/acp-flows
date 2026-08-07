@@ -25,7 +25,7 @@ testutil/
 | `internal/util` | 生产代码的纯工具函数 | 生产代码 + 测试 |
 | `tests/testutil` | 建夹具、起临时服务、断言辅助 | **只有测试** |
 
-生产代码 import 本包会被 `depguard` 拦下（`scripts/check-naming.sh` 也查一遍）。
+生产代码 import 本包会被 `depguard` 拦下（`scripts/check/check-naming.sh` 也查一遍）。
 **搞混这两个是本目录最常见的错误。**
 
 ## 守卫必须自己有测试

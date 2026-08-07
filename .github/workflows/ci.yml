@@ -44,18 +44,18 @@ jobs:
             backend:
               - 'backend/**'
               - 'api/openapi.yaml'
-              - 'scripts/gen-api.sh'
-              - 'scripts/check-coverage.sh'
+              - 'scripts/gen/gen-api.sh'
+              - 'scripts/check/check-coverage.sh'
             frontend:
               - 'frontend/**'
               - 'api/openapi.yaml'
-              - 'scripts/gen-api.sh'
-              - 'scripts/check-i18n.sh'
+              - 'scripts/gen/gen-api.sh'
+              - 'scripts/check/check-i18n.sh'
             shell:
               - 'shell/**'
             contract:
               - 'api/**'
-              - 'scripts/gen-api.sh'
+              - 'scripts/gen/gen-api.sh'
 
       - id: scaffold
         name: 探测子项目是否已脚手架
@@ -84,25 +84,29 @@ jobs:
         run: make check-index
 
       - name: 命名与文件组织规范
-        run: bash scripts/check-naming.sh
+        run: bash scripts/check/check-naming.sh
 
       - name: 文档里的命令与脚本真实存在
-        run: bash scripts/check-doc-commands.sh
+        run: bash scripts/check/check-doc-commands.sh
 
       - name: 文档里的相对链接有效
-        run: bash scripts/check-doc-links.sh
+        run: bash scripts/check/check-doc-links.sh
 
       # 文档超预算不会报错，只会表现为「AI 好像没按文档做」——所以必须机器拦
       - name: 文档的上下文预算（L0 常驻 / L1 阶段 / L2 读法块）
-        run: bash scripts/check-doc-budget.sh
+        run: bash scripts/check/check-doc-budget.sh
+
+      # 平铺过量没人会主动发现——它的第一个症状是目录索引文档悄悄漂移
+      - name: 目录扇出（平铺文件过多要分包）
+        run: bash scripts/check/check-dir-fanout.sh
 
       # 里程碑是另一个 AI 的施工图，缺一个字段它就会改不该改的
       - name: 里程碑单元四要素与验收断言齐备
-        run: bash scripts/check-milestones.sh
+        run: bash scripts/check/check-milestones.sh
 
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
-        run: bash scripts/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+        run: bash scripts/check/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
 
   # ── 契约：只在 api/ 变动时跑 ─────────────────────────────────
   contract:
@@ -215,7 +219,7 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - name: 编 duetd sidecar
-        run: bash scripts/build-sidecar.sh
+        run: bash scripts/release/build-sidecar.sh
 
       - run: cd shell/src-tauri && cargo clippy --all-targets -- -D warnings
       - run: cd shell/src-tauri && cargo test
