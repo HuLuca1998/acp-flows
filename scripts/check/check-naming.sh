@@ -96,5 +96,20 @@ if [[ -n $naked ]]; then
   say "变量后紧跟中文时必须写 \${var}——C locale 下 bash 会把多字节首字节吞进变量名" "$naked"
 fi
 
+# ── 8. Go：exec.CommandContext 必须设 WaitDelay ───────────────
+#
+# ★ 真踩过（2026-08-07，U1.3.1 的检测超时形同虚设）：
+#   ctx 到期时 CommandContext 只 kill **直接**子进程。子进程若 fork 过
+#   （shell 包装脚本、node 启动器——真实 CLI 几乎都是这样），孙子进程
+#   继承着 stdout 管道活下去，而 Output()/Wait() 要等管道关闭才返回。
+#   实测：`/bin/sleep 30` 配 1.5 秒超时，跑满了 30 秒。
+#
+# 这个 bug 不会让编译或 vet 有任何反应，只表现为"偶尔卡很久"。
+# WaitDelay 是标准库给的解法，设了就行——所以直接检查有没有设。
+nodelay=$(python3 "$(dirname "$0")/waitdelay.py" || true)
+if [[ -n $nodelay ]]; then
+  say "exec.CommandContext 之后必须设 cmd.WaitDelay——否则 fork 过的子进程会架空超时" "$nodelay"
+fi
+
 if [[ $fail -eq 1 ]]; then exit 1; fi
 echo "✓ 命名与文件组织规范检查通过"
