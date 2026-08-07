@@ -15,9 +15,9 @@ const checkUpdate = vi.fn()
 const prepareUpdate = vi.fn()
 
 vi.mock('@/api/system', () => ({
-  listRuntimes: (...args: unknown[]) => listRuntimes(...args),
-  checkUpdate: (...args: unknown[]) => checkUpdate(...args),
-  prepareUpdate: (...args: unknown[]) => prepareUpdate(...args),
+  listRuntimes: (...args: unknown[]): unknown => listRuntimes(...args),
+  checkUpdate: (...args: unknown[]): unknown => checkUpdate(...args),
+  prepareUpdate: (...args: unknown[]): unknown => prepareUpdate(...args),
 }))
 
 beforeEach(() => {
@@ -39,7 +39,7 @@ const NAV = [
 ] as const
 
 describe('设置页二级导航', () => {
-  it('左栏恰好六项，名字与副标题逐字照设计稿且顺序一致', async () => {
+  it('左栏恰好六项，名字与副标题逐字照设计稿且顺序一致', () => {
     render(<SettingsPage />)
 
     const nav = screen.getByRole('tablist', { name: /设置分区/ })

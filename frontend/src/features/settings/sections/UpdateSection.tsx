@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import { Button } from '@/ui/Button'
 
+import type { UpdatePhase } from '../use-update-flow'
+
 import styles from './UpdateSection.module.css'
-import type { UpdatePhase } from './use-update-flow'
 
 /**
  * 后端错误码 → i18n key 的**显式映射**。

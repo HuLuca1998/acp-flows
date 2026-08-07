@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { Runtime, RuntimeStatus } from '@/models/runtime'
 import { Skeleton } from '@/ui/Skeleton'
 
+import sectionStyles from '../Settings.module.css'
+
 import styles from './RuntimeSection.module.css'
-import sectionStyles from './Settings.module.css'
 
 /**
  * 状态 → 词条 key 的显式映射。

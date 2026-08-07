@@ -25,6 +25,52 @@ test.describe('布局不变量', () => {
     expect(await horizontalOverflow(page)).toBe(0)
   })
 
+
+  // ★ 设置页是**两栏**（左侧 196px 定宽导航），比其它页更容易撑宽：
+  // 右栏里有一条完整的可执行文件路径，而 flex 子项默认 min-width: auto。
+  //
+  // ★★ 这里**不能只看 documentElement 的溢出**。主区自己有 overflow，
+  // 内部撑宽会被它吸收成一条内部滚动条，页面级看起来毫无异常——
+  // 第一版就是这么写的，把导航栏宽度改成 2000px 都测不红。
+  // 所以要逐个元素问「你自己溢出了吗」。
+  test('设置页在窄窗口下不出横向滚动条，切换分区也不出', async ({ page }) => {
+    /** 页面上**任何**元素自己横向溢出都算数，不只是根元素。 */
+    async function widestOverflow(p: import('@playwright/test').Page) {
+      return p.evaluate(() => {
+        let worst = { tag: '', by: 0 }
+        for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+          const by = el.scrollWidth - el.clientWidth
+          // clientWidth 为 0 的不参与布局（隐藏、内联），跳过
+          if (el.clientWidth > 0 && by > worst.by) {
+            worst = { tag: `${el.tagName}.${el.className}`.slice(0, 60), by }
+          }
+        }
+        return worst
+      })
+    }
+
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await page.goto('/')
+
+    await page.getByRole('button', { name: '设置' }).click()
+    const nav = page.getByRole('tablist', { name: '设置分区' })
+    await expect(nav).toBeVisible()
+
+    let worst = await widestOverflow(page)
+    expect(worst.by, `刚进设置页就有元素横向溢出：${worst.tag}`).toBe(0)
+
+    // 逐个分区切过去——每个分区的内容宽度不一样，只测第一个等于没测
+    const tabs = nav.getByRole('tab')
+    const count = await tabs.count()
+    expect(count, '设置页应有六个分区').toBe(6)
+    for (let i = 0; i < count; i++) {
+      const name = (await tabs.nth(i).textContent()) ?? `第 ${i} 项`
+      await tabs.nth(i).click()
+      worst = await widestOverflow(page)
+      expect(worst.by, `切到「${name}」后 ${worst.tag} 横向溢出`).toBe(0)
+    }
+  })
+
   // ★ 逐个 hover 每个纯图标控件。
   // 设计规范要求所有纯图标控件都有中文 tooltip（§08），
   // 而 tooltip 正是最容易溢出的那一类元素。

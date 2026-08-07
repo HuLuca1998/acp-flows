@@ -9,6 +9,24 @@
   padding: var(--space-6);
 }
 
+/* 两栏：左侧 196px 二级导航，右侧内容。照设计稿。 */
+.body {
+  display: flex;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.pane {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  /* ★ min-width: 0 不能省。flex 子项默认 min-width: auto，
+     里面一条长路径就会把整栏撑宽，进而把页面撑出横向滚动条。 */
+  min-width: 0;
+}
+
 .title {
   margin: 0;
   color: var(--color-neutral-300);
