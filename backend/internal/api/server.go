@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
 )
 
 // Config 是构造 Router 需要的东西。
@@ -34,6 +36,10 @@ type Config struct {
 	// Projects 是本地项目用例。为 nil 时相关端点返回
 	// project_service_unavailable，其余端点不受影响。
 	Projects projectService
+	// Bus 是事件总线。为 nil 时 /events 返回 event_stream_unavailable。
+	Bus *eventbus.Bus
+	// EventHistory 供断线重连补发；为 nil 时不补历史，只推新事件。
+	EventHistory eventHistory
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -68,6 +74,9 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("GET /v1/projects", handleListProjects(cfg.Projects))
 	mux.HandleFunc("POST /v1/projects", handleAddProject(cfg.Projects))
 	mux.HandleFunc("DELETE /v1/projects/{id}", handleRemoveProject(cfg.Projects))
+
+	// 事件流：SSE 长连接，界面靠它「边做边显示」。
+	mux.HandleFunc("GET /v1/events", handleStreamEvents(cfg.Bus, cfg.EventHistory))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

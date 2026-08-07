@@ -28,6 +28,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
+	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
@@ -148,6 +149,7 @@ func run() error {
 	ids.PrimeSeq("proj", maxSeq)
 
 	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
+	bus := eventbus.New(eventStore{db.Events()})
 
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,
@@ -158,6 +160,10 @@ func run() error {
 		// 就该看到变化，而缓存的表现是「照着提示装好了，界面还是说没装」。
 		Runtimes: runtime.Detector{},
 		Projects: projectSvc,
+		// 事件流：bus 负责扇出，EventHistory 负责断线重连补发。
+		// 两者接的是同一张 events 表——bus 写、history 读。
+		Bus:          bus,
+		EventHistory: eventStore{db.Events()},
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
@@ -289,4 +295,43 @@ func (gitProbe) ProbeGit(ctx context.Context, path string) (port.GitInfo, error)
 		return port.GitInfo{}, fmt.Errorf("%w: %s", port.ErrPathNotFound, path)
 	}
 	return port.GitInfo{IsRepo: info.IsRepo, DefaultBranch: info.DefaultBranch}, err
+}
+
+// eventStore 把 store 的事件仓储接到 eventbus 与 api 上。
+//
+// ★ 为什么需要这层翻译：store.Event 与 eventbus.Event 字段完全一致，
+// 但**具名结构体之间不能互相赋值**——Go 的结构化类型只对 interface 生效。
+// 而 depguard 的 infra 规则不许基础设施之间互相 import（store 不能认识
+// eventbus，反之亦然），所以接缝只能落在 cmd —— 唯一做装配的地方。
+type eventStore struct{ repo *store.EventRepo }
+
+func (s eventStore) AppendEvent(ctx context.Context, e *eventbus.Event) error {
+	row := &store.Event{
+		ID: e.ID, WorkID: e.WorkID, Source: e.Source,
+		Type: e.Type, TS: e.TS, Payload: e.Payload,
+	}
+	if err := s.repo.AppendEvent(ctx, row); err != nil {
+		return err
+	}
+	e.Seq = row.Seq // 序号由数据库发放，写回给调用方
+	return nil
+}
+
+func (s eventStore) MaxSeq(ctx context.Context) (int64, error) {
+	return s.repo.MaxSeq(ctx)
+}
+
+func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]eventbus.Event, error) {
+	rows, err := s.repo.EventsAfter(ctx, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]eventbus.Event, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, eventbus.Event{
+			ID: r.ID, Seq: r.Seq, WorkID: r.WorkID,
+			Source: r.Source, Type: r.Type, TS: r.TS, Payload: r.Payload,
+		})
+	}
+	return out, nil
 }

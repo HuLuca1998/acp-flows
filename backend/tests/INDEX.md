@@ -185,3 +185,10 @@
 | `TestEventRepo_EventsAfter` | `internal/store/event_repo_test.go` | store | ★ R2：断线重连只补没收到的——从头补会让整条时间线重放一遍，补少了则中间有洞而用户看不出来 |
 | `TestEventRepo_EventsAfterRespectsLimit` | `internal/store/event_repo_test.go` | store | 补发有上限：断了一整天的客户端重连时不该被灌几万条 |
 | `TestEventRepo_PayloadRoundTrips` | `internal/store/event_repo_test.go` | store | 载荷原样存取（含中文与嵌套）——它是界面上真正显示的内容 |
+| `TestStreamEvents_SetsSSEHeaders` | `internal/api/events_test.go` | api | SSE 响应头对（`text/event-stream` + `no-cache`），否则浏览器不当它是事件流、中间层还可能缓存整条流 |
+| `TestStreamEvents_DeliversLive` | `internal/api/events_test.go` | api | ★ 真流式：用**真 HTTP 服务器**而不是 ResponseRecorder（后者拿到的是「全部写完之后」，正好把边发边到测没了）；`id` 必须是 seq |
+| `TestStreamEvents_ResumesFromLastEventID` | `internal/api/events_test.go` | api | ★★ R2：带 `Last-Event-ID` 重连只补它之后的；负例（忽略它从头补）立刻红 |
+| `TestStreamEvents_FreshConnectionDoesNotReplayHistory` | `internal/api/events_test.go` | api | 全新连接不重放历史——它要的是「从现在开始」 |
+| `TestStreamEvents_DisconnectReleasesSubscriber` | `internal/api/events_test.go` | api | ★ R3：客户端断开时订阅者被回收，防泄漏 |
+| `TestStreamEvents_RequiresToken` | `internal/api/events_test.go` | api | 无 token 401——事件流能看到用户项目里发生的一切 |
+| `TestStreamEvents_TolerantToBadLastEventID` | `internal/api/events_test.go` | api | 非法 `Last-Event-ID` 按全新连接处理而不是 500——为它回 500 会让用户彻底连不上 |
