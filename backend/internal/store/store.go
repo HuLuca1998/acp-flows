@@ -84,6 +84,9 @@ func (s *Store) DB() *gorm.DB { return s.db }
 // Works 返回 Work 聚合的 repo。
 func (s *Store) Works() *WorkRepo { return &WorkRepo{db: s.db, clk: s.clk} }
 
+// Projects 返回项目仓储。
+func (s *Store) Projects() *ProjectRepo { return &ProjectRepo{db: s.db, clk: s.clk} }
+
 // Close 关闭数据库连接。
 func (s *Store) Close() error {
 	sqlDB, err := s.db.DB()

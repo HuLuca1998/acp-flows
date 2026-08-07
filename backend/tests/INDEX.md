@@ -131,3 +131,29 @@
 | `TestListRuntimes_EmptyIsArrayNotNull` | `internal/api/runtimes_test.go` | api | ★ `runtimes` 空时是 `[]` 不是 `null`——新用户第一次打开设置页正是这个状态，前端对 null 调 `.map()` 会白屏 |
 | `TestListRuntimes_MissingDetectorDoesNotBreakOtherEndpoints` | `internal/api/runtimes_test.go` | api | ★ 没配检测器时不回 200 空列表（那会把「检测不了」显示成「一个都没装」），且不连累其他端点 |
 | `TestListRuntimes_DetectsOncePerRequest` | `internal/api/runtimes_test.go` | api | 一次请求只探一轮——探测要拉子进程，重复探测会让设置页明显变慢 |
+| `TestProbe` | `internal/gitx/probe_test.go` | gitx | 用真 git 仓库探测：仓库/普通目录/路径不存在/路径是文件四种情形；**非 git 仓库不算错误**（当成错误的话用户得先去命令行 git init） |
+| `TestProbe_WritesNothing` | `internal/gitx/probe_test.go` | gitx | ★★ 探测**不往用户仓库写一个字节**——同时比 `git status` 与完整文件列表（只比 status 抓不到写进 .gitignore 或被忽略路径的情况） |
+| `TestProbe_EmptyRepo` | `internal/gitx/probe_test.go` | gitx | 刚 `git init` 还没有 commit 时 HEAD 指向不存在的引用——这是「新建文件夹→git init→加进 Duet」的真实路径，不能崩 |
+| `TestNewProject` | `internal/domain/model/project_test.go` | domain | 构造项目：**相对路径被拒**（相对路径在 duetd 的工作目录下解析，那是用户完全不知道的位置）；末尾斜杠被规整；根目录的显示名不能是空字符串 |
+| `TestProject_PathIsNormalized` | `internal/domain/model/project_test.go` | domain | `/a/b`、`/a/b/`、`/a/./b`、`/a/c/../b` 规整成同一个 Path——否则用户从 Finder 拖两次会看到两条一样的记录 |
+| `TestProject_RenameDoesNotTouchPath` | `internal/domain/model/project_test.go` | domain | ★ 改显示名**不动 path**——两者跟着一起变的话 Duet 会去操作一个不存在的目录 |
+| `TestProject_RenameRejectsBlank` | `internal/domain/model/project_test.go` | domain | 空白名被拒且不落地（界面上会显示成一行空白，看起来像记录丢了） |
+| `TestAdd_WritesNothingIntoUserProject` | `internal/app/project/service_test.go` | app | ★★ 添加项目往用户目录写**零个字节**——用真 git 仓库 + 真 gitx 实现验，假实现什么都不写、那条断言会永远绿 |
+| `TestAdd` | `internal/app/project/service_test.go` | app | git 仓库记下默认分支；**普通目录也能加**并给出 `git init`（拒绝的话用户得先去命令行）；路径不存在报错且不落库；相对路径报错 |
+| `TestAdd_IsIdempotent` | `internal/app/project/service_test.go` | app | 同一目录的不同写法只落一条——用户从 Finder 拖两次很常见，列表里冒出两条一样的会让人以为点错了 |
+| `TestRemove_DoesNotDeleteUserFiles` | `internal/app/project/service_test.go` | app | ★ 移除只取消登记，用户目录原封不动——这是「移除」与「删除」的全部区别 |
+| `TestProjectRepo_SurvivesRestart` | `internal/store/project_repo_test.go` | store | ★ R1：**真的关掉 Store 再用同一个文件重新打开**——「存进去再从同一连接读出来」证明的是缓存不是持久化；git 信息也要一起活下来 |
+| `TestProjectRepo_FindByPath` | `internal/store/project_repo_test.go` | store | 查不到返回 `ErrNotFound` 而不是「零值 + nil error」（后者会让重复添加检查形同虚设） |
+| `TestProjectRepo_PathIsUnique` | `internal/store/project_repo_test.go` | store | ★ path 唯一是最后一道防线——应用层先查后写挡不住并发添加 |
+| `TestProjectRepo_SaveIsUpsert` | `internal/store/project_repo_test.go` | store | 同 ID 再存是更新（用户改显示名），不是插第二条 |
+| `TestProjectRepo_Delete` | `internal/store/project_repo_test.go` | store | 删不存在的报 `ErrNotFound`——静默成功的话界面显示「已移除」而下次打开它还在 |
+| `TestProjectRepo_ListIsStable` | `internal/store/project_repo_test.go` | store | 按添加顺序且两次一致；时间戳相同时靠 id 兜底，否则顺序由 SQLite 扫描顺序决定 |
+| `TestProjectRepo_MaxSeqForPrime` | `internal/store/project_repo_test.go` | store | ★★ 重启后 ID 不能从头发——IDGen 序号在内存里，不回填的话重启后第一次添加就撞主键。这坑在开发机撞不到（库总是空的），只在用户那儿炸 |
+| `TestProjectRepo_MaxSeqIgnoresUnparsableIDs` | `internal/store/project_repo_test.go` | store | 解析不了的 ID 跳过而不是报错——宁可序号多跳几个，也不能让 duetd 起不来 |
+| `TestAddProject_ReturnsCreated` | `internal/api/projects_test.go` | api | 201 而不是 200；名字取目录名 |
+| `TestAddProject_NonGitCarriesRemedy` | `internal/api/projects_test.go` | api | 非 git 目录带上 `git init` 这条能直接敲的命令 |
+| `TestAddProject_DomainErrorBecomesProblem` | `internal/api/projects_test.go` | api | ★ 领域错误翻成机器可读错误码——直接吐 Go 的 error 文本会让英文漏进中文界面 |
+| `TestAddProject_RejectsBadRequest` | `internal/api/projects_test.go` | api | 空 body / 空 path / 非法 JSON 都不当成成功 |
+| `TestListProjects_EmptyIsArrayNotNull` | `internal/api/projects_test.go` | api | ★ 空列表是 `[]` 不是 `null`——「一个项目都没有」正是新用户第一次打开的状态 |
+| `TestRemoveProject_ReturnsNoContent` | `internal/api/projects_test.go` | api | 204 且真的调到用例 |
+| `TestProjects_WithoutServiceDoNotPanic` | `internal/api/projects_test.go` | api | 没配用例时不 panic 也不假装成功 |

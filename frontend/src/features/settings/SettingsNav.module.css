@@ -2,10 +2,13 @@
 
 .nav {
   display: flex;
-  flex: none;
+
+  /* 不用 flex: none —— 那会让它在窄容器里硬撑出横向滚动条。
+     0 1 196px：宽度够时正好 196，不够时允许压缩，再不够就整体换行。 */
+  flex: 0 1 196px;
   flex-direction: column;
   gap: 2px;
-  width: 196px;
+  min-width: 0;
   padding-right: var(--space-3);
 
   /* 设计稿是一条右分隔线，不是给整栏加卡片背景 */

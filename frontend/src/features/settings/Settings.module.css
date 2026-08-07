@@ -9,16 +9,27 @@
   padding: var(--space-6);
 }
 
-/* 两栏：左侧 196px 二级导航，右侧内容。照设计稿。 */
+/* 两栏：左侧 196px 二级导航，右侧内容。照设计稿。
+ *
+ * ★ 窄容器下**降级成上下两段**，不硬撑两栏。
+ * 桌面壳有 minWidth: 1100 兜底，但 Web 版没有——浏览器能拉到任意窄，
+ * 而 196px 定宽导航放进一个 200px 的容器里就是横向滚动条。
+ * 实测视口 457px 时溢出 383px。
+ *
+ * 设计稿只画了宽窗口的样子；这不是新 UI，是同一套东西的降级排布。 */
 .body {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4);
   min-height: 0;
+  min-width: 0;
 }
 
 .pane {
   display: flex;
-  flex: 1;
+
+  /* 基准 240px：与导航的 196 加起来约 436，低于这个宽度就换行分成上下两段 */
+  flex: 1 1 240px;
   flex-direction: column;
   gap: var(--space-3);
 

@@ -111,5 +111,24 @@ if [[ -n $nodelay ]]; then
   say "exec.CommandContext 之后必须设 cmd.WaitDelay——否则 fork 过的子进程会架空超时" "$nodelay"
 fi
 
+# ── 9. Shell：语法必须过 bash -n ──────────────────────────────
+#
+# ★ 真踩过（2026-08-08）：check-merge-result.sh 里写了一个**全角左括号**
+#   （cd ... )
+# 中文注释写多了顺手带出来的。它只在执行到那一行时才炸，而那一行前面有个
+# 提前 exit 0 的分支——于是脚本"跑通了"，实际上从没走到出错的地方。
+#
+# bash -n 只做语法解析、不执行任何命令，几十毫秒扫完全部脚本。
+badsyntax=""
+while IFS= read -r f; do
+  [[ -z $f ]] && continue
+  if ! err=$(bash -n "$f" 2>&1); then
+    badsyntax+="${f}: ${err}"$'\n'
+  fi
+done < <(find scripts -name '*.sh')
+if [[ -n $badsyntax ]]; then
+  say "shell 脚本语法错误（bash -n）——中文注释里的全角括号是常见来源" "$badsyntax"
+fi
+
 if [[ $fail -eq 1 ]]; then exit 1; fi
 echo "✓ 命名与文件组织规范检查通过"

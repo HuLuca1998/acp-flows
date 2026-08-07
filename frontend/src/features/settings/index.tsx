@@ -7,8 +7,10 @@ import styles from './Settings.module.css'
 import { SettingsNav } from './SettingsNav'
 import { DEFAULT_SECTION, type SettingsSectionId } from './section-registry'
 import { LanguageSection } from './sections/LanguageSection'
+import { ProjectSection } from './sections/ProjectSection'
 import { RuntimeSection } from './sections/RuntimeSection'
 import { UpdateSection } from './sections/UpdateSection'
+import { useProjects } from './use-projects'
 import { useRuntimes } from './use-runtimes'
 import { useUpdateFlow } from './use-update-flow'
 
@@ -27,6 +29,7 @@ export function SettingsPage() {
   const [current, setCurrent] = useState<SettingsSectionId>(DEFAULT_SECTION)
   const update = useUpdateFlow()
   const runtimes = useRuntimes()
+  const projects = useProjects()
   const { check } = update
 
   // 进设置页时检查一次，**不轮询**（docs/adr/0007 修订 3）
@@ -72,7 +75,14 @@ export function SettingsPage() {
         )
       case 'projects':
         return (
-          <PlaceholderSection titleKey="settings.projects.title" hintKey="settings.projects.hint" />
+          <ProjectSection
+            projects={projects.projects}
+            loading={projects.loading}
+            errorCode={projects.errorCode}
+            canPickDirectory={projects.canPickDirectory}
+            onAdd={(path) => void projects.add(path)}
+            onRemove={(id) => void projects.remove(id)}
+          />
         )
       case 'github':
         return <PlaceholderSection titleKey="settings.github.title" hintKey="settings.github.hint" />
