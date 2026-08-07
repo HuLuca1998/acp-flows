@@ -70,8 +70,7 @@ gen: ## 由 api/openapi.yaml 生成 Go 服务端接口与 TS 客户端（改完 
 
 .PHONY: check-gen
 check-gen: gen ## 校验生成物与 spec 一致（CI 用；有 diff 即失败）
-	@git diff --exit-code -- $(BACKEND)/internal/api/gen $(FRONTEND)/src/api/gen \
-		|| { echo "✗ 生成物与 api/openapi.yaml 不一致，请跑 make gen 并提交"; exit 1; }
+	@bash scripts/check-gen.sh
 
 # ══ 测试 ═══════════════════════════════════════════════════════
 .PHONY: test

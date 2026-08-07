@@ -29,6 +29,32 @@
 
 前后端靠 spec 并行开发——spec 落后于代码，并行开发当场失效。
 
+### 生成器与生成物
+
+| | 工具 | 配置 | 产出（**不许手改**） |
+|---|---|---|---|
+| Go | `oapi-codegen` v2.4.1 | [`oapi-codegen.yaml`](oapi-codegen.yaml) | `backend/internal/api/gen/api.gen.go` |
+| TS | `openapi-typescript` 7 | 无 | `frontend/src/api/gen/schema.d.ts` |
+
+**版本写死在 `scripts/gen-api.sh` 里，不用 `@latest`** ——
+生成器版本一变生成物就变，`check-gen` 会在一个与本次改动完全无关的 PR 上炸。
+
+生成物**进 git**：前端与 CI 直接读它，不能要求每个人先跑一遍生成器。
+
+> ⚠️ `oapi-codegen` 会对 3.1 的 spec 打一条 WARNING。
+> **不要因为这条警告把 spec 降级到 3.0** —— 我们用到的构造
+> （object / string / enum / `$ref`）在两个版本里语义相同，实测生成正确。
+> 脚本里已把这条警告过滤掉。真出问题的信号是「生成的 Go 编译不过」，脚本会单独检查。
+
+### 生成物有没有用，靠一个编译期测试守着
+
+`frontend/src/api/schema.contract.test.ts` 断言：枚举没退化成 `string`、
+`required` 没被丢、`Runtime.name` 没被 examples 误判成封闭枚举。
+
+**它靠 `@ts-expect-error`**：类型一放宽，那行就不再报错，
+tsc 转而报「未使用的 directive」——**编译不过**。
+所以 `vitest` 跑绿不代表通过，真正的门是 `make lint-frontend`。
+
 ## 约定
 
 | 项 | 约定 |
