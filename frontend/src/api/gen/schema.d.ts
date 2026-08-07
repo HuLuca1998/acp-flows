@@ -151,6 +151,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 全部工作 */
+        get: operations["listWorks"];
+        put?: never;
+        /**
+         * 对一个项目提需求，开一个工作
+         * @description 切一个独立 worktree、建 ACP 会话、开始澄清需求。
+         *
+         *     ★ worktree 建在 `~/.acpflows/worktrees`，**不在用户的项目目录里**
+         *     （见 docs/plan/open-questions.md Q30）。用户把代码目录交给 Duet 时，
+         *     并没有同意我们在他的仓库里造一堆分支和目录。
+         */
+        post: operations["startWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runtimes": {
         parameters: {
             query?: never;
@@ -285,6 +310,27 @@ export interface components {
                 /** @example git init */
                 command?: string;
             };
+        };
+        /**
+         * @description 一次工作。`state` 是**封闭枚举**，与 backend/internal/constant 的
+         *     WorkState 一一对应；新增取值要同时改三处：本文件 + 那个常量 +
+         *     状态迁移表（domain/model/work.go）。
+         */
+        Work: {
+            /** @example work-01 */
+            id: string;
+            /**
+             * @description ★ `initializing_failed` 是**终态、不可恢复** —— worktree 没切成
+             *     就没有可执行的现场（docs/adr/0006 Q1）。界面上不该给「重试」按钮。
+             * @enum {string}
+             */
+            state: "initializing" | "initializing_failed" | "clarifying" | "planning" | "ready" | "executing" | "reviewing_unit" | "waiting_user" | "paused" | "completed" | "failed";
+            /** @description 项目的本地绝对路径 */
+            project?: string;
+            /** @description 这个工作的独立工作区；**在用户项目之外** */
+            worktree?: string;
+            /** @description 用户的需求原话 */
+            prompt?: string;
         };
         Runtime: {
             /**
@@ -572,6 +618,58 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listWorks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        works: components["schemas"]["Work"][];
+                    };
+                };
+            };
+        };
+    };
+    startWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 项目的本地绝对路径 */
+                    project: string;
+                    /** @description 用户的需求原话 */
+                    prompt: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已创建 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Work"];
+                };
             };
             default: components["responses"]["Problem"];
         };
