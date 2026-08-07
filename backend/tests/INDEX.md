@@ -179,3 +179,9 @@
 | `TestPublish_SlowSubscriberDoesNotBlockOthers` | `internal/eventbus/bus_test.go` | eventbus | ★ R4：一个卡住的页面不该让 AI 的进度整个停下来 |
 | `TestPublish_FansOutToAllSubscribers` | `internal/eventbus/bus_test.go` | eventbus | 扇出给所有订阅者，不是只给第一个 |
 | `TestSubscription_CloseIsIdempotent` | `internal/eventbus/bus_test.go` | eventbus | 重复 Close 不 panic（SSE 清理路径会走两遍） |
+| `TestEventRepo_AssignsSeq` | `internal/store/event_repo_test.go` | store | R1：序号由**自增主键**发放并写回，不由内存计数器发 |
+| `TestEventRepo_SeqSurvivesRestart` | `internal/store/event_repo_test.go` | store | ★★ R1 的关键：真的关掉 Store 再打开同一个文件，序号接着往下走——从头发的话前端按 seq 去重会把新事件当旧的丢掉，表现是「重启后 AI 说的话不显示了」 |
+| `TestEventRepo_MaxSeq` | `internal/store/event_repo_test.go` | store | 空库返回 0（`MAX()` 在空表上是 NULL 不是 0） |
+| `TestEventRepo_EventsAfter` | `internal/store/event_repo_test.go` | store | ★ R2：断线重连只补没收到的——从头补会让整条时间线重放一遍，补少了则中间有洞而用户看不出来 |
+| `TestEventRepo_EventsAfterRespectsLimit` | `internal/store/event_repo_test.go` | store | 补发有上限：断了一整天的客户端重连时不该被灌几万条 |
+| `TestEventRepo_PayloadRoundTrips` | `internal/store/event_repo_test.go` | store | 载荷原样存取（含中文与嵌套）——它是界面上真正显示的内容 |
