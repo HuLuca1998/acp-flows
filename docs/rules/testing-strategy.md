@@ -195,6 +195,41 @@ units, _ := repo.ListUnits(ctx, "subplan-03")
 assert.Len(t, units, 1)
 ```
 
+### 3.8 替身换错了层 —— 把出问题的那部分一起替换掉了 ★
+
+**2026-08-08 真机撞出来的，代价最大的一次。**
+
+事件流第一版用浏览器原生的 `EventSource`，测试把**整个 `EventSource`**
+换成假的。7 条测试全绿：过滤、去重、坏消息跳过、卸载关连接，一条不漏。
+
+真机上 `/v1/events` 一路 **401**，时间线永远是空的。
+原因是 `EventSource` **带不了 `Authorization` 头**——而这件事，
+恰恰被那个假 `EventSource` 掩盖掉了。
+
+```ts
+// ✗ 假的是「浏览器怎么发请求」——出问题的正是这一层
+vi.stubGlobal('EventSource', FakeEventSource)
+```
+
+```ts
+// ✓ 假的是「网络回了什么」，请求怎么发的仍然是真代码
+vi.stubGlobal('fetch', (url, init) => {
+  new FakeStream(url, init)   // ← 于是能断言它带没带认证头
+  return Promise.resolve({ ok: true, body: stream } as Response)
+})
+
+it('带上认证头', async () => {
+  expect(s.header('Authorization')).toMatch(/^Bearer /)
+})
+```
+
+**判据：问一句「被测代码真正会走的那条路，还剩多少在测试里跑着？」**
+答案接近零就是换错了层。
+
+同一条判据在后端的样子：`runner_test.go` 验「进程怎么拉起来、拉不起来时
+用户看到什么」，对手方就**必须是真进程**（`t.TempDir()` 里的 shell 脚本），
+不能是 Fake Runtime 的管道——换成管道就把被测的东西替换掉了。
+
 ---
 
 ## 4. Fake ACP Runtime —— 整套测试策略的支点
@@ -248,7 +283,7 @@ Fake Runtime 本身也要有测试——它是测试的地基，地基歪了上�
 |---|---|---|
 | 组件行为 | Vitest + Testing Library | 用 `getByRole` / `getByText` **按用户可见的东西查询**，禁止 `data-testid` 兜底和查 class |
 | API mock | MSW，handler **从 `api/openapi.yaml` 生成** | mock 与契约同源，spec 改了 mock 自动跟着变 |
-| 事件流 | Fake `EventSource` + 录制的事件序列 | 13 类事件各至少一个渲染测试 |
+| 事件流 | **假 `fetch`** + 录制的事件序列（★ 不是假 `EventSource`，见 §3.8） | 13 类事件各至少一个渲染测试 |
 | 视觉合规 | Stylelint + ESLint 规则 | 硬编码 hex / 裸 px / emoji 图标直接红 |
 | 端到端 | Playwright | 跑真实 `duetd`（临时数据目录 + Fake Runtime） |
 

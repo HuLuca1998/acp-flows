@@ -17,25 +17,32 @@
 
 | | |
 |---|---|
-| **现在做** | `U2.4.1` 的**剩余部分**：落库 + `/works` 端点 + 前端接线 |
-| **对应验收点** | V5 + V6 真正连起来 —— 提一个需求就有一个看得见、停得掉的「工作」 |
-| **已完成的部分** | R1 R2 R6 已验：worktree 隔离、app 用例、落库、`/works` 端点、duetd 接线。<br>**整条「提需求 → 建工作」真机跑通过**（工作重启后还在，仓库没被动） |
-| **接着做什么** | ① 把 ACP 会话接进来（R3 系统提示词只首轮发，补 `U2.2.2`）<br>　　—— `acp/session` 与 `acp/runtime.Start` 都已就绪，<br>　　缺的是「谁在工作创建后拉起 Agent 进程并把事件转成 `WorkEvent`」<br>② `//go:build integration` 跑真 Agent（R5，照 `make probe` 的做法） |
-| **R4 已完成** | 对话页接线完毕（`dd9f2ea`），`U2.3.2` 的欠账一并还清。<br>真机走查：浏览器输入需求 → 后端建出工作 → SSE 连上 → 事件到达 |
+| **现在做** | `U3.1.1` · Fake 能主动发权限请求（**M3 的第一个单元**） |
+| **对应验收点** | V8 —— 动我的文件要先问我 |
+| **★ M2 已完成** | `U2.4.1` 是 M2 的最后一个单元。R1–R6 全部落地并**真机跑通**：<br>浏览器输入需求 → 拉起真 Claude → 工具调用与回答逐条出现在时间线 → `turn_end`。<br>用户仓库一个字节没动，一轮跑完没有孤儿进程。 |
+| **接着做什么** | 照 `M3-control.md` 的 `U3.1.1`：让 Fake Runtime 能主动发<br>`session/request_permission`（**反向请求**，jsonrpc 已支持），<br>为 `U3.1.2` 的三种裁决策略铺路。<br>取消（`U3.2.1`）在 S3.2，不要提前动。 |
 
-**四笔欠账，都等 Work 的创建**：
+**`U2.4.1` 真机走查抓到的四个 bug**（单测全绿、只有真跑才暴露）：
 
-| 欠账 | 出处 | 差什么 |
+| 撞到的 | 根因 | 修在 |
 |---|---|---|
-| worktree 隔离 | `U2.1.1` R4 | 没有工作可放，现在做只会造出一个空目录 |
-| 系统提示词只首轮发 | `U2.2.2` R3 | 「是不是首轮」没有可依据的状态 |
-| 时间线接进对话页 | `U2.3.2` | 缺「谁把 SSE 的事件喂给它」 |
-| 真 Agent 集成测试 | `U2.2.3` R4 | 要有 cwd、要有会话才能跑起来 |
+| 界面停在「正在初始化」，无提示无超时 | Agent 进程退出后，pending 的 jsonrpc 调用永远挂着 | `jsonrpc.ErrPeerGone` |
+| 应用退不出去、Agent 进程越攒越多 | Agent 一轮结束不退出，`session.Close` 死等读循环 | `closeGrace` 有界等待 |
+| `/v1/events` 一路 401，时间线永远空 | `EventSource` 带不了 `Authorization` 头 | 改 fetch + ReadableStream |
+| 四条工具调用卡片长得一模一样 | ① 我们的 `kind` 覆盖了 ACP 的 `kind`<br>② 同一次调用的 update 没归并 | `acp_` 前缀 + `toolCallId` 归并 |
 
-**一起做掉，别分开做**——分开的话每个都要重新理解同一套上下文。
+**教训写进了 [`docs/rules/testing-strategy.md`](../rules/testing-strategy.md)**：
+替身要换在**真实现真正走的那一层**。把整个 `EventSource` 换成假的，
+等于把出问题的那部分一起替换掉了——单测再多也测不出 401。
 
-**顺带**：`U2.1.1` 的 R4（worktree 隔离）还欠着，把它并进第一个真正创建
-Work 的单元——它依赖「工作」这个概念，单独做只会造出一个空目录。
+**四笔欠账已还清三笔**（都随 `U2.4.1` 一起做掉）：
+
+| 欠账 | 出处 | 状态 |
+|---|---|---|
+| worktree 隔离 | `U2.1.1` R4 | ✓ 工作跑在 `~/.acpflows/worktrees/<id>`，用户仓库不被写 |
+| 系统提示词只首轮发 | `U2.2.2` R3 | ✓ `agent.Spec.SystemPrompt`，只拼在第一轮 |
+| 时间线接进对话页 | `U2.3.2` | ✓ 对话页 → SSE → 时间线，真机走查过 |
+| 真 Agent 集成测试 | `U2.2.3` R4 | **仍欠**：`//go:build integration` 跑真 Agent，照 `make probe` 的做法。<br>已有替代覆盖：`runner_test.go` 用真进程（shell 脚本冒充 Agent），<br>验的正是进程拉起、stderr 回传、孤儿清理 |
 
 **`U1.2.2` 已完成**：`v0.0.1` 已发布，四类产物、三方签名、`releases/latest`
 链路都验过。发版改在本机跑：`bash scripts/release/publish-local.sh <版本>`。
