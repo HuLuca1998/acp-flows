@@ -149,7 +149,12 @@ components:
       required: true
       schema:
         type: string
-        enum: [claude, codex]
+        pattern: '^[a-z][a-z0-9-]{0,31}$'
+        examples: [claude, codex]
+      description: |
+        Runtime 标识。**不是封闭枚举** —— Runtime 是注册表（见 docs/adr/0006 Q13），
+        加第 3 个 runtime 只加一个包 + 登记一行，不改契约。
+        取值合法性由服务端查注册表校验。
 
   responses:
     Problem:
@@ -249,7 +254,10 @@ components:
       type: object
       required: [name, installed]
       properties:
-        name: { type: string, enum: [claude, codex] }
+        name:
+          type: string
+          description: Runtime 标识，来自注册表；不是封闭枚举
+          examples: [claude, codex]
         installed: { type: boolean }
         active_version: { type: string, examples: ['0.63.0'] }
         available_versions:

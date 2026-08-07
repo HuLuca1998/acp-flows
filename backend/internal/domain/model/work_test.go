@@ -17,7 +17,12 @@ import (
 // 这是穷举测试：新增状态而忘了登记时它会红。
 func TestWorkState_R1_ExhaustiveAndMatchesGlossary(t *testing.T) {
 	// 术语表原文，顺序即状态机的推进顺序。改这里必须同时改 AGENTS.md §8。
+	//
+	// initializing / initializing_failed 是 ADR 0006 Q1 加入的：
+	// 设计稿 §09 列的 9 个是「对话状态行显示的状态词」，不是全集——
+	// initializing 阶段还没有对话，自然不在那张表里。
 	want := []constant.WorkState{
+		"initializing", "initializing_failed",
 		"clarifying", "planning", "ready", "executing",
 		"reviewing_unit", "waiting_user", "paused", "completed", "failed",
 	}
@@ -56,6 +61,10 @@ func TestWork_R2R3_Transition(t *testing.T) {
 		to      constant.WorkState
 		wantErr error
 	}{
+		// ── 初始化（ADR 0006 Q1）──────────────────────────────
+		{"worktree 切好进入澄清", constant.WorkStateInitializing, constant.WorkStateClarifying, nil},
+		{"worktree 创建失败", constant.WorkStateInitializing, constant.WorkStateInitializingFailed, nil},
+
 		// ── 正常推进 ──────────────────────────────────────────
 		{"澄清完进入规划", constant.WorkStateClarifying, constant.WorkStatePlanning, nil},
 		{"规划完就绪", constant.WorkStatePlanning, constant.WorkStateReady, nil},
@@ -88,8 +97,13 @@ func TestWork_R2R3_Transition(t *testing.T) {
 		{"完成后不能再执行", constant.WorkStateCompleted, constant.WorkStateExecuting, model.ErrTerminalState},
 		{"完成后不能失败", constant.WorkStateCompleted, constant.WorkStateFailed, model.ErrTerminalState},
 		{"失败后不能执行", constant.WorkStateFailed, constant.WorkStateExecuting, model.ErrTerminalState},
+		// initializing_failed 是终态：worktree 没切成，没有可执行的现场，
+		// 用户只能删掉重建，不能"恢复"（ADR 0006 Q1）
+		{"初始化失败后不能澄清", constant.WorkStateInitializingFailed, constant.WorkStateClarifying, model.ErrTerminalState},
+		{"初始化失败后不能重试初始化", constant.WorkStateInitializingFailed, constant.WorkStateInitializing, model.ErrTerminalState},
 
 		// ── 非法：跳级 ────────────────────────────────────────
+		{"初始化不能跳过澄清直接规划", constant.WorkStateInitializing, constant.WorkStatePlanning, model.ErrInvalidTransition},
 		{"澄清不能直接执行", constant.WorkStateClarifying, constant.WorkStateExecuting, model.ErrInvalidTransition},
 		{"规划不能直接执行", constant.WorkStatePlanning, constant.WorkStateExecuting, model.ErrInvalidTransition},
 
@@ -151,7 +165,7 @@ func TestWork_R4_EveryStateIsReachableOrTerminal(t *testing.T) {
 			if model.IsTerminal(s) && len(outs) != 0 {
 				t.Errorf("终态 %q 不该有出边，却有 %v", s, outs)
 			}
-			if !model.IsTerminal(s) && s != constant.WorkStateClarifying && len(ins) == 0 {
+			if !model.IsTerminal(s) && s != constant.WorkStateInitializing && len(ins) == 0 {
 				t.Errorf("非初始的非终态 %q 没有入边，永远不可达", s)
 			}
 		})
@@ -161,6 +175,15 @@ func TestWork_R4_EveryStateIsReachableOrTerminal(t *testing.T) {
 // 领域层是纯计算：不做 IO、不碰时间源。
 // 这条由 depguard 与 lint 强制，这里只做一个最基本的自证：
 // 构造与迁移都不需要 context。
+// ADR 0006 Q1：新建工作的初始状态是 initializing，不是 clarifying——
+// worktree 还没切，对话还没开始。
+func TestNewWork_StartsInInitializing(t *testing.T) {
+	w := model.NewWork("work-01")
+	if w.State() != constant.WorkStateInitializing {
+		t.Errorf("新建工作的初始状态 = %q, want %q", w.State(), constant.WorkStateInitializing)
+	}
+}
+
 func TestWork_DomainIsPure(t *testing.T) {
 	w := model.NewWorkAt("work-01", constant.WorkStateReady)
 	if err := w.Transition(constant.WorkStateExecuting); err != nil {

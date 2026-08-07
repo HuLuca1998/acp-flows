@@ -13,6 +13,15 @@ import "slices"
 type WorkState string
 
 const (
+	// WorkStateInitializing 正在为这个工作切 git worktree 与分支。
+	//
+	// 这是新建工作的初始状态——此时对话还没开始。
+	WorkStateInitializing WorkState = "initializing"
+	// WorkStateInitializingFailed worktree 创建失败。**终态**。
+	//
+	// 没切成 worktree 就没有可执行的现场，用户只能删掉重建，不能"恢复"。
+	// 设计稿：「创建失败时工作进入 initializing_failed，不会退回原目录执行」。
+	WorkStateInitializingFailed WorkState = "initializing_failed"
 	// WorkStateClarifying 需求澄清中，尚未产出可冻结的需求快照。
 	WorkStateClarifying WorkState = "clarifying"
 	// WorkStatePlanning 规划中，正在产出或修订 PlanVersion。
@@ -35,9 +44,14 @@ const (
 
 // workStates 是全部合法取值，顺序即状态机的推进顺序。
 //
+// initializing / initializing_failed 由 ADR 0006 Q1 加入：设计规范 §09 列的
+// 9 个状态词是「对话状态行显示的」子集，不是全集——initializing 阶段还没有对话。
+//
 // 新增状态必须同时：加到这里 · 加进 model 的迁移表 · 改 AGENTS.md §8 · 改 openapi.yaml。
 // 漏掉任何一处，穷举测试会红。
 var workStates = []WorkState{
+	WorkStateInitializing,
+	WorkStateInitializingFailed,
 	WorkStateClarifying,
 	WorkStatePlanning,
 	WorkStateReady,

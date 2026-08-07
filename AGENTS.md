@@ -67,6 +67,28 @@ Tauri v2 (Rust 壳)  ──sidecar──▶  duetd (Go, HTTP API + SSE)  ──s
 **找不到 → 先在设计规范里新增条目，再实现。** 禁止临时发明样式。
 颜色 / 间距 / 圆角 / 字号一律走 `var(--token)`；硬编码 hex 与裸 px 会被 lint 拦下。
 
+#### 边界：设计稿管「形」，实测管「值」★
+
+设计稿是**产品意图**，不是**协议事实**。两者的分工写死：
+
+| 归设计稿管 | 归实测管 |
+|---|---|
+| 布局、层级、间距、颜色、字号 | **配置项的 id 与取值域** |
+| 组件形态与交互流程 | **协议字段名与结构** |
+| 页面结构与信息架构 | **能力清单、档位名、模型清单** |
+| 文案与术语 | **枚举的实际成员** |
+
+**冲突时以实测为准。** 设计稿画了一个真实协议里不存在的取值（例如给 codex
+配了 `auto` 权限档，而 codex 只有三个档），那是设计稿的事实性错误——
+按实测实现，同时回设计稿修正，**不要在代码里迁就它**。
+
+> 实测结论在 [`docs/acp-field-notes.md`](docs/acp-field-notes.md) §7.1，
+> 由 `make probe` 产出，绑定到具体 runtime 版本。
+> **升级 runtime 后必须复验**，否则实测结论会悄悄退化成假设。
+
+具体到「角色与 Runtime」「设置页」这类强协议相关的界面，
+字段与取值以 [`docs/runtime-config.md`](docs/runtime-config.md) 为准。
+
 ### 铁律 4 · 不扩大边界
 
 只改任务描述里允许改的文件与范围。需要越界时**停下来上报**，不要"顺手改一下"。
@@ -365,6 +387,7 @@ pnpm -C e2e test
 | **建表 / 写 GORM 实体 / 迁移 / 查询** | [`docs/database.md`](docs/database.md) |
 | 连数据库看数据、排查数据问题、改数据 | `db-operate` skill |
 | 写任何测试 | [`docs/testing-strategy.md`](docs/testing-strategy.md) |
+| **配 Runtime、权限档、隔离开关**（字段与取值） | [`docs/runtime-config.md`](docs/runtime-config.md) —— 以实测为准，不以设计稿为准 |
 | 做 ACP 协议层 / Runtime 适配 | [`docs/acp-integration.md`](docs/acp-integration.md)（规格）+ [`docs/acp-field-notes.md`](docs/acp-field-notes.md)（**实测与前一个项目踩过的 10 个坑**） |
 | 做发版、CI、客户端自动更新 | [`docs/release-and-update.md`](docs/release-and-update.md) |
 | 开分支、写提交、开 PR、合并、worktree | [`docs/git-workflow.md`](docs/git-workflow.md) |
@@ -394,13 +417,20 @@ pnpm -C e2e test
 | 检查点 | `Checkpoint` | 可恢复点，绑定 commit hash |
 | 决策等级 | `D0`–`D3` | D0 自动 · D1 记录 · D2 需确认 · D3 逐次授权 |
 | 主工作树 | `worktree` | git worktree |
-| 会话模式 | `set_mode` | ACP `session/set_mode` |
+| 权限档 | `PermissionProfile` | 经 `set_config_option`（`category: mode`）设置。`session/set_mode` 官方已废弃，只作降级 |
 | 权限裁决 | `request_permission` | ACP `session/request_permission` |
 | 角色 | `Role` | 8 个预置角色，先定义再绑定 Runtime |
 | 运行时 | `Runtime` | 一个 ACP adapter 进程（claude / codex） |
 
-**状态词一律英文、不翻译、等宽显示：**
-`clarifying` · `planning` · `ready` · `executing` · `reviewing_unit` · `waiting_user` · `paused` · `completed` · `failed`
+**状态词一律英文、不翻译、等宽显示（共 11 个）：**
+
+`initializing` · `initializing_failed` · `clarifying` · `planning` · `ready` ·
+`executing` · `reviewing_unit` · `waiting_user` · `paused` · `completed` · `failed`
+
+> 设计规范 §09 只列了后 9 个——那是**对话状态行显示的子集**，
+> `initializing` 阶段还没有对话。见 [`docs/adr/0006`](docs/adr/0006-open-question-rulings.md) Q1。
+>
+> **终态三个**：`initializing_failed` · `completed` · `failed`。
 
 **语气：工程化、精准、可核对。**
 

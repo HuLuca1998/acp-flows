@@ -75,6 +75,7 @@ make help
 | [`docs/coding-standards.md`](docs/coding-standards.md) | 命名、文件组织、`model`/`constant`/`util` 归属、工具库索引 |
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | 测试先行五步、假测试图鉴、测试索引 |
 | [`docs/acp-integration.md`](docs/acp-integration.md) | ACP 协议层规格、Fake Runtime 设计 |
+| [`docs/runtime-config.md`](docs/runtime-config.md) | Runtime 配置的字段与取值（**实测为准**，非设计稿） |
 | [`docs/acp-field-notes.md`](docs/acp-field-notes.md) | ★ 实测笔记：两端真实差异、隔离与注入方案、前一个项目踩过的 10 个坑 |
 | [`docs/frontend-guide.md`](docs/frontend-guide.md) | 设计系统落地、组件规格、事件渲染器 |
 | [`docs/i18n.md`](docs/i18n.md) | 中英双语规范 |

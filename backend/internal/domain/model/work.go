@@ -30,10 +30,15 @@ var (
 // 只列**允许**的边；没列的一律拒绝。这样新增状态时忘了接进来，
 // 穷举测试（TestWork_R4_EveryStateIsReachableOrTerminal）会直接红。
 //
-// 两条不变量值得单独说明：
+// 三条不变量值得单独说明：
 //   - completed 只能从 reviewing_unit 进入 —— 不经过审查就不能算完成
-//   - completed / failed 是终态，没有出边
+//   - completed / failed / initializing_failed 是终态，没有出边
+//   - initializing_failed 不可恢复：worktree 没切成就没有可执行的现场（ADR 0006 Q1）
 var workTransitions = map[constant.WorkState][]constant.WorkState{
+	constant.WorkStateInitializing: {
+		constant.WorkStateClarifying,         // worktree 切好了
+		constant.WorkStateInitializingFailed, // 切失败，终态
+	},
 	constant.WorkStateClarifying: {
 		constant.WorkStatePlanning,
 		constant.WorkStateFailed,
@@ -74,8 +79,9 @@ var workTransitions = map[constant.WorkState][]constant.WorkState{
 		constant.WorkStateFailed,
 	},
 	// 终态没有出边。
-	constant.WorkStateCompleted: nil,
-	constant.WorkStateFailed:    nil,
+	constant.WorkStateInitializingFailed: nil,
+	constant.WorkStateCompleted:          nil,
+	constant.WorkStateFailed:             nil,
 }
 
 // Work 是一次完整的开发任务，独占一个 git worktree 与分支。
@@ -92,8 +98,11 @@ func NewWorkAt(id string, state constant.WorkState) *Work {
 }
 
 // NewWork 新建一个处于初始状态的工作。
+//
+// 初始状态是 initializing 而不是 clarifying —— 此时 worktree 还没切，
+// 对话还没开始（ADR 0006 Q1）。
 func NewWork(id string) *Work {
-	return &Work{id: id, state: constant.WorkStateClarifying}
+	return &Work{id: id, state: constant.WorkStateInitializing}
 }
 
 // ID 返回工作标识（形如 work-08）。
@@ -121,7 +130,9 @@ func (w *Work) Transition(to constant.WorkState) error {
 
 // IsTerminal 报告 s 是否是终态（没有任何出边）。
 func IsTerminal(s constant.WorkState) bool {
-	return s == constant.WorkStateCompleted || s == constant.WorkStateFailed
+	return s == constant.WorkStateCompleted ||
+		s == constant.WorkStateFailed ||
+		s == constant.WorkStateInitializingFailed
 }
 
 // AllowedTransitionsFrom 返回从 s 出发允许到达的状态。
