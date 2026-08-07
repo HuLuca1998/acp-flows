@@ -123,8 +123,11 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      # 仓库根没有 package.json，不指 package_json_file 会报
+      # 「No pnpm version is specified」。版本真源是各子项目的 packageManager 字段。
       - uses: pnpm/action-setup@v4
         if: needs.changes.outputs.has_frontend == 'true'
+        with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
         if: needs.changes.outputs.has_frontend == 'true'
         with: { node-version: 22, cache: pnpm }
@@ -151,8 +154,15 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - uses: golangci/golangci-lint-action@v6
-        with: { working-directory: backend }
+      # ★ 两处都要对：
+      #   action 必须 ≥ v7（v6 不认 .golangci.yml 的 version: "2"）
+      #   golangci-lint 版本必须写死且用 ≥ go.mod 的 Go 构建，
+      #   否则报「the Go language version used to build golangci-lint is lower than
+      #   the targeted Go version」——而这条只在 CI 上出现，本地看不见
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          working-directory: backend
+          version: v2.12.2
 
       - name: 单元测试（-race）
         run: make test-backend
@@ -172,6 +182,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with: { package_json_file: frontend/package.json }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
 
@@ -195,6 +206,16 @@ jobs:
         with: { components: clippy }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: shell/src-tauri }
+
+      # ★ tauri.conf.json 的 externalBin 声明了 binaries/duetd-<triple>，
+      # 文件不在时**任何** cargo 命令都会失败（连 clippy 都跑不了），
+      # 报的是 `resource path binaries/duetd-<triple> doesn't exist`。
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: 编 duetd sidecar
+        run: bash scripts/build-sidecar.sh
 
       - run: cd shell/src-tauri && cargo clippy --all-targets -- -D warnings
       - run: cd shell/src-tauri && cargo test
@@ -236,6 +257,7 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
       - uses: pnpm/action-setup@v4
+        with: { package_json_file: e2e/package.json }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
 
