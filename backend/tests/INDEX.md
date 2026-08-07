@@ -197,3 +197,10 @@
 | `TestConfigByCategory_EmptyList` | `internal/acp/adapter/adapter_test.go` | acp | 空配置列表不是错误 |
 | `TestCapabilities_DerivedFromProbes` | `internal/acp/adapter/adapter_test.go` | acp | R5：能力矩阵由探测结果算出，不写死——写死的话某个 Runtime 悄悄不支持时矩阵还显示通过 |
 | `TestCapabilityMatrix_Supports` | `internal/acp/adapter/adapter_test.go` | acp | ★ 没探过的能力一律当不支持；负例（乐观返回 true）立刻红——乐观假设会让上层走进走不通的路 |
+| `TestAddWorktree_LivesOutsideUserProject` | `internal/gitx/worktree_test.go` | gitx | ★★ R2：worktree 建在 `~/.acpflows/worktrees` **不在用户项目里**；负例（建进 `.duet-worktrees/`）两条断言各从不同角度抓到——路径前缀 + 用户仓库 git status 变了 |
+| `TestAddWorktree_IsolatesWorks` | `internal/gitx/worktree_test.go` | gitx | ★ R1：两个工作互不干扰——共用目录的话两个 AI 会同时改同一份文件，用户看到一堆互相覆盖的改动而没有任何提示 |
+| `TestAddWorktree_HasRepoContent` | `internal/gitx/worktree_test.go` | gitx | worktree 里有仓库内容，不是空目录 |
+| `TestAddWorktree_IsIdempotent` | `internal/gitx/worktree_test.go` | gitx | 同一 WorkID 重复建返回已有的——重启后恢复工作走的正是这条路，报错的话工作就再也打不开了 |
+| `TestRemoveWorktree_LeavesUserProjectAlone` | `internal/gitx/worktree_test.go` | gitx | ★ 移除不碰用户项目里的任何文件 |
+| `TestRemoveWorktree_IsIdempotent` | `internal/gitx/worktree_test.go` | gitx | 移除不存在的不报错（清理路径会走两遍：正常结束 + 崩溃后重启） |
+| `TestAddWorktree_RejectsNonRepo` | `internal/gitx/worktree_test.go` | gitx | 非 git 目录给明确错误，不是让 git 吐一句英文 |
