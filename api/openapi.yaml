@@ -101,6 +101,44 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/ResumableWork' }
 
+  # ── 事件流 ──────────────────────────────────────────────────
+  /events:
+    get:
+      tags: [system]
+      operationId: streamEvents
+      summary: 事件流（SSE）
+      description: |
+        ★ **这是 SSE，不是普通 JSON 响应**：`text/event-stream`，长连接。
+
+        断线重连时带 `Last-Event-ID`（标准 SSE 头），服务端**只补它之后的**。
+        从头补的话用户会看到整条时间线重放一遍；补少了则中间有洞，
+        而洞是看不出来的——用户不知道自己漏了什么。
+
+        每条 SSE 消息的 `id` 就是事件的 `seq`，浏览器的 EventSource 会自动
+        把它记进 `Last-Event-ID`，重连时原样带回来。
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: { type: integer, format: int64 }
+          description: 上次收到的最后一个 seq；不带表示全新连接
+      responses:
+        '200':
+          description: 事件流
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  每条形如：
+
+                      id: 42
+                      event: message_chunk
+                      data: {"id":"evt_...","seq":42,...}
+
+                  `data` 是一个完整的 Event 对象。
+        default: { $ref: '#/components/responses/Problem' }
+
   # ── Project ─────────────────────────────────────────────────
   /projects:
     get:

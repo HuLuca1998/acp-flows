@@ -84,6 +84,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 事件流（SSE）
+         * @description ★ **这是 SSE，不是普通 JSON 响应**：`text/event-stream`，长连接。
+         *
+         *     断线重连时带 `Last-Event-ID`（标准 SSE 头），服务端**只补它之后的**。
+         *     从头补的话用户会看到整条时间线重放一遍；补少了则中间有洞，
+         *     而洞是看不出来的——用户不知道自己漏了什么。
+         *
+         *     每条 SSE 消息的 `id` 就是事件的 `seq`，浏览器的 EventSource 会自动
+         *     把它记进 `Last-Event-ID`，重连时原样带回来。
+         */
+        get: operations["streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects": {
         parameters: {
             query?: never;
@@ -448,6 +475,30 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    streamEvents: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 上次收到的最后一个 seq；不带表示全新连接 */
+                "Last-Event-ID"?: number;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 事件流 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            default: components["responses"]["Problem"];
         };
     };
     listProjects: {
