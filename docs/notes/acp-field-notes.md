@@ -300,6 +300,7 @@ for (const n of updates.slice(before)) yield // ← 然后才补发
 | 2 | 笔记说 codex 档位是 `read-only`/`agent`/`agent-full-access`；设计稿角色表把 codex 绑到 `auto` | **笔记为准。** `auto` 是 codex **旧版本**（0.16.0）的档名，1.1.7 已改。设计稿用的是过时档名。open-questions Q4b 成立 |
 | 3 | 笔记（2026-07-31）未提 `session/set_mode` 废弃；子代理查到官方已挂废弃告示 | **两者都对，时间差。** 迁移方向是 `session/set_config_option`（按 `category` 取 `mode`）。**新代码直接写 `set_config_option`**，`set_mode` 只作降级 |
 | 4 | 笔记只说取消要发 `session/cancel`；规范要求**同时用 `cancelled` 应答所有 pending 的权限请求** | **规范为准**（A 级 > B 级）。笔记写于该细节被注意到之前 |
+| **5** | `acp-integration.md` §11.2 写 v1 的 `sessionUpdate` 判别值「共 **11** 个」；`M0-acp-foundation.md` U0.4.1 R1 / U0.5.1 R6 写「**9** 类」 | **都不对，实际是 13 个**（下 §7.2）。已就地修正三处并接入穷举测试。**这类"数一数有几个"的结论必须由测试守住**——文档里的数字会漂移，`grep -c` 不会 |
 
 ---
 
@@ -353,6 +354,56 @@ make probe          # 零模型开销：只做 initialize + session/new
 
 `open-questions.md` Q4b 说「设计稿把 codex 实现工程师绑到 `auto` 模式，但 codex 没有这个档」——
 **证实**：`auto` 确实只在 claude 的 6 个档里，codex 的三个档里没有。设计稿的角色表需修正。
+
+---
+
+## 7.2 协议 schema 复核（2026-08-07）★
+
+§7.1 是**真机探针**（B 级：观测到的行为）。本节是**官方 schema 源码**
+（**A 级**：协议全集，含探针跑不出来的变体）。两者互补——
+探针只能看见 runtime 这一轮**碰巧发了什么**，看不见协议**允许发什么**。
+
+**证据源**（本机已装，可复核）：
+
+```bash
+SDK=$(npm root -g)/@agentclientprotocol/codex-acp/node_modules/@agentclientprotocol/sdk
+grep -o 'sessionUpdate: "[a-z_]*"' $SDK/dist/schema/types.gen.d.ts | sort -u   # v1，13 行
+grep -n 'PROTOCOL_VERSION' $SDK/dist/schema/index.d.ts                          # = 1
+```
+
+实跑版本：**`@agentclientprotocol/sdk 1.3.0`**（`dist/schema` = v1，`dist/v2/schema` = v2）。
+
+### 裁定 1 · v1 的 `sessionUpdate` 判别值是 **13 个**，不是 11 / 9
+
+| 判别值 | 载荷类型 | Duet 处理 |
+|---|---|---|
+| `user_message_chunk` `agent_message_chunk` `agent_thought_chunk` | `ContentChunk` | 前两者见 §11.2 映射表 |
+| `tool_call` / `tool_call_update` | `ToolCall` / `ToolCallUpdate` | 合并为一类，字段级合并后上抛完整快照 |
+| `plan` | `Plan`（`entries[]`） | 丢弃（同名陷阱） |
+| **`plan_update`** | `PlanUpdate` | 丢弃。**官方标 `UNSTABLE` / `@experimental`** |
+| **`plan_removed`** | `PlanRemoved`（只有 `planId`） | 丢弃。同上 |
+| `available_commands_update` `current_mode_update` `config_option_update` `session_info_update` `usage_update` | 各自类型 | 见 §11.2 |
+
+**漏掉的两个都是 `plan_*` 家族**，且都带实验标记。危险不在于漏了功能，
+而在于它们会掉进「未知变体」分支**刷 warn 日志**，把真正的未知变体淹掉。
+
+### 裁定 2 · v2 已存在，但**现在不实现**
+
+`dist/v2/schema` 的 `PROTOCOL_VERSION = 2`，判别值换了一批
+（`agent_message` / `state_update` / `terminal_output_chunk` / `tool_call_content_chunk` …，
+`tool_call` 与 `plan` 两个判别值**消失**）。
+
+**但 §7.1 的真机探针实测：两端协商出来的 `protocolVersion` 都是 `1`。**
+→ **M0 只做 v1。** 版本协商失败时关闭连接（U0.5.1 R1），不做 v2 兼容层。
+
+> 这条记下来是为了防止下一轮 AI 打开 SDK 目录看见 `v2/` 就顺手实现它。
+> **协议版本以协商结果为准，不以 SDK 里存在什么为准。**
+
+### 这条为什么值得单独记
+
+「一共有几个」这种结论，**写在文档里必然漂移**——三份文档写了三个数字就是证据。
+正确做法是**变成检查**：`protocol` 包的穷举测试遍历判别值全集，
+新增一个而未登记时测试红。见 `ai-playbook.md` §4 的「能变成检查的不要写进文档」。
 
 ---
 

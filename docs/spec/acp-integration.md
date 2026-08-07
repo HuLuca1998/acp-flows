@@ -1034,10 +1034,17 @@ type Event struct {
 
 ### 11.2 映射表 ★
 
-**[SPEC]** v1 的 `SessionUpdate` 判别值共 **11 个**（schema 全集）：
+**[SPEC]** v1 的 `SessionUpdate` 判别值共 **13 个**（schema 全集）：
 `user_message_chunk` · `agent_message_chunk` · `agent_thought_chunk` · `tool_call` ·
-`tool_call_update` · `plan` · `available_commands_update` · `current_mode_update` ·
-`config_option_update` · `session_info_update` · `usage_update`。
+`tool_call_update` · `plan` · **`plan_update`** · **`plan_removed`** ·
+`available_commands_update` · `current_mode_update` · `config_option_update` ·
+`session_info_update` · `usage_update`。
+
+> **数字修正（2026-08-07）**：本节原写「11 个」，漏了 `plan_update` 与 `plan_removed`。
+> 依据 `@agentclientprotocol/sdk@1.3.0` 的 `dist/schema/types.gen.d.ts`
+> （`PROTOCOL_VERSION = 1`，生成自官方 schema，A 级证据）。
+> 裁定过程见 [`../notes/acp-field-notes.md`](../notes/acp-field-notes.md) §7 第 5 行。
+> **穷举测试一律以 13 为准**——少一个，新变体上线时就静默漏处理。
 
 | ACP 线上来源 | 应用事件 `type` | 处理 |
 |---|---|---|
@@ -1054,6 +1061,8 @@ type Event struct {
 |---|---|---|
 | `user_message_chunk` | 丢弃 | 只在 `session/load` 回放时出现。用户消息由 Duet 自己产生并已落库，回放会造成重复 |
 | `plan` | **丢弃 + debug 日志** | ★ **同名陷阱**：ACP 的 `plan` 是 Agent 的 TODO 清单，**不是** Duet 的 `PlanVersion`。把它映射成 `app/plan_version` 会把 Agent 的临时待办写进只增不改的计划版本链，是严重数据污染。13 类事件枚举里没有它的位置，要加就得改设计规范 + OpenAPI + 前端注册表三处（`architecture.md` §4） |
+| `plan_update` | **丢弃 + debug 日志** | 同上的同名陷阱。**且官方 schema 标了 `UNSTABLE` / `@experimental`**——不在正式 spec 内，随时可能改或删。`protocol` 层必须**认得**它（否则走未知分支记 warn，日志被刷屏），但**不建立任何映射** |
+| `plan_removed` | **丢弃 + debug 日志** | 同上。载荷只有一个 `planId`，对 Duet 无语义 |
 | `available_commands_update` | 丢弃 | M0 不用 slash command |
 | `current_mode_update` | **不产事件**，更新 `Session.currentModeId` | Agent 可以自己换 mode **[SPEC]**。变化本身如果需要露出给用户，由 app 层发 `app/state_change`，不由协议层伪造成 `acp` 事件 |
 | `config_option_update` | 更新会话元数据 | 见 §16-O2 |
