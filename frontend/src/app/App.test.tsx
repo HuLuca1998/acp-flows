@@ -45,7 +45,9 @@ describe('导航注册表', () => {
 describe('应用骨架', () => {
   it('默认进对话主区，且右栏在场', () => {
     render(<App />)
-    expect(screen.getByText(/这里将来是对话时间线/)).toBeInTheDocument()
+    // 对话页已经做实（U2.4.1），不再是骨架占位。
+    // 没有项目时它引导用户先去加一个——这就是「默认进了对话主区」的证据。
+    expect(screen.getByText(/先添加一个项目/)).toBeInTheDocument()
     expect(screen.getByRole('complementary', { name: '上下文面板' })).toBeInTheDocument()
   })
 

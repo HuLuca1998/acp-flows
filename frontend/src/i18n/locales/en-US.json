@@ -8,7 +8,6 @@
   "nav.settings": "Settings",
   "common.action.later": "Later",
   "common.state.comingSoon": "Coming soon",
-  "page.chat.hint": "This will be the conversation timeline: agent messages, tool calls, thought summaries and permission requests, streamed as they happen.",
   "page.plan.hint": "This will be the plan panel: how the task was broken down, how many revisions, and why each one happened.",
   "page.memory.hint": "This will be project memory: lessons the agent distilled, each one requiring your approval before it takes effect.",
   "page.skill.hint": "This will be the Skill library: versioned workflow definitions that can be published and rolled back.",
@@ -120,5 +119,15 @@
   "timeline.event.evidence": "Evidence",
   "timeline.event.checkpoint": "Checkpoint",
   "timeline.event.unknown": "This came from a newer AI — this version doesn't know it yet",
-  "timeline.empty": "Nothing yet. Once you describe what you want, every step the AI takes shows up here."
+  "timeline.empty": "Nothing yet. Once you describe what you want, every step the AI takes shows up here.",
+  "chat.needProject": "Add a project first, then you can describe what you want here. Go to Settings → Projects.",
+  "chat.placeholder": "Describe what you want the AI to do",
+  "chat.inputLabel": "What you want",
+  "chat.start": "Start",
+  "chat.starting": "Starting…",
+  "chat.error.work_project_not_a_repo": "This folder isn't a git repository. Run git init inside it.",
+  "chat.error.work_project_not_found": "Can't find that folder — it may have been moved or deleted.",
+  "chat.error.project_path_not_absolute": "The project path is incomplete. Please add the project again.",
+  "chat.error.work_prompt_required": "Tell the AI what you want first.",
+  "chat.error.unknown": "Couldn't start this work. Try again, or check Settings to see if the background service is running."
 }

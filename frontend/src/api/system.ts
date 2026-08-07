@@ -1,6 +1,7 @@
 import type { Project } from '@/models/project'
 import type { Runtime } from '@/models/runtime'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
+import type { Work } from '@/models/work'
 
 import { api, unwrap } from './client'
 
@@ -55,4 +56,19 @@ export async function addProject(path: string): Promise<Project> {
 /** 移除项目。**只取消登记，不删用户的文件。** */
 export async function removeProject(id: string): Promise<void> {
   unwrap(await api.DELETE('/projects/{id}', { params: { path: { id } } }))
+}
+
+/** 全部工作。 */
+export async function listWorks(): Promise<Work[]> {
+  const body = unwrap(await api.GET('/works'))
+  return body.works
+}
+
+/**
+ * 对一个项目提需求，开一个工作。
+ *
+ * ★ 会切一个独立 worktree，**建在用户项目之外**（`~/.acpflows/worktrees`）。
+ */
+export async function startWork(project: string, prompt: string): Promise<Work> {
+  return unwrap(await api.POST('/works', { body: { project, prompt } }))
 }
