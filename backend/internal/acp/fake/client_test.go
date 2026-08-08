@@ -191,3 +191,77 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 	}
 	return b
 }
+
+// ── U3.1.1 用到的三项：异步发请求、收反向请求、回响应 ──────────
+
+// callAsync 发一个请求但**不等响应**，返回等待用的通道。
+//
+// 权限请求那组测试必须这样：发完 session/prompt 要先去收 Fake 主动发来的
+// 反向请求，同步等的话两边互相等，直接死锁。
+func (c *client) callAsync(method string, params any) chan frame {
+	c.t.Helper()
+
+	c.mu.Lock()
+	id := c.nextID
+	c.nextID++
+	ch := make(chan frame, 1)
+	c.pending[id] = ch
+	c.mu.Unlock()
+
+	c.write(frame{JSONRPC: "2.0", ID: &id, Method: method, Params: mustJSON(c.t, params)})
+	return ch
+}
+
+// await 等一个 callAsync 的响应。
+func (c *client) await(ch chan frame, timeout time.Duration) (frame, error) {
+	c.t.Helper()
+	select {
+	case f := <-ch:
+		return f, nil
+	case <-c.done:
+		return frame{}, fmt.Errorf("等响应时连接结束: %w", c.finishErr())
+	case <-time.After(timeout):
+		return frame{}, fmt.Errorf("等响应超时（%s）", timeout)
+	}
+}
+
+// tryAwait 等一小会儿；没等到返回 ok=false，**这不算错误**。
+//
+// 用来断言「这一轮到现在还没结束」——那正是权限请求阻塞语义的核心。
+func (c *client) tryAwait(ch chan frame, window time.Duration) (frame, bool) {
+	c.t.Helper()
+	select {
+	case f := <-ch:
+		return f, true
+	case <-time.After(window):
+		return frame{}, false
+	}
+}
+
+// nextRequest 取下一条**带 id 的入站帧**，也就是 Agent 发来的反向请求。
+//
+// 不带 id 的通知会被跳过：session/update 与 session/request_permission
+// 走的是同一条队列，而这里只关心后者。
+func (c *client) nextRequest(method string, timeout time.Duration) (frame, error) {
+	c.t.Helper()
+	deadline := time.Now().Add(timeout)
+	for {
+		left := time.Until(deadline)
+		if left <= 0 {
+			return frame{}, fmt.Errorf("等反向请求 %s 超时（%s）", method, timeout)
+		}
+		f, err := c.nextNotification(left)
+		if err != nil {
+			return frame{}, err
+		}
+		if f.ID != nil && f.Method == method {
+			return f, nil
+		}
+	}
+}
+
+// respond 回一条响应给 Agent 的反向请求。
+func (c *client) respond(id *int64, result any) {
+	c.t.Helper()
+	c.write(frame{JSONRPC: "2.0", ID: id, Result: mustJSON(c.t, result)})
+}

@@ -17,6 +17,9 @@ type wireFrame struct {
 	ID      json.RawMessage `json:"id,omitempty"`
 	Method  string          `json:"method,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
+	// Result 只在**入站**帧上出现：客户端对我们反向请求的响应。
+	// 没有它的话，那条响应会被当成「不认识的方法」而回一个 -32601。
+	Result json.RawMessage `json:"result,omitempty"`
 }
 
 // wireResponse 是一条响应。
@@ -81,6 +84,22 @@ func (fw *frameWriter) respondError(id json.RawMessage, code int, message string
 		JSONRPC: "2.0", ID: id,
 		Error: &wireError{Code: code, Message: message},
 	})
+}
+
+// request 发一条**反向请求**（Agent → 客户端），带 id，等对方响应。
+//
+// ★ id 与响应的 id 是同一个数字，客户端靠它把响应对回来。
+// 我们自己不维护超时——等待逻辑在 permission.go，理由写在那里。
+func (fw *frameWriter) request(id int64, method string, params any) error {
+	raw, err := json.Marshal(params)
+	if err != nil {
+		return fmt.Errorf("fake: 序列化反向请求参数失败: %w", err)
+	}
+	rawID, err := json.Marshal(id)
+	if err != nil {
+		return fmt.Errorf("fake: 序列化反向请求 id 失败: %w", err)
+	}
+	return fw.writeFrame(wireFrame{JSONRPC: "2.0", ID: rawID, Method: method, Params: raw})
 }
 
 // notify 发一条通知（不带 id，不等响应）。

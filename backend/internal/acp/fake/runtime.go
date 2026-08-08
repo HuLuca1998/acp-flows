@@ -55,6 +55,7 @@ type Runtime struct {
 	stderr  io.Writer
 	rec     *recorder
 	latency Latency
+	asks    *permissionAsks
 
 	// neverStops 让所有轮次都不响应 session/prompt（预设 NeverStops）。
 	neverStops bool
@@ -91,6 +92,7 @@ func New(opts Options) *Runtime {
 		clock:   opts.Clock,
 		stderr:  stderr,
 		rec:     newRecorder(),
+		asks:    newPermissionAsks(),
 		latency: opts.Latency,
 	}
 }
@@ -170,6 +172,19 @@ func (r *Runtime) Serve(ctx context.Context, in io.Reader, out io.Writer) error 
 
 // dispatch 把一条入站消息交给对应的处理。
 func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameWriter, f wireFrame) error {
+	// ★ 没有 method 但有 id = 客户端在**回我们的反向请求**（权限应答）。
+	// 不先认出来的话，它会掉进 default 分支，被当成「不认识的方法」回一个
+	// -32601 —— 而真正在等应答的那一轮会永远挂着。
+	if f.Method == "" && len(f.ID) > 0 {
+		var id int64
+		if err := json.Unmarshal(f.ID, &id); err != nil {
+			_, _ = fmt.Fprintf(r.stderr, "fake: 入站响应的 id 非法: %s\n", f.ID)
+			return nil
+		}
+		r.handleAskResponse(id, f.Result)
+		return nil
+	}
+
 	switch f.Method {
 	case protocol.MethodInitialize:
 		return w.respond(f.ID, protocol.InitializeResponse{
@@ -224,83 +239,10 @@ func (r *Runtime) respondNewSession(w *frameWriter, id json.RawMessage) error {
 	return w.respond(id, resp)
 }
 
-// nextTurn 取下一轮的脚本，并把轮次计数往前推。
-func (r *Runtime) nextTurn() *Turn {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	turn := r.script.turnAt(r.turnSeq)
-	r.turnSeq++
-	return turn
-}
-
-// replay 回放一轮：按脚本推事件，然后（或不）响应 session/prompt。
-func (r *Runtime) replay(ctx context.Context, w *frameWriter, promptID json.RawMessage, turn *Turn) {
-	if turn == nil {
-		// 脚本没写这一轮 —— 不响应比编一个 end_turn 诚实：
-		// 编出来的话，测试会以为脚本覆盖到了实际没覆盖的轮次。
-		_, _ = fmt.Fprintf(r.stderr, "fake: 脚本没有第 %d 轮，session/prompt 不响应\n", r.turnSeq)
-		return
-	}
-
-	// 断流计时从**首个 prompt** 开始 —— 语义是「跑着跑着断了」，
-	// 从 Serve 起算的话握手耗时会算进去，测试时序变得不可控。
-	r.armSilence()
-
-	steps := turn.Steps
-	if r.latency.Reorder {
-		steps = reorderSteps(steps, r.latency.seed())
-	}
-
-	sessionID := r.script.sessionID()
-	for i, step := range steps {
-		if !sleepCtx(ctx, r.latency.delayFor(i, time.Duration(step.Delay))) {
-			return
-		}
-		if len(step.Emit) == 0 {
-			continue
-		}
-		var update protocol.SessionUpdate
-		if err := json.Unmarshal(step.Emit, &update); err != nil {
-			_, _ = fmt.Fprintf(r.stderr, "fake: 第 %d 步的 emit 载荷非法: %v\n", i, err)
-			continue
-		}
-		if err := w.notify(protocol.MethodSessionUpdate, protocol.SessionNotification{
-			SessionID: sessionID,
-			Update:    update,
-		}); err != nil {
-			return // 流已断，安静退出
-		}
-	}
-
-	// ★ 不回 stopReason：NeverStops 预设，或脚本里这一轮没写 stop_reason。
-	// 这是 S0.6 测 ErrCancelTimeout 的开关（testing-strategy.md §3.5）。
-	if r.neverStops || turn.StopReason == "" {
-		return
-	}
-	if !sleepCtx(ctx, time.Duration(turn.StopDelay)) {
-		return
-	}
-	_ = w.respond(promptID, protocol.PromptResponse{StopReason: turn.StopReason})
-}
-
-// armSilence 在首个 prompt 之后启动断流计时。
-func (r *Runtime) armSilence() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.silentAfter <= 0 || r.closed {
-		return
-	}
-	d := r.silentAfter
-	r.silentAfter = 0 // 只装一次
-	closeOut := r.closeOut
-	time.AfterFunc(d, func() {
-		if closeOut != nil {
-			closeOut()
-		}
-	})
-}
-
-// Close 停止 Fake 并断开管道。可重复调用。
+// Close 关掉 Fake。
+//
+// ★ 要解除所有 pending 的权限等待，否则回放 goroutine 会永久挂在
+// select 上，测试进程结束时报 goroutine 泄漏。
 func (r *Runtime) Close() error {
 	r.mu.Lock()
 	if r.closed {
@@ -311,6 +253,9 @@ func (r *Runtime) Close() error {
 	closeOut := r.closeOut
 	cancel := r.cancelServe
 	r.mu.Unlock()
+
+	// 解除所有 pending 的权限等待，否则回放 goroutine 永久挂在 select 上
+	r.asks.abortAll()
 
 	if cancel != nil {
 		cancel()

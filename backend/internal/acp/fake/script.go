@@ -72,6 +72,33 @@ type Step struct {
 	Delay Dur `json:"delay,omitempty"`
 	// Emit 是一条完整的 SessionUpdate 载荷，原样下发。
 	Emit json.RawMessage `json:"emit,omitempty"`
+	// Ask 是一条权限请求：发出去之后**阻塞等应答**，收到之前这一轮不往下走。
+	//
+	// ★ 阻塞是它的全部意义。不阻塞的话，上层的裁决逻辑就没有真实的对手方——
+	// 测试会以为「问过了」，而实际上 Agent 根本没等答案就往下干了。
+	Ask *PermissionAsk `json:"ask,omitempty"`
+}
+
+// PermissionAsk 是脚本里的一条权限请求。
+//
+// ★ Fake **不许对它做任何加工**：optionId 与 kind 语义对不上也原样发。
+// 「顺手纠正」的话，「客户端按类别猜 id」这类 bug 就永远测不出来
+// （U3.1.1 的 forbidden_changes 明写「Fake 自己去重或纠正收到的消息」是禁止的）。
+type PermissionAsk struct {
+	// ToolCallID 是这次请求针对的工具调用。界面靠它说清楚「要允许的是什么」。
+	ToolCallID string            `json:"tool_call_id"`
+	Title      string            `json:"title,omitempty"`
+	Kind       protocol.ToolKind `json:"kind,omitempty"`
+	// Options 原样发给客户端。留空时用 defaultAskOptions()。
+	Options []protocol.PermissionOption `json:"options,omitempty"`
+}
+
+// defaultAskOptions 是脚本没写选项时的一组，覆盖 allow/reject 两类。
+func defaultAskOptions() []protocol.PermissionOption {
+	return []protocol.PermissionOption{
+		{OptionID: "allow", Name: "允许一次", Kind: protocol.PermissionAllowOnce},
+		{OptionID: "reject", Name: "拒绝", Kind: protocol.PermissionRejectOnce},
+	}
 }
 
 const defaultSessionID = "sess_fake_0001"
