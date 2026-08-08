@@ -1,0 +1,72 @@
+/* 工作状态条。照设计稿的 `executing · 3/7`：状态圆点 + 等宽小字。 */
+.bar {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+
+  /* 状态词长了要换行而不是把整条撑开 */
+  flex-wrap: wrap;
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+
+  /* 默认灰：不在跑。在跑的状态由下面的 data-work-state 覆盖成强调色——
+     新增状态时忘了写规则也只是灰的，不会误报成「正在干活」。 */
+  background: var(--color-neutral-600);
+}
+
+.bar[data-work-state='executing'] .dot,
+.bar[data-work-state='clarifying'] .dot,
+.bar[data-work-state='planning'] .dot,
+.bar[data-work-state='reviewing_unit'] .dot {
+  background: var(--color-accent-400);
+}
+
+.bar[data-work-state='failed'] .dot,
+.bar[data-work-state='initializing_failed'] .dot {
+  background: var(--color-fail);
+}
+
+/* ★ 等宽 + 原值：术语表明写状态词不翻译。 */
+.state {
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* 「停下」是次要动作，照权限卡片的「拒绝」：灰边框，不抢眼。 */
+.stop {
+  flex: none;
+  padding: 2px 9px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-400);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.stop:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+/* 提交中：看得出「已经点过了」，而不是像坏掉了。 */
+.stop:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hint {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.error {
+  color: var(--color-fail);
+  font-size: 11px;
+}

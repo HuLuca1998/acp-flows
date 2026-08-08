@@ -38,9 +38,11 @@ var workTransitions = map[constant.WorkState][]constant.WorkState{
 	constant.WorkStateInitializing: {
 		constant.WorkStateClarifying,         // worktree 切好了
 		constant.WorkStateInitializingFailed, // 切失败，终态
+		constant.WorkStatePaused,             // 用户在切 worktree 时就点了停
 	},
 	constant.WorkStateClarifying: {
 		constant.WorkStatePlanning,
+		constant.WorkStatePaused, // 用户点了停
 		constant.WorkStateFailed,
 	},
 	constant.WorkStatePlanning: {

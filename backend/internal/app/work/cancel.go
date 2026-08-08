@@ -47,6 +47,19 @@ func (s *Service) Cancel(ctx context.Context, workID string) error {
 		return fmt.Errorf("%w: 工作 %s", ErrNoCanceller, workID)
 	}
 
+	// ★ 先立旗：告诉后台那一轮「这是用户主动停的」。
+	//
+	// 不立的话，那一轮会因为 stopReason=cancelled 返回错误，被
+	// 「AI 跑挂了」那条路径抢先推到 failed——而这里想推的 paused
+	// 会被状态机拒（failed 是终态）。用户看到的是：
+	// 我明明主动停的，界面说「失败」。真机走查撞到过。
+	// ★ **不在这里清**：后台那一轮还在跑，它要靠这个标记判断
+	// 「这次失败是用户主动停的」。在 Cancel 返回时清掉的话，
+	// 那一轮结束时标记已经没了，照样会被推到 failed——
+	// 序列会是 [... paused failed]，用户看到的还是「失败」。
+	// 清理归 runTurn 的 goroutine（它知道自己什么时候结束）。
+	s.markCancelling(workID)
+
 	mustKill, cancelErr := s.canceller.CancelTurn(ctx, workID)
 	if mustKill {
 		// ★ 停不下来就杀。杀在前、落库在后——先把它按住，
@@ -103,4 +116,29 @@ func ErrorCode(err error) string {
 	default:
 		return "work_operation_failed"
 	}
+}
+
+// markCancelling / clearCancelling / isCancelling 标记「这个工作正在被用户停」。
+//
+// ★ 后台那一轮据此区分「用户主动停」与「AI 跑挂了」——两者都表现为
+// RunTurn 返回错误，但对用户是完全不同的两件事。
+func (s *Service) markCancelling(workID string) {
+	s.cancelMu.Lock()
+	defer s.cancelMu.Unlock()
+	if s.cancelling == nil {
+		s.cancelling = make(map[string]bool)
+	}
+	s.cancelling[workID] = true
+}
+
+func (s *Service) clearCancelling(workID string) {
+	s.cancelMu.Lock()
+	defer s.cancelMu.Unlock()
+	delete(s.cancelling, workID)
+}
+
+func (s *Service) isCancelling(workID string) bool {
+	s.cancelMu.Lock()
+	defer s.cancelMu.Unlock()
+	return s.cancelling[workID]
 }

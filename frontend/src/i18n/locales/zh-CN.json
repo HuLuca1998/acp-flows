@@ -148,5 +148,12 @@
   "timeline.filter.stop": "轮次结束",
   "timeline.filter.think": "思考摘要",
   "timeline.filter.title": "时间线显示",
-  "timeline.filter.tool": "工具调用"
+  "timeline.filter.tool": "工具调用",
+  "work.error.cancelFailed": "没能停下，再试一次",
+  "work.error.cancelNotAllowed": "现在不能停，等它把手上这步做完",
+  "work.error.cancelUnavailable": "后台服务没接上，停不了",
+  "work.error.notFound": "这个工作已经不在了",
+  "work.stop": "停下",
+  "work.stopBlockedReview": "正在审查，等它出完结果再停",
+  "work.stopping": "正在停…"
 }

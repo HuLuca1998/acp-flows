@@ -79,3 +79,28 @@ func TestCanCancel_UnknownStateIsRefused(t *testing.T) {
 			"默认允许会把一个我们完全不了解的状态强行推走")
 	}
 }
+
+// ★★ 「能取消」与「迁得到 paused」必须**一致**。
+//
+// 真机走查撞到的：CanCancel(clarifying) 是 true，而迁移表里
+// clarifying 没有 paused 这条出边——用户点了停，规则放行，
+// 状态机拒绝，他看到一句「invalid work state transition」。
+//
+// 两处是同一件事的两种表达，谁都可能被单独改动。
+func TestCanCancel_MatchesTransitionTable(t *testing.T) {
+	for _, s := range constant.AllWorkStates() {
+		w := model.NewWorkAt("work-01", s)
+		canReach := w.Transition(constant.WorkStatePaused) == nil
+
+		if model.CanCancel(s) && !canReach {
+			t.Errorf("CanCancel(%q) 说能停，但状态机不让它迁到 paused——\n"+
+				"用户点了停，规则放行，状态机拒绝，"+
+				"他看到一句「invalid work state transition」", s)
+		}
+		// ★ 反方向**不要求**：`paused` 的入边不止「用户点停」这一条。
+		// `reviewing_unit` / `waiting_user` 也能迁到 paused——那是
+		// 「更新前把工作按下来」（M1 的 update/prepare）走的路，
+		// 不是用户主动取消。把两者绑成双向的话，
+		// 一键更新的暂停会被这条测试逼着改坏。
+	}
+}

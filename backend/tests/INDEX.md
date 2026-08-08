@@ -309,3 +309,5 @@
 | `TestProcessRunner_CancelIdleWorkIsNoop` | `internal/acp/agent/runner_test.go` | acp | 没在跑的工作取消不报错——报错的话 app 层会把一个已经成功结束的工作推到 failed |
 | `TestProcessRunner_ForgetsFinishedTurns` | `internal/acp/agent/runner_test.go` | acp | ★★ 跑完就摘掉记录——留着的话，取消一个早就结束的工作会去动一条已经关掉的会话 |
 | `TestProcessRunner_CancelRunningTurnDemandsKillWhenDead` | `internal/acp/agent/runner_test.go` | acp | ★★ 用真进程验 `KillAgent` 能把装死的 Agent 收掉。★ **先 track 进程再握手**——反过来的话，连 initialize 都不回的 Agent 会让 `session.Open` 挂住，而那时 KillAgent 找不到它（造这条测试时发现的） |
+| `TestCanCancel_MatchesTransitionTable` | `internal/domain/model/cancellable_test.go` | domain | ★★ 「能取消」与「迁得到 paused」必须一致。真机撞到：`CanCancel(clarifying)` 是 true 而迁移表里没这条出边——用户点了停，规则放行、状态机拒绝，他看到一句「invalid work state transition」。★ 只要求单向：`paused` 的入边不止「用户点停」（更新前的暂停也走它） |
+| `TestCancel_UserCancelIsNotAFailure` | `internal/app/work/service_test.go` | app | ★★ **用户主动停 ≠ AI 跑挂了**。真机撞到：点停之后那一轮因 `stopReason=cancelled` 返回错误，被「跑挂了」那条路径推到 failed，抢在 paused 之前——用户明明是自己点的停，界面说「失败」。★ 取消标记由 `runTurn` 的 goroutine 自己清（只有它知道什么时候真跑完），在 Cancel 里清的话序列会是 `[… paused failed]` |

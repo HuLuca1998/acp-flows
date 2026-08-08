@@ -306,11 +306,18 @@ type fakeRunner struct {
 }
 
 func (r *fakeRunner) RunTurn(ctx context.Context, t port.AgentTurn) error {
+	// ★ **先记录再等**：测试靠 turns 判断「跑起来了」。反过来的话，
+	// 等到的其实是「跑完了」——而那时失败处理已经跑过一遍，
+	// 「取消一个正在跑的工作」这个场景根本构造不出来。
+	r.mu.Lock()
+	r.turns = append(r.turns, t)
+	r.mu.Unlock()
+
 	if r.delay > 0 {
 		time.Sleep(r.delay)
 	}
+
 	r.mu.Lock()
-	r.turns = append(r.turns, t)
 	r.ctxErr = append(r.ctxErr, ctx.Err())
 	r.mu.Unlock()
 	if r.done != nil {
@@ -640,4 +647,49 @@ func hasEventType(bus *recordingBus, typ string) bool {
 		}
 	}
 	return false
+}
+
+// ★★ **用户主动停 ≠ AI 跑挂了。**
+//
+// 真机走查撞到的：点「停下」之后，后台那一轮因为 stopReason=cancelled
+// 返回错误，被「AI 跑挂了」那条路径抢先推到 failed——而 Cancel 想推的
+// paused 因为 failed 是终态被状态机拒了。
+//
+// 用户看到的是：我明明主动停的，界面说「失败」。
+func TestCancel_UserCancelIsNotAFailure(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	repo, bus := &memWorks{}, &recordingBus{}
+
+	// 一轮跑一会儿，最后返回错误（模拟「被取消了」）
+	runner := &fakeRunner{
+		delay: 300 * time.Millisecond,
+		err:   errors.New("turn did not end normally: cancelled"),
+		done:  make(chan struct{}),
+	}
+	svc := work.New(repo, realWorktrees{root: t.TempDir()}, bus, &seqIDs{}, runner)
+	svc.SetCanceller(&cancelRecorder{})
+
+	view, err := svc.Start(context.Background(), project, "写点长的")
+	if err != nil {
+		t.Fatalf("建工作失败: %v", err)
+	}
+	waitFor(t, "那一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	// 用户点停
+	if err := svc.Cancel(context.Background(), view.ID); err != nil {
+		t.Fatalf("取消失败: %v", err)
+	}
+	<-runner.done
+	time.Sleep(200 * time.Millisecond)
+
+	states := repo.savedStates[view.ID]
+	final := states[len(states)-1]
+	if final == constant.WorkStateFailed {
+		t.Errorf("落库的状态序列 = %v，最后停在 failed——\n"+
+			"用户明明是主动停的，界面却说「失败」。"+
+			"「用户主动停」与「AI 跑挂了」不是一回事", states)
+	}
+	if final != constant.WorkStatePaused {
+		t.Errorf("最终状态 = %q, 想要 paused（序列 %v）", final, states)
+	}
 }

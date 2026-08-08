@@ -148,5 +148,12 @@
   "timeline.filter.stop": "Turn end",
   "timeline.filter.think": "Thinking",
   "timeline.filter.title": "Timeline display",
-  "timeline.filter.tool": "Tool calls"
+  "timeline.filter.tool": "Tool calls",
+  "work.error.cancelFailed": "Couldn't stop it — try again",
+  "work.error.cancelNotAllowed": "Can't stop right now — let it finish this step",
+  "work.error.cancelUnavailable": "Backend not connected — cannot stop",
+  "work.error.notFound": "This work no longer exists",
+  "work.stop": "Stop",
+  "work.stopBlockedReview": "Reviewing — wait for it to finish",
+  "work.stopping": "Stopping…"
 }

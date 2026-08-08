@@ -97,3 +97,21 @@ export async function answerPermission(
     )
   }
 }
+
+/**
+ * 停下一个工作正在跑的那一轮。
+ *
+ * ★ 抛出的 Error 的 message 是**机器可读的错误码**（`work_cancel_not_allowed`
+ * 之类），界面按它查 i18n 词条。不要把它直接显示给用户。
+ */
+export async function cancelWork(workID: string): Promise<void> {
+  const result = await api.POST('/works/{id}/cancel', {
+    params: { path: { id: workID } },
+  })
+  if (result.error !== undefined && result.error !== null) {
+    const problem = result.error as Problem
+    throw new Error(
+      typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
+    )
+  }
+}
