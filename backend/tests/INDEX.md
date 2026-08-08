@@ -442,3 +442,15 @@
 | `TestListMemories_EmptyIsArrayNotNull` | `internal/api/memories_test.go` | api | 空集合序列化成 `[]` 不是 null |
 | `TestListMemories_FailureIsReported` | `internal/api/memories_test.go` | api | ★ 查不动要说出来，不装作「一条都没有」——装作没有的话用户以为 Duet 把记忆忘光了 |
 | `TestListMemories_UnconfiguredSaysSo` | `internal/api/memories_test.go` | api | 没装配回 503 |
+| `TestMakePlan_R1_WritesNothing` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R1：★★ 预演**一个字节都不写**，判据是**全目录指纹**（路径+内容+结构）而不是「我们没调 WriteFile」；且每一步都要写得出 `Reason`——不然用户凭什么点确认 |
+| `TestApply_R2_DoesExactlyWhatThePlanSaid` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R2：★★ 同一份 Plan 分别取「说要动的路径」与「执行后真的出现的路径」，两集合必须相等。分别写两套的话必然漂移，而漂移方向永远是「预演里没说的那件事被做了」 |
+| `TestApply_R3_AppendsToGitignoreKeepingEveryLine` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R3：`.gitignore` 是**追加**不是覆盖——覆盖等于删掉用户自己的规则，而他不会立刻发现 |
+| `TestApply_R3b_IsIdempotent` | `internal/fsstore/project/init_test.go` | fsstore | 跑三次只追加一次，否则 `.gitignore` 会越长越长 |
+| `TestApply_R3c_HandlesMissingTrailingNewline` | `internal/fsstore/project/init_test.go` | fsstore | ★ 用户的 `.gitignore` 末行常常没换行符，直接追加会和他的最后一条规则**粘成一行**——那条规则就此失效而 git 不报错 |
+| `TestApply_R3d_CommentedRuleDoesNotCount` | `internal/fsstore/project/init_test.go` | fsstore | ★ 逐行精确比对而非 `strings.Contains`：`# .acpflows/runs/` 会让含糊匹配以为规则已生效，而它被注释着 |
+| `TestMakePlan_R4_NonRepoIsReportedNotInitialized` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R4：★★ 非 git 仓库如实报告，**且不擅自 `git init`**（在别人的目录里建仓库是不可逆的）；也不凭空造 `.gitignore`；但 `.acpflows` 照建 |
+| `TestApply_R5_RollsBackOnFailure` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R5：★★ 判据是「**我们自己建的东西**回到原样」。★ 发现真 bug：`MkdirAll` 对已存在目录成功返回，记成「这次创建的」再 `RemoveAll` 会**连同用户已有的内容一起删掉**——计划里的 `AlreadyThere` 挡不住，它是算计划那一刻的快照 |
+| `TestApply_R5b_RollbackKeepsUserFiles` | `internal/fsstore/project/init_test.go` | fsstore | ★ 回滚**不删用户自己的文件**：一次失败的初始化不该顺手清掉他的 `.gitignore` |
+| `TestMakePlan_MarksExistingItems` | `internal/fsstore/project/init_test.go` | fsstore | 已初始化过的目录，条目标成「已经在了」而不是消失——用户要看的是「最终长什么样」 |
+| `TestMakePlan_RejectsBadRoots` | `internal/fsstore/project/init_test.go` | fsstore | 相对路径 / 不存在的目录 / 指向文件一律拒（相对路径的失败信息很难懂，在最外层就拦掉） |
+| `TestMakePlan_GitFileCountsAsRepo` | `internal/fsstore/project/init_test.go` | fsstore | ★ worktree / submodule 里 `.git` 是**文件**不是目录，报成非仓库的话那些项目都拿不到忽略规则 |
