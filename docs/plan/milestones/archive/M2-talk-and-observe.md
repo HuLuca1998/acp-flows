@@ -1,6 +1,6 @@
 # M2 · 能提需求，看得见 AI 在干什么
 
-> 对应验收点 **V4 · V5 · V6**（[`../acceptance.md`](../acceptance.md)）。
+> 对应验收点 **V4 · V5 · V6**（[`../acceptance.md`](../../acceptance.md)）。
 
 ## 目标
 
@@ -42,8 +42,8 @@
 
 1. 需要新增第 14 类事件类型——它是封闭枚举，新增要同时改四处
 2. 需要在用户的项目目录里直接写文件（必须走隔离的工作区）
-3. 发现某个 Agent 的行为与 [`../../notes/acp-field-notes.md`](../../notes/acp-field-notes.md) 的实测冲突 → 先复验并裁定
-4. 撞上 [`../open-questions.md`](../open-questions.md) 未决项
+3. 发现某个 Agent 的行为与 [`../../notes/acp-field-notes.md`](../../../notes/acp-field-notes.md) 的实测冲突 → 先复验并裁定
+4. 撞上 [`../open-questions.md`](../../open-questions.md) 未决项
 
 ---
 

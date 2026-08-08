@@ -114,6 +114,14 @@ for d in RULING_DIRS:
     for path in sorted(d.rglob("*.md")):
         if path.parent.name == "milestones" and path.name.startswith("M"):
             continue                      # 里程碑自身在上面已经逐单元查过
+        # ★ 归档目录整体豁免。
+        #
+        # 2026-08-08 里程碑按引用关系重排，旧的 M2 连同它的 U2.* 挪进
+        # milestones/archive/。归档文件里的编号指的是**重排前**的东西，
+        # 拿今天的单元表去核对它必然扑空——而改它等于篡改历史记录。
+        # 归档不是施工图，没人会照着它干活，漏了也不会有人走错。
+        if "archive" in path.parts:
+            continue
         lines = path.read_text(encoding="utf-8").splitlines()
 
         # 文件级的「已废弃」声明：某个编号只要在**本文件任何一行**被标注为废弃，

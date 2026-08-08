@@ -6,8 +6,8 @@
 
 **对话主区**。对话时间线：Agent 消息、工具调用、思考摘要、权限请求，边做边显示。
 
-对应验收点 **V5 V6**，施工图见
-[`M2-talk-and-observe.md`](../../../../docs/plan/milestones/M2-talk-and-observe.md)。
+对应验收点 **V5 V6**，归 `M5`——2026-08-08 里程碑重排后它还没建施工图，
+验收条件见 [`roadmap.md`](../../../../docs/plan/roadmap.md) 的「M5–M12 的验收条件」一节。
 
 ## 不负责什么
 

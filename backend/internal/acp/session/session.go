@@ -201,8 +201,15 @@ func (s *Session) newSession(ctx context.Context, opts Options) error {
 	var resp protocol.NewSessionResponse
 	if err := s.conn.CallInto(ctx, protocol.MethodSessionNew, protocol.NewSessionRequest{
 		Cwd: opts.Cwd,
-		// ★ 不能是 nil：nil slice 会写成 null，而 claude 用 null 覆盖 thread config
-		// 的 mcp_servers 键，禁用条目全部丢失（acp-field-notes.md §4）。
+		// ★ 必须是**空数组**，不能是 nil。
+		//
+		// nil slice 会写成 `null`；而 **codex-acp**（不是 claude——这条归因
+		// 之前写错了）在 session 级 mcpServers 非空时，会用它**整体覆盖**
+		// thread config 的 `mcp_servers` 键，`CODEX_CONFIG` 里那些
+		// `enabled: false` 的禁用条目全部丢失（acp-field-notes.md §4 硬规则 2）。
+		//
+		// 后果是：机器级的 MCP Server 会在这条会话里静默复活，
+		// 而 MCP 是**任意进程执行**——用户以为自己只是打开了一个项目。
 		MCPServers: []protocol.MCPServer{},
 	}, &resp); err != nil {
 		return fmt.Errorf("session/new: %w", err)

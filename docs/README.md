@@ -102,20 +102,32 @@
 | 文档 | 内容 |
 |---|---|
 | [`acceptance.md`](plan/acceptance.md) | ★ **验收清单（用户视角）** —— V0–V15，每条是使用者能自己操作、自己判断成败的一件事。**不含任何技术名词** |
-| [`roadmap.md`](plan/roadmap.md) | M0–M4 总览与当前进度（技术施工图） |
+| [`roadmap.md`](plan/roadmap.md) | **M0–M12 总览、当前进度指针、三条用户裁定** —— 接手先读这份 |
 | [`open-questions.md`](plan/open-questions.md) | **仍需人拍板的问题** —— 卡住时先查这里 |
 | [`milestones/README.md`](plan/milestones/README.md) | 里程碑体系与编号规则 |
 
-里程碑分章（每章是子计划的菜单，**只读你要做的那一个 S**）：
+里程碑分章（每章是子计划的菜单，**只读你要做的那一个 S**）。
+2026-08-08 按引用关系重排，`M5` 及以后的验收条件在 `roadmap.md` 里，
+**施工图等快做到时才建**——远期写死的单元拆分，到那天必然已经过期。
 
 | 章 | 做什么 | 状态 |
 |---|---|---|
-| [`M0`](plan/milestones/M0-foundation.md) | 基础框架：窗口布局、七页导航、多语言、设置页、骨架占位（V0 系列） | **进行中** |
-| [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新（V1–V3） | 待开始 |
-| [`M2`](plan/milestones/M2-talk-and-observe.md) | 能提需求，看得见 AI 在干什么（V4–V6） | 待开始 |
-| [`M3`](plan/milestones/M3-control.md) | 能管住 AI：动文件先问、随时能喊停（V7 V8） | 待开始 |
-| [`M4`](plan/milestones/M4-trust.md) | 值得信任：恢复、计划、证据、决策（V9–V12） | 待开始 |
-| [`M5`](plan/milestones/M5-polish.md) | 越用越顺手：记忆、报表、英文（V13–V15） | 待开始 |
+| [`M0`](plan/milestones/M0-foundation.md) | 基础框架：窗口布局、七页导航、多语言、骨架占位 | ✓ 完成 |
+| [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新 | 进行中 |
+| [`M2`](plan/milestones/M2-roles-skills-memory.md) | **它有了角色、技能和记性**（后面全部的地基） | **现在做** |
+| [`M3`](plan/milestones/M3-project-onboarding.md) | 把我的项目交给它：创建项目弹层、扫已有 skill | 待开始 |
+| [`M4`](plan/milestones/M4-start-a-work.md) | 开一个工作：新建工作弹层、worktree、右栏工作区 | 待开始 |
+| `M5`–`M12` | 需求 → 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
+
+**重排前的里程碑**（旧 `U2.*`–`U5.*` 编号，只作历史查阅，不要照着干活）：
+
+| 文档 | 什么时候看它 |
+|---|---|
+| [`archive/README.md`](plan/milestones/archive/README.md) | 想知道旧编号的成果落到新里程碑哪一格 |
+| [`archive/M2-talk-and-observe.md`](plan/milestones/archive/M2-talk-and-observe.md) | 查对话流 / 时间线 / SSE 当时怎么做的 |
+| [`archive/M3-control.md`](plan/milestones/archive/M3-control.md) | 查权限卡片与两段式取消的设计取舍 |
+| [`archive/M4-trust.md`](plan/milestones/archive/M4-trust.md) | 查会话恢复、检查点、计划模型的验收标准 |
+| [`archive/M5-polish.md`](plan/milestones/archive/M5-polish.md) | 查记忆 / 报表 / i18n 的原始构想 |
 
 ### 顶层三份
 
