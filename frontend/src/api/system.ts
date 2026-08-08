@@ -1,3 +1,4 @@
+import type { Memory, MemoryStatus } from '@/models/memory'
 import type { Project } from '@/models/project'
 import type { Role } from '@/models/role'
 import type { Runtime } from '@/models/runtime'
@@ -138,4 +139,39 @@ export async function listRoles(): Promise<Role[]> {
 export async function listSkills(): Promise<Skill[]> {
   const body = unwrap(await api.GET('/skills'))
   return body.skills
+}
+
+/**
+ * 记忆库。不传 scope 时返回全部（含跨项目与各项目的）。
+ *
+ * ★ 查不动时后端返回错误而不是空列表——装作「一条都没有」的话，
+ * 用户以为 Duet 把记忆忘光了。
+ */
+export async function listMemories(params?: {
+  scope?: string
+  // ★ 用契约里的枚举而不是 string：写错一个状态名时编译器会红，
+  // 而用 string 的话只会在运行时静默筛出空列表。
+  status?: MemoryStatus
+}): Promise<Memory[]> {
+  const body = unwrap(await api.GET('/memories', { params: { query: params ?? {} } }))
+  return body.memories
+}
+
+/**
+ * 审核一条候选记忆。
+ *
+ * ★★ 这是 `candidate → active` 的**唯一入口**（INV-MEM-2），
+ * 且 `actor` 必填——AI 没有任何路径能自己把候选变成生效。
+ */
+export async function reviewMemory(
+  id: string,
+  decision: 'confirm' | 'reject',
+  actor: string,
+): Promise<Memory> {
+  return unwrap(
+    await api.POST('/memories/{id}/review', {
+      params: { path: { id } },
+      body: { decision, actor },
+    }),
+  )
 }

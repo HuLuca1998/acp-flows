@@ -423,3 +423,22 @@
 | `TestListSkills_ProjectScopeSaysNotReady` | `internal/api/skills_test.go` | api | ★ 项目级 Skill 还没做（要等创建项目）→ 回 501 **明说没有**，而不是回空列表让用户以为自己的 skill 没被认出来 |
 | `TestListSkills_UnconfiguredIsNotAnEmptyList` | `internal/api/skills_test.go` | api | 没装配回 503 并给出可查的错误码 |
 | `TestListSkills_ScanFailureIsReported` | `internal/api/skills_test.go` | api | ★ 扫不动要说出来，不装作「一个都没有」——装作没有的话用户以为自己的 skill 丢了 |
+| `TestMemoryRepo_SaveAndFindRoundTrip` | `internal/store/memory_repo_test.go` | store | M2 U2.3.1：真 SQLite 存取往返，状态/类型/依据/确认人都不丢。`source_refs` 是溯源信息，丢了就查不到这条记忆凭什么成立 |
+| `TestMemoryRepo_INVMEM8_TableHasNoContentColumn` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-8：**问 SQLite 要表结构**（`pragma_table_info`），断言没有 content/body/text 一类列。★ 问数据库而不是看结构体——迁移脚本是人手写的 SQL，那才是真风险 |
+| `TestMemoryRepo_INVMEM6_HasNoDeleteMethod` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-6 反射断言仓储没有删除类方法。失效 ≠ 删除——删了的话半年前那次运行「当时用的是哪条记忆」永远查不到 |
+| `TestMemoryRepo_INVMEM1_ScopeIsolationInQueries` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-1：按 scope 查不串项目；跨项目（`*`）单独可查 |
+| `TestMemoryRepo_ListByStatus` | `internal/store/memory_repo_test.go` | store | 按状态筛——记忆页那四档筛选靠它 |
+| `TestMemoryRepo_StatusChangePersists` | `internal/store/memory_repo_test.go` | store | 状态变更真的落盘（GORM 的 `Updates` 传 struct 会静默丢零值，本项目一律用显式列名 upsert）；变更历史条数一并持久化 |
+| `TestMemoryRepo_NotFoundIsDomainError` | `internal/store/memory_repo_test.go` | store | 查不到返回 `model.ErrNotFound`，**GORM 的错误不泄漏出 store 包** |
+| `TestMemoryRepo_EmptyListIsNotAnError` | `internal/store/memory_repo_test.go` | store | 空库返回空切片而非 nil，且不是错误——一条记忆都没有是新用户的常态 |
+| `TestMemoryRepo_EmptyRefsRoundTripAsEmpty` | `internal/store/memory_repo_test.go` | store | ★ 空 `source_refs` 拆成空切片而不是 `[""]`——后者会让「有没有依据」这个判断变成假的 |
+| `TestReviewMemory_INVMEM2_RequiresAnActor` | `internal/api/memories_test.go` | api | ★★ INV-MEM-2：不带 actor 一律拒，且**状态没变**。放行的话一个后台任务就能把 AI 提的候选变成长期记忆——AGENTS.md §9 把这列为明令反例 |
+| `TestReviewMemory_ConfirmRecordsWho` | `internal/api/memories_test.go` | api | 带 actor 才能确认，且记下是谁——半年后要能查「这条谁放行的」；确认后可注入 |
+| `TestListMemories_CandidateIsNotInjectable` | `internal/api/memories_test.go` | api | ★ 候选态 `injectable=false`——标成可注入就等于自动写入了 |
+| `TestListMemories_INVMEM1_ScopeIsolation` | `internal/api/memories_test.go` | api | ★★ 按 scope 查不串项目 |
+| `TestReviewMemory_AlreadyActiveIsConflict` | `internal/api/memories_test.go` | api | ★ 对已生效的记忆再点确认 → **409 而不是 500**：那是用户操作的结果，不是我们坏了 |
+| `TestReviewMemory_UnknownIdIs404` | `internal/api/memories_test.go` | api | 不存在的记忆返回 404 |
+| `TestReviewMemory_InvalidDecisionIsRejected` | `internal/api/memories_test.go` | api | 非法 decision 回 400 且状态不变 |
+| `TestListMemories_EmptyIsArrayNotNull` | `internal/api/memories_test.go` | api | 空集合序列化成 `[]` 不是 null |
+| `TestListMemories_FailureIsReported` | `internal/api/memories_test.go` | api | ★ 查不动要说出来，不装作「一条都没有」——装作没有的话用户以为 Duet 把记忆忘光了 |
+| `TestListMemories_UnconfiguredSaysSo` | `internal/api/memories_test.go` | api | 没装配回 503 |

@@ -17,11 +17,11 @@
 
 | | |
 |---|---|
-| **现在做** | `U2.3.1` 的落库部分（domain 模型已完成，差 store + app + api + 记忆页）|
+| **现在做** | **`M2` 五条完成标志逐条实操验收**，然后开 `M3`（创建项目弹层）|
 | **`U2.1.1` 已完成** | `domain/model/role.go` 八个角色 + `acp/runtime/mode.go` 档位映射。<br>★ 会话档位存**语义**（只读/受控写/放开）不存档名——<br>　档名两端一个都不重合，存档名的话用户就换不了 Runtime。<br>★ 品牌名全在 adapter，domain 不认识 claude / codex。 |
 | **`U2.1.2` 已完成** | `acp/session/mode.go`：先试 `set_config_option`，降级 `set_mode`，<br>两个都不支持**报错拒绝开工**；设完当场回读校验。<br>★ 收权在 `session/new` 之后、任何 prompt 之前，中间不留窗口。 |
-| **`U2.2.1` 已完成** | `domain/model/skill.go`（三态 · 版本 · 校验规则）+<br>`fsstore/skill/scan.go`（扫盘 · frontmatter · **只读**）。<br>★ 新建了 `fsstore` 层，它的第一条规矩是「碰用户的文件要极其小心」。 |
-| **接着做什么** | 照 [`M2-roles-skills-memory.md`](milestones/M2-roles-skills-memory.md)：<br>`U2.3.1`（记忆库）→ `U2.4.1`（三个页面） |
+| **`M2` 四个单元都做完了** | 角色库 · 收权 · Skill 库 · 记忆库 + 三个页面，<br>2026-08-09 真机逐个走查过（八个角色 / 两条真 skill / 记忆审核全程）。 |
+| **接着做什么** | 照 [`M3-project-onboarding.md`](milestones/M3-project-onboarding.md)：<br>`U3.1.1`（初始化预演与执行）→ `U3.1.2`（扫已有 skill）→ `U3.2.1`（弹层） |
 | **别踩的坑** | ★ 权限档**不能硬编码成某一端的取值**：<br>claude 6 档、codex 3 档，同一个「只读」两端名字不同。<br>★ 设计稿写的 `auto` 是 codex **0.16.0 的旧档名**，1.1.7 已改。 |
 
 **做完一个单元就回来改这一节。** 它过期一次，下一轮 AI 就得自己翻十几份文档找起点。

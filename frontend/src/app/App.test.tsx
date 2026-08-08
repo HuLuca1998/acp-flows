@@ -149,9 +149,14 @@ describe('骨架占位', () => {
     expect(main).not.toMatch(/\d/)
   })
 
+  // ★ 用 queryAll 而不是 getAll：这是一条**全称命题**（「每个骨架都…」），
+  // 一个骨架都没有时它应当为真——而 `getAllByTestId` 在空集合上会抛错。
+  //
+  // 2026-08-09 撞上过：角色/Skill/记忆三页做完之后默认页上再没有骨架，
+  // 这条测试红了，而代码是对的。骨架越做越少是**进展**，不是回归。
   it('每个骨架都说明了这里将来是什么', () => {
     render(<App />)
-    for (const el of screen.getAllByTestId('skeleton')) {
+    for (const el of screen.queryAllByTestId('skeleton')) {
       expect(el.textContent ?? '').toMatch(/将来/)
     }
   })

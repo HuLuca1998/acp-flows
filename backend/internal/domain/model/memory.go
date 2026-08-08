@@ -303,3 +303,31 @@ func (m *Memory) VisibleIn(project MemoryScope) bool {
 	}
 	return m.scope == project
 }
+
+// RestoreMemory 从持久化状态重建一条记忆，**供 store 层的 mapper 使用**。
+//
+// ★★ 这个函数能造出 `active` 的记忆，是绕过 INV-MEM-2 的唯一口子。
+// 它必须只被 store 调用——「把已经存过的东西读回来」不该重跑一遍
+// 「必须有人确认」的检查，否则用户列表里的老记忆会突然读不出来。
+//
+// **不要在 app / api 层调用它。** 想新建记忆只有一条路：`ProposeCandidate`，
+// 然后由人 `Confirm`。有测试守着预置的创建路径只造得出 candidate。
+func RestoreMemory(
+	id string, kind MemoryKind, scope MemoryScope, status MemoryStatus,
+	sourceRefs []string, createdBy, confirmedBy, reason, supersedes string, historyLen int,
+) *Memory {
+	refs := make([]string, len(sourceRefs))
+	copy(refs, sourceRefs)
+	return &Memory{
+		id:          id,
+		kind:        kind,
+		scope:       scope,
+		status:      status,
+		sourceRefs:  refs,
+		createdBy:   createdBy,
+		confirmedBy: confirmedBy,
+		reason:      reason,
+		supersedes:  supersedes,
+		historyLen:  historyLen,
+	}
+}

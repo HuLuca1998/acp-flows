@@ -315,6 +315,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 记忆库 */
+        get: operations["listMemories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 人工审核一条候选记忆
+         * @description ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+         *     且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+         *
+         *     错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+         *     变成了以后每一轮的前提，而用户从没看过那句话。
+         */
+        post: operations["reviewMemory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -583,6 +624,53 @@ export interface components {
             validation_reason?: string;
             /** @description 命中计数 */
             hit_count?: number;
+        };
+        /**
+         * @description ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+         *     那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+         *     对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+         * @enum {string}
+         */
+        MemoryStatus: "candidate" | "active" | "discarded" | "invalid" | "obsolete";
+        Memory: {
+            /** @example mem-203 */
+            id: string;
+            /** @enum {string} */
+            kind: "constraint" | "experience" | "fact";
+            /**
+             * @description 项目名（L2）或 `*`（L3 跨项目）
+             * @example acp-engine
+             * @example *
+             */
+            scope: string;
+            status: components["schemas"]["MemoryStatus"];
+            /**
+             * @description 依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+             *     空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+             * @example [
+             *       "ev-412",
+             *       "unit-009"
+             *     ]
+             */
+            source_refs: string[];
+            /** @example memory_curator */
+            created_by?: string;
+            /**
+             * @description 是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+             *     空值表示还没人拍板。
+             */
+            confirmed_by?: string;
+            /** @description 废弃理由（obsolete 才有） */
+            reason?: string;
+            /** @description 被本条取代的记忆 */
+            supersedes?: string;
+            /**
+             * @description 能不能进**新的**注入清单。只有 active 能进——
+             *     候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+             */
+            injectable: boolean;
+            /** @description 变更历史条数，只增不减 */
+            history_len?: number;
         };
         Runtime: {
             /**
@@ -1087,6 +1175,68 @@ export interface operations {
                     "application/json": {
                         skills: components["schemas"]["Skill"][];
                     };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMemories: {
+        parameters: {
+            query?: {
+                /**
+                 * @description 项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+                 *     ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+                 */
+                scope?: string;
+                status?: components["schemas"]["MemoryStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        memories: components["schemas"]["Memory"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reviewMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "confirm" | "reject";
+                    /** @description 是谁做的决定。**必填**，空值一律拒绝 */
+                    actor: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Memory"];
                 };
             };
             default: components["responses"]["Problem"];

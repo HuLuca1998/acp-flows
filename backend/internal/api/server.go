@@ -54,6 +54,8 @@ type Config struct {
 	Roles roleLister
 	// Skills 是 Skill 库。为 nil 时端点返回 skills_unavailable。
 	Skills port.SkillScanner
+	// Memories 是记忆用例。为 nil 时端点返回 memory_service_unavailable。
+	Memories memoryService
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -87,6 +89,11 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// 角色与 Skill：只读。这两页在 M2 之前一直是骨架占位。
 	mux.HandleFunc("GET /v1/roles", handleListRoles(cfg.Roles))
 	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills))
+
+	// 记忆：列表只读；★ candidate → active 只有 review 这一条路（INV-MEM-2），
+	// 且必须带 actor——AI 没有任何路径能自己把候选变成生效。
+	mux.HandleFunc("GET /v1/memories", handleListMemories(cfg.Memories))
+	mux.HandleFunc("POST /v1/memories/{id}/review", handleReviewMemory(cfg.Memories))
 
 	// 项目：添加只登记路径，**往用户的项目目录里写零个字节**。
 	mux.HandleFunc("GET /v1/projects", handleListProjects(cfg.Projects))

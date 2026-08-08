@@ -28,6 +28,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/checkpoint"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/memory"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/role"
@@ -218,6 +219,8 @@ func run() error {
 		// Skill 库：只扫全局（`~/.acpflows/skills`）。
 		// 项目级的在创建项目时初始化（M3），那时才有项目。
 		Skills: skillstore.Store{Home: paths.DataDir()},
+		// 记忆库：DB 只存索引与状态，正文在 md 文件里（INV-MEM-8）。
+		Memories: memory.New(db.Memories()),
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)

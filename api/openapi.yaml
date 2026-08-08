@@ -406,6 +406,75 @@ paths:
                     items: { $ref: '#/components/schemas/Skill' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /memories:
+    get:
+      tags: [memory]
+      operationId: listMemories
+      summary: 记忆库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+            ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/MemoryStatus' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [memories]
+                properties:
+                  memories:
+                    type: array
+                    items: { $ref: '#/components/schemas/Memory' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /memories/{id}/review:
+    post:
+      tags: [memory]
+      operationId: reviewMemory
+      summary: 人工审核一条候选记忆
+      description: |
+        ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+        且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+
+        错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+        变成了以后每一轮的前提，而用户从没看过那句话。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, actor]
+              properties:
+                decision:
+                  type: string
+                  enum: [confirm, reject]
+                actor:
+                  type: string
+                  description: 是谁做的决定。**必填**，空值一律拒绝
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Memory' }
+        default: { $ref: '#/components/responses/Problem' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -739,6 +808,47 @@ components:
             静默拒绝的话用户只能删了重建，而重建出来还是 draft。
           examples: ['校验未通过：frontmatter 缺 description']
         hit_count: { type: integer, description: 命中计数 }
+
+    MemoryStatus:
+      type: string
+      enum: [candidate, active, discarded, invalid, obsolete]
+      description: |
+        ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+        那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+        对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+
+    Memory:
+      type: object
+      required: [id, kind, scope, status, source_refs, injectable]
+      properties:
+        id: { type: string, examples: [mem-203] }
+        kind: { type: string, enum: [constraint, experience, fact] }
+        scope:
+          type: string
+          description: 项目名（L2）或 `*`（L3 跨项目）
+          examples: [acp-engine, '*']
+        status: { $ref: '#/components/schemas/MemoryStatus' }
+        source_refs:
+          type: array
+          items: { type: string }
+          description: |
+            依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+            空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+          examples: [[ev-412, unit-009]]
+        created_by: { type: string, examples: [memory_curator] }
+        confirmed_by:
+          type: string
+          description: |
+            是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+            空值表示还没人拍板。
+        reason: { type: string, description: 废弃理由（obsolete 才有） }
+        supersedes: { type: string, description: 被本条取代的记忆 }
+        injectable:
+          type: boolean
+          description: |
+            能不能进**新的**注入清单。只有 active 能进——
+            候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+        history_len: { type: integer, description: 变更历史条数，只增不减 }
 
     Runtime:
       type: object
