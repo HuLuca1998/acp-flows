@@ -208,7 +208,13 @@ func (s *Session) handlePermission(ctx context.Context, params json.RawMessage) 
 		return permissionResponse(protocol.CancelledOutcome()), nil
 	}
 
-	answer, err := s.permission.AskUser(ctx, PermissionAsk{
+	// ★ 登记「怎么放掉这一条」：取消时要用 cancelled 应答**所有**
+	// pending 的请求，否则 Agent 一直等我们回答，这一轮永远不会结束。
+	askCtx, releaseAsk := context.WithCancel(ctx)
+	defer releaseAsk()
+	s.addPermissionRelease(releaseAsk)
+
+	answer, err := s.permission.AskUser(askCtx, PermissionAsk{
 		SessionID:  req.SessionID,
 		ToolCallID: req.ToolCall.ToolCallID,
 		Title:      req.ToolCall.Title,
@@ -276,4 +282,20 @@ func pathOf(tc protocol.ToolCallUpdate) string {
 		}
 	}
 	return ""
+}
+
+// addPermissionRelease 把「放掉这一条待裁决请求」串进 releasePermissions。
+//
+// ★ 串起来而不是覆盖：一轮里可能同时挂着好几条（真 Agent 一轮问三五次是
+// 常态），只记最后一条的话，取消时前面几条会永远挂着——那条会话再也不会结束。
+func (s *Session) addPermissionRelease(release func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prev := s.releasePermissions
+	s.releasePermissions = func() {
+		if prev != nil {
+			prev()
+		}
+		release()
+	}
 }

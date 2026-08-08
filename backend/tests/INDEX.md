@@ -285,3 +285,11 @@
 | `TestLogSink_DoubleCloseIsSafe` | `internal/store/log_sink_test.go` | store | 重复 Close 不炸——优雅退出路径上很容易调两次 |
 | `TestSession_PermissionAskCarriesPath` | `internal/acp/session/permission_test.go` | acp | ★★ 权限请求带上**动的是哪个文件**：优先 `locations`（Agent 明确标出的位置），退到 `rawInput.file_path`/`path`/`filePath`，都没有时留空。真机撞到：卡片上只写「AI 请求写入」，用户没法判断该不该允许 |
 | `TestProcessRunner_ShortensPathToProjectRelative` | `internal/acp/agent/agent_test.go` | acp | ★★ 交给用户的是**项目内相对路径**（`README.md`）而非 worktree 绝对路径（`/Users/…/worktrees/work-01/README.md`）——后者把卡片撑成两行，还把「worktree 放哪」摊给用户。★ worktree **之外**的保持原样：AI 要动 `/etc/hosts` 时完整路径才是有信息量的 |
+| `TestCancel_R1_IsIdempotent` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R1：★★ **同时**点三下只发一条 `session/cancel`。★ 串行调用测不到——第一次之后这一轮就结束了，后两次走「没在跑，空操作」那条路，把幂等判断整个删掉照样绿（造负例时发现的） |
+| `TestCancel_R3_AnswersEveryPendingPermission` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R3：★★ 取消时用 `cancelled` 应答**所有** pending 的权限请求。ACP 硬要求且设计稿完全没提——漏了每次取消都超时，而超时直接连着 M1 的一键更新（`update/prepare` 永远返回 blocked） |
+| `TestCancel_R4_TimeoutIsDiagnosable` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R4：超时错误里带**会话标识与等了多久**——只说「timeout」的话，用户提了工单也查不出是哪条会话、卡了多久 |
+| `TestCancel_R5_TimeoutDemandsKill` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R5：★★ 超时返回的错误让 `MustKill` 为真，**且协议取消照样发了**（能停就停，停不下来再杀）。这是「界面说已取消、后台还在烧钱改文件」的唯一防线 |
+| `TestCancel_NormalCancelDoesNotDemandKill` | `internal/acp/session/cancel_test.go` | acp | 正常取消不要求杀进程——那样每次取消都要重拉一个 Agent |
+| `TestCancel_R2_CursorSurvivesCancel` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R2：取消之后会话标识与已收事件都还在——用户点了停，第一件想知道的是「它停在哪一步」 |
+| `TestCancel_WhenIdleIsNoop` | `internal/acp/session/cancel_test.go` | acp | 空闲时取消不报错也不发协议取消。★ 「在跑」的判据是独立的 `inTurn`，**不能拿 `onEvent != nil`**——调用方可以不关心事件而传 nil，那时用户点了停会毫无反应而 AI 照跑 |
+| `TestCancel_FakeRecordsEveryNotificationVerbatim` | `internal/acp/fake/permission_test.go` | acp | ★★ Fake **如实记录**每一条 `session/cancel`，绝不去重。去重是被测代码的职责——Fake 替它做了的话 R1 会永远绿 |

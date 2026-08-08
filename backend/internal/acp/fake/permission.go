@@ -92,6 +92,13 @@ func (p *permissionAsks) abortAll() {
 	}
 }
 
+// pending 返回还在等应答的请求数。
+func (p *permissionAsks) pending() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return len(p.byID)
+}
+
 func (p *permissionAsks) snapshot() (optionID, outcome string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -106,6 +113,13 @@ func (r *Runtime) LastPermissionOptionID() string {
 	id, _ := r.asks.snapshot()
 	return id
 }
+
+// PendingPermissionCount 返回还在等应答的权限请求数。
+//
+// ★ 断言「取消之后一条都不许挂着」用（U3.2.1 R3）。挂着的那条会让
+// 整轮永远不结束——而那直接连着 M1 的一键更新：update/prepare 会永远
+// 返回 blocked，用户点「更新」永远点不动。
+func (r *Runtime) PendingPermissionCount() int { return r.asks.pending() }
 
 // LastPermissionOutcome 返回客户端最后一次应答的 outcome（selected / cancelled）。
 func (r *Runtime) LastPermissionOutcome() string {

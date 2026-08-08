@@ -62,6 +62,9 @@ type Runtime struct {
 	// silentAfter > 0 时，首个 prompt 之后 d 彻底断流（预设 SilentAfter）。
 	silentAfter time.Duration
 
+	// cancelled 在收到 session/cancel 时关闭，回放据此提前收尾。
+	cancelMu      sync.Mutex
+	cancelCh      chan struct{}
 	transportOnce sync.Once
 	transport     io.ReadWriteCloser
 	cancelServe   context.CancelFunc
@@ -88,12 +91,13 @@ func New(opts Options) *Runtime {
 		stderr = io.Discard
 	}
 	return &Runtime{
-		script:  opts.Script,
-		clock:   opts.Clock,
-		stderr:  stderr,
-		rec:     newRecorder(),
-		asks:    newPermissionAsks(),
-		latency: opts.Latency,
+		script:   opts.Script,
+		clock:    opts.Clock,
+		stderr:   stderr,
+		rec:      newRecorder(),
+		asks:     newPermissionAsks(),
+		cancelCh: make(chan struct{}),
+		latency:  opts.Latency,
 	}
 }
 
@@ -209,8 +213,14 @@ func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameW
 		return nil
 
 	case protocol.MethodSessionCancel:
-		// 只记录，不做任何事 —— 取消语义是 M3 的 U3.1.1 与 U3.2.1 的题目。
-		// ★ 这里绝不能顺手去重：去重是被测代码的职责。
+		// ★ 像真 Agent 那样收尾：结束当前轮并回 stopReason: cancelled。
+		//
+		// 只记录不做事的话，「取消之后这一轮真的停了吗」根本测不出来——
+		// 被测代码会一直等一个永远不来的收尾信号。
+		//
+		// ★ 但**绝不去重**：连发两条就照单收下两条。去重是被测代码的职责，
+		// Fake 替它做了的话，「幂等」那条断言会永远绿（U3.2.1 R1）。
+		r.requestCancel()
 		return nil
 
 	default:
@@ -315,4 +325,26 @@ func sleepCtx(ctx context.Context, d time.Duration) bool {
 	case <-ctx.Done():
 		return false
 	}
+}
+
+// requestCancel 让当前轮提前收尾。
+//
+// ★ 不去重：连发两条就关两次（第二次被 select 吃掉）。去重是被测代码的
+// 职责——Fake 替它做了的话，「幂等」那条断言会永远绿。
+func (r *Runtime) requestCancel() {
+	r.cancelMu.Lock()
+	defer r.cancelMu.Unlock()
+	select {
+	case <-r.cancelCh:
+		// 已经取消过，通道已关
+	default:
+		close(r.cancelCh)
+	}
+}
+
+// cancelSignal 返回取消信号通道。
+func (r *Runtime) cancelSignal() <-chan struct{} {
+	r.cancelMu.Lock()
+	defer r.cancelMu.Unlock()
+	return r.cancelCh
 }

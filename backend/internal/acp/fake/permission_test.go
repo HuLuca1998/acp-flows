@@ -323,3 +323,42 @@ func stopReasonOf(t *testing.T, raw json.RawMessage) protocol.StopReason {
 	}
 	return resp.StopReason
 }
+
+// ★★ Fake **如实记录**收到的每一条 session/cancel，绝不去重。
+//
+// 去重是**被测代码**的职责（U3.2.1 R1）。Fake 替它做了的话，
+// 「连续取消两次只发一次」那条断言会永远绿——而真实的实现可能在发第二条，
+// 让 Agent 收到一个它已经不认识的会话。
+func TestCancel_FakeRecordsEveryNotificationVerbatim(t *testing.T) {
+	rt := fake.New(fake.Options{
+		Script: &fake.Script{Name: "cancel", Turns: []fake.Turn{{}}},
+		Clock:  testutil.FixedClock(testutil.T0),
+	})
+	t.Cleanup(func() { _ = rt.Close() })
+	c := newClient(t, rt.Transport())
+
+	if _, err := c.call(protocol.MethodInitialize,
+		map[string]any{"protocolVersion": 1}, askTimeout); err != nil {
+		t.Fatal(err)
+	}
+
+	// 连发三条一模一样的取消
+	for i := 0; i < 3; i++ {
+		c.notify(protocol.MethodSessionCancel, map[string]any{"sessionId": "sess_fake_0001"})
+	}
+
+	// 等它们都到达
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if rt.CountMethod(protocol.MethodSessionCancel) >= 3 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	if got := rt.CountMethod(protocol.MethodSessionCancel); got != 3 {
+		t.Errorf("记下了 %d 条 session/cancel, 想要 3——\n"+
+			"Fake 去重了的话，被测代码「只发一条」那条断言会永远绿，"+
+			"而真实实现可能在发第二条，让 Agent 收到一个它已经不认识的会话", got)
+	}
+}

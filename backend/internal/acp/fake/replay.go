@@ -46,9 +46,27 @@ func (r *Runtime) replay(ctx context.Context, w *frameWriter, promptID json.RawM
 		if !sleepCtx(ctx, r.latency.delayFor(i, time.Duration(step.Delay))) {
 			return
 		}
+		// 取消已经来了：别再往下演，直接收尾
+		select {
+		case <-r.cancelSignal():
+			_ = w.respond(promptID, protocol.PromptResponse{
+				StopReason: protocol.StopReasonCancelled,
+			})
+			return
+		default:
+		}
+
 		if step.Ask != nil {
 			outcome, ok := r.ask(ctx, w, step.Ask)
 			if !ok {
+				// ★ 被取消解除时要**回 cancelled**，不能静静 return：
+				// 不回的话 session/prompt 永远挂着，调用方等到超时——
+				// 而真正的行为（取消生效了）被误判成「Agent 卡死」。
+				if outcome.Outcome == "cancelled" {
+					_ = w.respond(promptID, protocol.PromptResponse{
+						StopReason: protocol.StopReasonCancelled,
+					})
+				}
 				return // ctx 结束或断流，安静收场
 			}
 			// ★ 客户端说取消，这一轮就以 cancelled 收尾，**不照脚本里的
@@ -79,11 +97,37 @@ func (r *Runtime) replay(ctx context.Context, w *frameWriter, promptID json.RawM
 	}
 
 	// ★ 不回 stopReason：NeverStops 预设，或脚本里这一轮没写 stop_reason。
-	// 这是 S0.6 测 ErrCancelTimeout 的开关（testing-strategy.md §3.5）。
-	if r.neverStops || turn.StopReason == "" {
+	// 这是测 ErrCancelTimeout 的开关（testing-strategy.md §3.5）。
+	//
+	// 但**收到 session/cancel 之后要收尾**——真 Agent 就是这么做的。
+	// 一直挂着的话，「取消之后这一轮真的停了吗」根本测不出来：
+	// 被测代码会一直等一个永远不来的收尾信号。
+	// ★ NeverStops 预设 = **连取消也不理**。那才是「Agent 卡死了」的样子，
+	// 也是 U3.2.1 R4/R5（超时可诊断、超时要杀进程）唯一能测的场景。
+	if r.neverStops {
 		return
 	}
-	if !sleepCtx(ctx, time.Duration(turn.StopDelay)) {
+	// 脚本里这一轮没写 stop_reason：正常情况下挂着，收到取消就收尾——
+	// 真 Agent 就是这么做的。
+	if turn.StopReason == "" {
+		select {
+		case <-r.cancelSignal():
+			_ = w.respond(promptID, protocol.PromptResponse{
+				StopReason: protocol.StopReasonCancelled,
+			})
+		case <-ctx.Done():
+		}
+		return
+	}
+	// 取消先到就照取消收尾，不等脚本里的延迟跑完
+	select {
+	case <-r.cancelSignal():
+		_ = w.respond(promptID, protocol.PromptResponse{
+			StopReason: protocol.StopReasonCancelled,
+		})
+		return
+	case <-time.After(time.Duration(turn.StopDelay)):
+	case <-ctx.Done():
 		return
 	}
 	_ = w.respond(promptID, protocol.PromptResponse{StopReason: turn.StopReason})
