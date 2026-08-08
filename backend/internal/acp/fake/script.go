@@ -91,6 +91,11 @@ type PermissionAsk struct {
 	Kind       protocol.ToolKind `json:"kind,omitempty"`
 	// Options 原样发给客户端。留空时用 defaultAskOptions()。
 	Options []protocol.PermissionOption `json:"options,omitempty"`
+	// ToolCallExtra 往 toolCall 里塞额外字段（locations / rawInput 之类）。
+	//
+	// ★ 原样合并、不校验：真 Agent 会带上我们没预料到的字段，
+	// 而「客户端拿不拿得出路径」正是要测的东西。
+	ToolCallExtra map[string]any `json:"tool_call_extra,omitempty"`
 }
 
 // defaultAskOptions 是脚本没写选项时的一组，覆盖 allow/reject 两类。

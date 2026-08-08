@@ -72,7 +72,14 @@ const RENDERERS = {
     detailFrom: ['title', 'rawInput.file_path', 'locations.0.path', 'kind'],
     statusFrom: 'status',
   },
-  request_permission: { labelKey: 'timeline.event.requestPermission', shape: 'card' },
+  request_permission: {
+    labelKey: 'timeline.event.requestPermission',
+    shape: 'card',
+    // ★ 时间线上留痕：用户回头要能看到「我当时被问了什么」。
+    // 待裁决的那张可点的卡片由 features/permission 的 Dock 负责，
+    // 这里只是历史记录——不显示路径的话，它就是一条空行。
+    detailFrom: ['path', 'tool_call_id'],
+  },
   turn_end: { labelKey: 'timeline.event.turnEnd', shape: 'line' },
 
   // ── 来自应用控制层（这些永远可点开到对应的结构化产物）──

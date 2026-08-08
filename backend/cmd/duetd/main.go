@@ -172,6 +172,7 @@ func run() error {
 				ToolCallID: ask.ToolCallID,
 				Runtime:    runtimeNameOf(ask),
 				Kind:       string(ask.Kind),
+				Path:       ask.Path,
 				Options:    toBrokerOptions(ask.Options),
 			})
 			if err != nil {

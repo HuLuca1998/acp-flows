@@ -13,6 +13,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/protocol"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/tests/testutil"
 )
 
@@ -493,7 +494,7 @@ func TestProcessRunner_BindsWorkIDIntoAskUser(t *testing.T) {
 	}
 
 	// 直接验闭包：拉真进程要一整套脚本，而这里要验的只是「workID 绑对了没」
-	ask := r.PermissionFor("work-42")
+	ask := r.PermissionFor(port.AgentTurn{WorkID: "work-42"})
 	if ask.AskUser == nil {
 		t.Fatal("配了 AskUser 却没接上——会话拿到 nil，一律回 cancelled")
 	}
@@ -512,7 +513,49 @@ func TestProcessRunner_BindsWorkIDIntoAskUser(t *testing.T) {
 // cancelled。绕了一圈结果一样，但中间多了一层假装有人在接的代码。
 func TestProcessRunner_NoAskUserLeavesItNil(t *testing.T) {
 	r := &agent.ProcessRunner{}
-	if r.PermissionFor("work-01").AskUser != nil {
+	if r.PermissionFor(port.AgentTurn{WorkID: "work-01"}).AskUser != nil {
 		t.Error("没配 AskUser 却塞了一个空函数进去——中间多一层假装有人在接的代码")
+	}
+}
+
+// ★★ 交给用户的路径要是**项目内的相对路径**，不是 worktree 的绝对路径。
+//
+// 真机走查撞到的：卡片上写着
+// `/Users/luca/.duet-dev/.acpflows/worktrees/work-01/README.md`——
+// 撑成两行，而且把内部实现（worktree 放哪）摊给了用户。
+// 他关心的只有「README.md」。
+func TestProcessRunner_ShortensPathToProjectRelative(t *testing.T) {
+	cwd := "/tmp/worktrees/work-01"
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"worktree 里的文件", cwd + "/README.md", "README.md"},
+		{"深一层", cwd + "/src/api/main.go", "src/api/main.go"},
+		{"worktree 之外的保持原样", "/etc/hosts", "/etc/hosts"},
+		{"空路径还是空", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			r := &agent.ProcessRunner{
+				AskUser: func(_ context.Context, _ string, a session.PermissionAsk) (session.Answer, error) {
+					got = a.Path
+					return session.Answer{}, nil
+				},
+			}
+			perm := r.PermissionFor(port.AgentTurn{WorkID: "work-01", Cwd: cwd})
+			if _, err := perm.AskUser(context.Background(),
+				session.PermissionAsk{Path: tt.in}); err != nil {
+				t.Fatal(err)
+			}
+
+			if got != tt.want {
+				t.Errorf("path = %q, 想要 %q——"+
+					"绝对路径把卡片撑成两行，还把 worktree 放哪摊给了用户", got, tt.want)
+			}
+		})
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,11 +52,12 @@ type ProcessRunner struct {
 // ★ **没有超时**：用户可能去泡了杯咖啡；替他超时等于替他做决定。
 type AskUserFunc func(ctx context.Context, workID string, ask session.PermissionAsk) (session.Answer, error)
 
-// PermissionFor 组出某个工作的权限配置，把 workID 绑进 AskUser。
+// PermissionFor 组出某一轮的权限配置：把 workID 绑进 AskUser，
+// 并把路径缩短成**项目内相对路径**。
 //
-// 导出是为了能直接验「绑对了没」——拉一个真进程要一整套脚本，
+// 导出是为了能直接验这两件事——拉一个真进程要一整套脚本，
 // 而这里要验的只是闭包。
-func (r *ProcessRunner) PermissionFor(workID string) session.Permission {
+func (r *ProcessRunner) PermissionFor(turn port.AgentTurn) session.Permission {
 	perm := session.Permission{Policy: r.Policy}
 	if r.AskUser == nil {
 		// ★ 留 nil，不塞空函数：空函数返回空 Answer，session 把它当成
@@ -63,11 +65,31 @@ func (r *ProcessRunner) PermissionFor(workID string) session.Permission {
 		// 假装有人在接的代码。
 		return perm
 	}
-	ask := r.AskUser
+	ask, cwd := r.AskUser, turn.Cwd
 	perm.AskUser = func(ctx context.Context, a session.PermissionAsk) (session.Answer, error) {
-		return ask(ctx, workID, a)
+		a.Path = shortenPath(cwd, a.Path)
+		return ask(ctx, turn.WorkID, a)
 	}
 	return perm
+}
+
+// shortenPath 把 worktree 里的绝对路径缩成项目内相对路径。
+//
+// ★ 用户关心的是「README.md」，不是
+// `/Users/luca/.acpflows/worktrees/work-01/README.md`——后者撑成两行，
+// 而且把「worktree 放在哪」这个内部实现摊给了他。真机走查撞到的。
+//
+// worktree 之外的路径**保持原样**：那时候完整路径才是有信息量的
+// （AI 要动 /etc/hosts 的话，用户必须看见这一点）。
+func shortenPath(cwd, path string) string {
+	if cwd == "" || path == "" || !filepath.IsAbs(path) {
+		return path
+	}
+	rel, err := filepath.Rel(cwd, path)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return path
+	}
+	return rel
 }
 
 // RunTurn 实现 port.AgentRunner：挑一个就绪的 Runtime，拉起来跑一轮。
@@ -108,7 +130,7 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 	}()
 
 	runErr := Run(ctx, Spec{
-		Permission:   r.PermissionFor(turn.WorkID),
+		Permission:   r.PermissionFor(turn),
 		Transport:    stdio{r: proc.Stdout(), w: proc.Stdin()},
 		Cwd:          turn.Cwd,
 		WorkID:       turn.WorkID,

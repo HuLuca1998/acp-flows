@@ -281,3 +281,7 @@
 | `TestRun_PassesPermissionConfigToSession` | `internal/acp/agent/agent_test.go` | acp | 权限配置真的传给会话——不传的话会话拿零值，「自动允许只读」在真跑时完全不生效 |
 | `TestProcessRunner_BindsWorkIDIntoAskUser` | `internal/acp/agent/agent_test.go` | acp | ★ 交给用户时把 workID 绑进去——不绑的话事件发不到对的时间线，用户会在 A 工作里看到 B 工作的权限卡片 |
 | `TestProcessRunner_NoAskUserLeavesItNil` | `internal/acp/agent/agent_test.go` | acp | 没配 AskUser 时留 nil，不塞一个假装有人在接的空函数 |
+| `TestLogSink_WriteAfterCloseDoesNotPanic` | `internal/store/log_sink_test.go` | store | ★★ Close 之后写日志**不许 panic**。真机撞到：进程启动失败 → main 用 `slog.Error` 记原因 → sink 已关 → 「send on closed channel」，而**真正的失败原因（端口被占）被 panic 栈完全盖住** |
+| `TestLogSink_DoubleCloseIsSafe` | `internal/store/log_sink_test.go` | store | 重复 Close 不炸——优雅退出路径上很容易调两次 |
+| `TestSession_PermissionAskCarriesPath` | `internal/acp/session/permission_test.go` | acp | ★★ 权限请求带上**动的是哪个文件**：优先 `locations`（Agent 明确标出的位置），退到 `rawInput.file_path`/`path`/`filePath`，都没有时留空。真机撞到：卡片上只写「AI 请求写入」，用户没法判断该不该允许 |
+| `TestProcessRunner_ShortensPathToProjectRelative` | `internal/acp/agent/agent_test.go` | acp | ★★ 交给用户的是**项目内相对路径**（`README.md`）而非 worktree 绝对路径（`/Users/…/worktrees/work-01/README.md`）——后者把卡片撑成两行，还把「worktree 放哪」摊给用户。★ worktree **之外**的保持原样：AI 要动 `/etc/hosts` 时完整路径才是有信息量的 |

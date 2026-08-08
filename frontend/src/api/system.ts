@@ -3,7 +3,7 @@ import type { Runtime } from '@/models/runtime'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import type { Work } from '@/models/work'
 
-import { api, unwrap } from './client'
+import { api, unwrap, type Problem } from './client'
 
 /**
  * 检查应用更新。**只检查，绝不下载、绝不安装**（docs/adr/0002）。
@@ -71,4 +71,29 @@ export async function listWorks(): Promise<Work[]> {
  */
 export async function startWork(project: string, prompt: string): Promise<Work> {
   return unwrap(await api.POST('/works', { body: { project, prompt } }))
+}
+
+/**
+ * 应答一次权限请求。
+ *
+ * ★ `optionID` 是 **Agent 定义的不透明字符串**，从事件载荷原样取、原样送。
+ * 这一层不做任何加工——搞错的话，用户点「拒绝」而 Agent 收到「允许」。
+ */
+export async function answerPermission(
+  workID: string,
+  askID: string,
+  optionID: string,
+): Promise<void> {
+  const result = await api.POST('/works/{id}/permission', {
+    params: { path: { id: workID } },
+    body: { ask_id: askID, option_id: optionID },
+  })
+  // 204 没有响应体，unwrap 会因为 data === undefined 而抛「empty_response」，
+  // 所以这里只把错误挑出来。
+  if (result.error !== undefined && result.error !== null) {
+    const problem = result.error as Problem
+    throw new Error(
+      typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
+    )
+  }
 }

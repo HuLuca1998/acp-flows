@@ -128,17 +128,15 @@ func (r *Runtime) ask(ctx context.Context, w *frameWriter, spec *PermissionAsk) 
 	}
 
 	id, st := r.asks.begin()
+
 	// ★ 原样发：optionId 与 kind 语义对不上也不纠正。纠正的话，
 	// 「客户端按类别猜 id」这类 bug 就永远测不出来。
-	err := w.request(id, protocol.MethodRequestPermission, protocol.RequestPermissionRequest{
-		SessionID: r.script.sessionID(),
-		ToolCall: protocol.ToolCallUpdate{
-			ToolCallID: spec.ToolCallID,
-			Title:      spec.Title,
-			Kind:       spec.Kind,
-		},
-		Options: options,
-	})
+	params, err := askParams(r.script.sessionID(), spec, options)
+	if err != nil {
+		r.asks.settle(id, askOutcome{})
+		return askOutcome{}, false
+	}
+	err = w.request(id, protocol.MethodRequestPermission, params)
 	if err != nil {
 		r.asks.settle(id, askOutcome{})
 		return askOutcome{}, false
@@ -150,6 +148,34 @@ func (r *Runtime) ask(ctx context.Context, w *frameWriter, spec *PermissionAsk) 
 	case <-ctx.Done():
 		return askOutcome{}, false
 	}
+}
+
+// askParams 组出 session/request_permission 的参数。
+//
+// ToolCallExtra 里的字段**直接合进 toolCall**，不经过结构体——
+// 真 Agent 会带上我们没预料到的字段，而「客户端拿不拿得出路径」
+// 正是要测的东西。经结构体的话，没声明的字段会被静静丢掉。
+func askParams(
+	sessionID string, spec *PermissionAsk, options []protocol.PermissionOption,
+) (json.RawMessage, error) {
+	toolCall := map[string]any{
+		"toolCallId": spec.ToolCallID,
+	}
+	if spec.Title != "" {
+		toolCall["title"] = spec.Title
+	}
+	if spec.Kind != "" {
+		toolCall["kind"] = string(spec.Kind)
+	}
+	for k, v := range spec.ToolCallExtra {
+		toolCall[k] = v
+	}
+
+	return json.Marshal(map[string]any{
+		"sessionId": sessionID,
+		"toolCall":  toolCall,
+		"options":   options,
+	})
 }
 
 // handleAskResponse 处理客户端对反向请求的响应。
