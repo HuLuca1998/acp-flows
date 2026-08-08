@@ -119,3 +119,18 @@ func ListWorktrees(ctx context.Context, repo, root string) ([]string, error) {
 	}
 	return paths, nil
 }
+
+// IsDirty 报告工作区有没有未提交的改动（含未跟踪文件）。
+//
+// ★ 用 `status --porcelain` 而不是 `diff --quiet`：后者看不到**未跟踪文件**，
+// 而「用户在 Duet 关着的时候新建了一个文件」正是最典型的场景。
+//
+// ★ 未跟踪也算脏。它们不会被 git 操作冲掉，但恢复之后 AI 会在同一个目录里
+// 干活，很可能覆盖同名文件——先告诉用户一声的成本远低于事后。
+func IsDirty(ctx context.Context, path string) (bool, error) {
+	out, err := run(ctx, path, "status", "--porcelain")
+	if err != nil {
+		return false, fmt.Errorf("查工作区状态 %s: %w", path, err)
+	}
+	return strings.TrimSpace(out) != "", nil
+}

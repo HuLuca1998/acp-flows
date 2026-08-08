@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/protocol"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
@@ -91,6 +93,19 @@ func (w worktrees) CreateWorktree(ctx context.Context, repo, workID string) (str
 		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
 	})
 	return wt.Path, err
+}
+
+// WorktreePath 实现 port.WorktreeLocator：算出某个工作的工作区在哪。
+//
+// ★ 路径是**算出来的**，不查库：worktree 的位置由 root + workID 唯一确定
+// （见 gitx.AddWorktree）。存一份的话，两处就会漂移——而漂移的表现是
+// 「恢复到了一个不存在的目录」。
+func (w worktrees) WorktreePath(_ context.Context, workID string) (string, error) {
+	path := filepath.Join(w.root, workID)
+	if _, err := os.Stat(path); err != nil {
+		return "", fmt.Errorf("工作区 %s 不可用: %w", path, err)
+	}
+	return path, nil
 }
 
 func (w worktrees) RemoveWorktree(ctx context.Context, repo, path string) error {

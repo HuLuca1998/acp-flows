@@ -27,11 +27,13 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/checkpoint"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
+	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
 	"github.com/HuLuca1998/acp-flows/backend/internal/release"
@@ -187,6 +189,11 @@ func run() error {
 	// 而那份映射只有它有。
 	workSvc.SetCanceller(agentRunner)
 
+	// 检查点：启动时列出「有哪些工作能接着做」。
+	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。
+	checkpoints := checkpoint.New(db.Works(), worktrees{root: paths.WorktreeRoot()},
+		checkpoint.WithDirtyChecker(gitx.IsDirty))
+
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,
 		Version: version,
@@ -202,6 +209,7 @@ func run() error {
 		EventHistory: eventStore{db.Events()},
 		Works:        workSvc,
 		Permissions:  perms,
+		Checkpoints:  checkpoints,
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)

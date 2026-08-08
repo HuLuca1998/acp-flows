@@ -61,6 +61,14 @@ type AgentRunner interface {
 	RunTurn(ctx context.Context, t AgentTurn) error
 }
 
+// WorktreeLocator 找出某个工作的工作区在哪。
+//
+// ★ 与 Worktrees 分开：那个负责创建/移除，这个只负责「在哪」。
+// 恢复流程只需要后者——它不该有能力删掉用户的工作区。
+type WorktreeLocator interface {
+	WorktreePath(ctx context.Context, workID string) (string, error)
+}
+
 // AgentCanceller 停掉某个工作正在跑的那一轮。
 //
 // ★ 用返回值而不是哨兵错误传递「要不要杀」：app 层不许 import acp
