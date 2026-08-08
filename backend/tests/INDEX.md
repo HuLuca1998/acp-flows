@@ -374,3 +374,20 @@
 | `TestApplyMode_R6b_ErrsWhenReadBackDiffers` | `internal/acp/session/mode_test.go` | acp | ★ Agent 收下请求、回成功、但值没变（`IgnoreConfigWrites`）→ 回读发现不一致，报 `ErrModeNotApplied`。与 R6 的区别：那条是发之前查出来，这条是发之后才发现——只有前者的话，Agent 悄悄忽略一个合法请求时我们照样一路绿灯 |
 | `TestApplyMode_EmptyModeSkipsRestriction` | `internal/acp/session/mode_test.go` | acp | `RequiredModeID` 留空时不发任何收权请求——不是所有会话都需要限制 |
 | `TestApplyMode_LegacyRejectsUnavailableMode` | `internal/acp/session/mode_test.go` | acp | 降级路径上档位不在 `availableModes` 里也要拒绝，且不发 `set_mode` |
+| `TestValidateSkill_R2_ExplainsWhyItFailed` | `internal/domain/model/skill_test.go` | domain | M2 U2.2.1 R2（INV-SKL-2）：★ 校验不过要说清**为什么**（缺 name / description / SKILL.md / 版本号形态），两个字段都缺时一次说全。静默拒绝的话用户看到 draft 却不知道改什么，只能删了重建——而重建出来还是 draft |
+| `TestValidateSkill_R2b_MissingFileTakesPrecedence` | `internal/domain/model/skill_test.go` | domain | ★ 缺 `SKILL.md` 时不能报成「缺 description」——顺序错了会把人引向改一个不存在的文件 |
+| `TestSkillVersion_R4_Compare` | `internal/domain/model/skill_test.go` | domain | M2 U2.2.1 R4：版本号按段比较（`2.10 > 2.9`，字符串比法下是反的）；`v` 前缀可选 |
+| `TestParseSkillVersion_RejectsMalformed` | `internal/domain/model/skill_test.go` | domain | 拒绝空 / 一段 / **三段**（那是应用版本的形态）/ 非数字 / **前导零**（`01` 与 `1` 会排成两个版本而界面上长得几乎一样）/ 负数 |
+| `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
+| `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
+| `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestScan_R1_ParsesFrontmatter` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R1：真目录真文件扫出 name / version / description / compatibility（值里带 `>=` 和空格，不能在第一个冒号之后再切）；★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单 |
+| `TestScan_R2_MissingDescriptionExplained` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R2：缺 description 的条目状态是 draft、原因点名 description，且名字仍认得出来（用户才知道去改哪一个） |
+| `TestScan_R3_OneBrokenDoesNotHideOthers` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R3：★★ 一条 frontmatter 坏的不让整个库列不出来——整批失败的话用户连修它的入口都找不到 |
+| `TestScan_R5_DoesNotTouchUserFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R5（**红线 3** / INV-SKL-6）：★★ 判据是**全目录内容哈希 + 文件清单**，不是「没写 O_WRONLY」——前者才管得住「顺手补个默认 frontmatter」这种好意 |
+| `TestScan_R4_DoesNotFollowSymlinks` | `internal/fsstore/skill/scan_test.go` | fsstore | 符号链接不跟出去。★ 两道防线各自独立有效（显式判 ModeSymlink + ReadDir 的 Lstat 语义），造负例分别验过 |
+| `TestScan_R6_MissingDirIsEmptyNotError` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R6：目录不存在 = 空列表不是错误。绝大多数项目没有 `.claude/skills`，当错误的话创建项目的预演会因一个正常状态而失败 |
+| `TestScan_R6b_EmptyDirIsEmpty` | `internal/fsstore/skill/scan_test.go` | fsstore | 空目录返回空列表 |
+| `TestScan_IgnoresLooseFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | 散装文件不算 skill——skill 是目录不是文件 |
+| `TestScan_HandlesCRLF` | `internal/fsstore/skill/scan_test.go` | fsstore | ★ Windows 换行的 SKILL.md 也读得出来。读不出的症状是「缺 name、description」，会把人引向一个根本没写错的文件 |
+| `TestScan_SortedByDir` | `internal/fsstore/skill/scan_test.go` | fsstore | 结果按目录名排序，不受文件系统返回顺序影响 |

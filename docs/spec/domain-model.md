@@ -1009,7 +1009,7 @@ skills/rust-test-first/
 | INV-SKL-7 | `references/` 不随 `SKILL.md` 进入常驻上下文；`assets/` 永不进入指令上下文 |
 | INV-SKL-8 | `scripts/` 的执行必须经过权限裁决，不得静默执行 |
 | INV-SKL-9 | `compatibility` 不满足时该 Skill 不得被注入 |
-| INV-SKL-10 | 项目 Skill 与全局 Skill 同名时的优先级见 OPEN-15，**不要擅自选一边** |
+| INV-SKL-10 | 项目 Skill **覆盖**全局同名，并在注入清单里**显式标注**「覆盖了全局同名 skill」。**~~见 OPEN-15，不要擅自选一边~~ 已由 `adr/0006` 的 Q28 裁定**（2026-08-07）——报错会让用户卡住且无法自解：全局 skill 是别人的项目共用的，项目 skill 的名字是项目的约定，两边都改不动 |
 
 ---
 
@@ -1271,7 +1271,7 @@ skills/rust-test-first/
 | INV-SKL-7 | 注入载荷含 `SKILL.md` 正文，不含 `references/` 与 `assets/` 内容 |
 | INV-SKL-8 | 执行 `scripts/` 触发一次权限裁决 |
 | INV-SKL-9 | `compatibility` 不满足时 Skill 不出现在注入清单 |
-| INV-SKL-10 | 项目 Skill 与全局 Skill 同名时的选择规则**尚未确定**（OPEN-15）：在裁决前，该场景必须返回明确错误，不得静默取一边 |
+| INV-SKL-10 | 项目 Skill 覆盖全局同名，注入清单里带「覆盖」标注（Q28 裁定，2026-08-07）|
 
 ### 17.8 Role / Runtime
 
