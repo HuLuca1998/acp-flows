@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
@@ -34,6 +35,12 @@ type Service struct {
 	bus       port.WorkEventBus
 	ids       port.IDGen
 	runner    port.AgentRunner
+	canceller port.AgentCanceller
+
+	// cancelling 记着「哪些工作正在被用户主动停」。
+	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
+	cancelMu   sync.Mutex
+	cancelling map[string]bool
 }
 
 // New 组装用例。runner 可以为 nil（只跑 API 冒烟时），那时工作建出来但没人干活。
@@ -121,6 +128,10 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 	turnCtx := context.WithoutCancel(ctx)
 
 	go func() {
+		// 这一轮结束了，取消标记就没用了。放在 goroutine 里而不是
+		// Cancel 里——只有它知道自己什么时候真的跑完。
+		defer s.clearCancelling(workID)
+
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID,
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
@@ -129,6 +140,13 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 			Prompt: prompt,
 		})
 		if err == nil {
+			return
+		}
+
+		// ★ 用户主动停的**不算失败**。两者都表现为 RunTurn 返回错误，
+		// 但对用户是完全不同的两件事——他明明是自己点的停，
+		// 界面却说「失败」。真机走查撞到过。
+		if s.isCancelling(workID) {
 			return
 		}
 

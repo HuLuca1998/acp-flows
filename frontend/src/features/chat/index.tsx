@@ -9,6 +9,7 @@ import { PermissionDock } from '../permission/PermissionDock'
 import { usePermissions } from '../permission/use-permissions'
 import { Timeline } from '../timeline/Timeline'
 import { useEventStream } from '../timeline/use-event-stream'
+import { WorkStatus } from '../work/WorkStatus'
 
 import styles from './ChatPage.module.css'
 
@@ -74,6 +75,15 @@ export function ChatPage() {
     <div className={styles.page}>
       {renderComposer()}
       {errorCode !== null && <p className={styles.error}>{t(problemKey(errorCode))}</p>}
+      {/* ★ 状态与「停下」排在时间线上方——用户要一眼看到「它在干什么、
+          我能不能停」，而不是往下滚才发现。 */}
+      {current !== null && (
+        <WorkStatus
+          workID={current.id ?? ''}
+          state={String(current.state ?? '')}
+          onCancelled={() => setCurrent({ ...current, state: 'paused' })}
+        />
+      )}
       <PermissionDock asks={asks} onDecide={decide} />
       <Timeline events={events} />
     </div>

@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 )
 
@@ -38,6 +40,8 @@ func (s *stubWorkSvc) Start(_ context.Context, project, prompt string) (work.Vie
 }
 
 func (s *stubWorkSvc) List(context.Context) ([]work.View, error) { return s.items, nil }
+
+func (s *stubWorkSvc) Cancel(context.Context, string) error { return nil }
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -148,5 +152,106 @@ func TestWorks_RequiresToken(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("无 token 却回了 %d", rec.Code)
+	}
+}
+
+// ── U3.2.3 · 取消端点 ──────────────────────────────────────
+
+type cancelStub struct {
+	mu    sync.Mutex
+	calls []string
+	err   error
+}
+
+func (c *cancelStub) Cancel(_ context.Context, workID string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.calls = append(c.calls, workID)
+	return c.err
+}
+
+func (c *cancelStub) Start(context.Context, string, string) (work.View, error) {
+	return work.View{}, nil
+}
+func (c *cancelStub) List(context.Context) ([]work.View, error) { return nil, nil }
+
+func (c *cancelStub) count() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.calls)
+}
+
+func postCancel(t *testing.T, svc *cancelStub, workID string) *httptest.ResponseRecorder {
+	t.Helper()
+	h, err := api.NewRouter(api.Config{Token: testToken, Works: svc})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/v1/works/"+workID+"/cancel", nil)
+	req.Header.Set("Authorization", "Bearer "+testToken)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestCancelWork_HappyPathIs204(t *testing.T) {
+	svc := &cancelStub{}
+	rec := postCancel(t, svc, "work-01")
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("状态码 = %d, 想要 204（响应体 %s）", rec.Code, rec.Body)
+	}
+	if svc.count() != 1 {
+		t.Errorf("转调了 %d 次, 想要 1", svc.count())
+	}
+}
+
+// ★★ 状态不允许取消时翻成 **409**，不是 500。
+//
+// 500 会让界面提示「服务器出错，再试一次」，而用户一试还是同样的结果——
+// 409 对应的是「现在不能停」，界面该做的是说清楚为什么。
+func TestCancelWork_NotAllowedIs409(t *testing.T) {
+	svc := &cancelStub{err: model.ErrCancelNotAllowed}
+	rec := postCancel(t, svc, "work-01")
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("状态码 = %d, 想要 409——500 会让界面提示「再试一次」，"+
+			"而用户一试还是同样的结果", rec.Code)
+	}
+	var problem struct {
+		Type string `json:"type"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &problem)
+	if problem.Type != "work_cancel_not_allowed" {
+		t.Errorf("错误码 = %q——界面按它查 i18n 词条", problem.Type)
+	}
+}
+
+// 工作不存在时 404，不是 500。
+func TestCancelWork_UnknownIs404(t *testing.T) {
+	svc := &cancelStub{err: model.ErrNotFound}
+	rec := postCancel(t, svc, "work-nope")
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("状态码 = %d, 想要 404", rec.Code)
+	}
+}
+
+// 没带 token 一律 401，且**不转调**。
+func TestCancelWork_RequiresToken(t *testing.T) {
+	svc := &cancelStub{}
+	h, err := api.NewRouter(api.Config{Token: testToken, Works: svc})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/v1/works/work-01/cancel", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("状态码 = %d, 想要 401", rec.Code)
+	}
+	if svc.count() != 0 {
+		t.Errorf("没带 token 却转调了 %d 次——回环上任何进程都能停掉用户的工作", svc.count())
 	}
 }

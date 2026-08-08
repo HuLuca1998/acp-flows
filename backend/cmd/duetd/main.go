@@ -183,6 +183,9 @@ func run() error {
 	}
 	workSvc := work.New(
 		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner)
+	// ★ ProcessRunner 同时是取消能力的实现——它记着「哪个工作对应哪个进程」，
+	// 而那份映射只有它有。
+	workSvc.SetCanceller(agentRunner)
 
 	handler, err := api.NewRouter(api.Config{
 		Token:   token,

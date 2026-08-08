@@ -60,3 +60,17 @@ type AgentTurn struct {
 type AgentRunner interface {
 	RunTurn(ctx context.Context, t AgentTurn) error
 }
+
+// AgentCanceller 停掉某个工作正在跑的那一轮。
+//
+// ★ 用返回值而不是哨兵错误传递「要不要杀」：app 层不许 import acp
+// （depguard 挡着），拿不到那边的 error 类型。而这件事太重要，
+// 不能靠调用方去猜——漏了的后果是「界面说已取消、后台还在改文件」。
+type AgentCanceller interface {
+	// CancelTurn 取消这个工作正在跑的那一轮。
+	//
+	// mustKill 为 true 表示 Agent 没在上限内收尾，**调用方必须杀掉它**。
+	CancelTurn(ctx context.Context, workID string) (mustKill bool, err error)
+	// KillAgent 杀掉这个工作的 Agent 进程（连同它的整个进程组）。
+	KillAgent(workID string)
+}

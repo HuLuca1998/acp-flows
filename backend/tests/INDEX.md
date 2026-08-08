@@ -293,3 +293,21 @@
 | `TestCancel_R2_CursorSurvivesCancel` | `internal/acp/session/cancel_test.go` | acp | M3 U3.2.1 R2：取消之后会话标识与已收事件都还在——用户点了停，第一件想知道的是「它停在哪一步」 |
 | `TestCancel_WhenIdleIsNoop` | `internal/acp/session/cancel_test.go` | acp | 空闲时取消不报错也不发协议取消。★ 「在跑」的判据是独立的 `inTurn`，**不能拿 `onEvent != nil`**——调用方可以不关心事件而传 nil，那时用户点了停会毫无反应而 AI 照跑 |
 | `TestCancel_FakeRecordsEveryNotificationVerbatim` | `internal/acp/fake/permission_test.go` | acp | ★★ Fake **如实记录**每一条 `session/cancel`，绝不去重。去重是被测代码的职责——Fake 替它做了的话 R1 会永远绿 |
+| `TestCanCancel_CoversEveryState` | `internal/domain/model/cancellable_test.go` | domain | M3 U3.2.3 R3：★★ **每个** `WorkState` 都明确表态能不能取消，对着 `constant.AllWorkStates()` 逐个核。新增状态忘了表态就红——漏掉的默认行为无论倒向哪边都会咬人 |
+| `TestCanCancel_RejectsReviewing` | `internal/domain/model/cancellable_test.go` | domain | ★★ 审查中拒绝取消——半路掐掉的话那个单元既没通过也没被驳回，用户回头看「它到底做完没有」答案是「不知道」 |
+| `TestCanCancel_UnknownStateIsRefused` | `internal/domain/model/cancellable_test.go` | domain | 认不出的状态一律不许取消（最保守）——数据库里存了个不认识的值时，默认允许会把一个完全不了解的状态强行推走 |
+| `TestCancel_R1_RefusesWhileReviewing` | `internal/app/work/service_test.go` | app | M3 U3.2.3 R1：★★ 审查中拒绝取消，**并且一次协议取消都不发**——先问规则再动手，反过来的话已经掐掉了才发现不该掐 |
+| `TestCancel_R2_RefusalCarriesACode` | `internal/app/work/service_test.go` | app | M3 U3.2.3 R2：拒绝的理由是机器可读的码（`work_cancel_not_allowed`），界面按它查词条 |
+| `TestCancel_R4_PausesAndCheckpoints` | `internal/app/work/service_test.go` | app | M3 U3.2.3 R4：取消成功后进 `paused` **并落检查点事件**——不落的话，用户回头想接着干，没有任何东西告诉他上次停在哪 |
+| `TestCancel_R5_TimeoutKillsAndFails` | `internal/app/work/service_test.go` | app | M3 U3.2.3 R5：★★ 停不下来就**杀进程 + 推到 failed + 带原因码**。只报错不杀的话，界面说「取消失败」而那个 Agent 还在后台改文件 |
+| `TestCancel_UnknownWorkIsRejected` | `internal/app/work/service_test.go` | app | 取消不存在的工作要报错，不是静静成功 |
+| `TestCancel_NoCancellerIsAnError` | `internal/app/work/service_test.go` | app | 没人能执行取消时明确报错——静静成功的话界面显示「已停止」而 AI 照跑，账单继续涨 |
+| `TestCancelWork_HappyPathIs204` | `internal/api/works_test.go` | api | 取消端点正常路径 204 并转调一次 |
+| `TestCancelWork_NotAllowedIs409` | `internal/api/works_test.go` | api | ★★ 「现在不能停」翻成 **409** 而非 500——500 会让界面提示「再试一次」，而用户一试还是同样结果 |
+| `TestCancelWork_UnknownIs404` | `internal/api/works_test.go` | api | 工作不存在时 404 而非 500 |
+| `TestCancelWork_RequiresToken` | `internal/api/works_test.go` | api | 没带 token 401 且不转调——回环上任何本机进程都能停掉用户的工作 |
+| `TestProcessRunner_CancelIdleWorkIsNoop` | `internal/acp/agent/runner_test.go` | acp | 没在跑的工作取消不报错——报错的话 app 层会把一个已经成功结束的工作推到 failed |
+| `TestProcessRunner_ForgetsFinishedTurns` | `internal/acp/agent/runner_test.go` | acp | ★★ 跑完就摘掉记录——留着的话，取消一个早就结束的工作会去动一条已经关掉的会话 |
+| `TestProcessRunner_CancelRunningTurnDemandsKillWhenDead` | `internal/acp/agent/runner_test.go` | acp | ★★ 用真进程验 `KillAgent` 能把装死的 Agent 收掉。★ **先 track 进程再握手**——反过来的话，连 initialize 都不回的 Agent 会让 `session.Open` 挂住，而那时 KillAgent 找不到它（造这条测试时发现的） |
+| `TestCanCancel_MatchesTransitionTable` | `internal/domain/model/cancellable_test.go` | domain | ★★ 「能取消」与「迁得到 paused」必须一致。真机撞到：`CanCancel(clarifying)` 是 true 而迁移表里没这条出边——用户点了停，规则放行、状态机拒绝，他看到一句「invalid work state transition」。★ 只要求单向：`paused` 的入边不止「用户点停」（更新前的暂停也走它） |
+| `TestCancel_UserCancelIsNotAFailure` | `internal/app/work/service_test.go` | app | ★★ **用户主动停 ≠ AI 跑挂了**。真机撞到：点停之后那一轮因 `stopReason=cancelled` 返回错误，被「跑挂了」那条路径推到 failed，抢在 paused 之前——用户明明是自己点的停，界面说「失败」。★ 取消标记由 `runTurn` 的 goroutine 自己清（只有它知道什么时候真跑完），在 Cancel 里清的话序列会是 `[… paused failed]` |
