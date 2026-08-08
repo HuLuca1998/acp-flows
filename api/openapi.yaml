@@ -164,9 +164,15 @@ paths:
       operationId: addProject
       summary: 把一个本地代码文件夹加进来
       description: |
-        ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-        顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-        加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+        ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+
+        顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+        `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+
+        ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+        `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+        「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+        不是「永远不写」。
       requestBody:
         required: true
         content:
@@ -179,12 +185,50 @@ paths:
                   type: string
                   description: 本地绝对路径
                   examples: ['/Users/me/work/my-app']
+                initialize:
+                  type: boolean
+                  default: false
+                  description: |
+                    是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                    并追加 `.gitignore`。**默认不做。**
       responses:
         '201':
           description: 已添加
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Project' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /projects/preview:
+    post:
+      tags: [project]
+      operationId: previewProject
+      summary: 创建项目前的预演——**只看不动**
+      description: |
+        ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+        所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+
+        返回四块，正好对应设计稿弹层的四个区块：
+        将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+
+        ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+        是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+        而漂移的方向永远是「预演里没说的那件事被做了」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string, examples: ['/Users/me/work/my-app'] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectPreview' }
         default: { $ref: '#/components/responses/Problem' }
 
   /projects/{id}:
@@ -727,6 +771,90 @@ components:
           description: 用户的需求原话
 
     # ── Runtime ───────────────────────────────────────────────
+    ProjectPreview:
+      type: object
+      required: [path, is_git_repo, actions, skills]
+      properties:
+        path: { type: string }
+        name:
+          type: string
+          description: 默认显示名，取目录名
+        is_git_repo:
+          type: boolean
+          description: |
+            ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+            在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+        actions:
+          type: array
+          description: 将要做的每一步，**按执行顺序**
+          items: { $ref: '#/components/schemas/ProjectAction' }
+        skills:
+          type: array
+          description: |
+            在项目里发现的已有 Skill（扫 `**/skills`，跳过 node_modules 与 target）。
+            每条带**项目内的相对路径**当来源——用户要能照着去找。
+          items: { $ref: '#/components/schemas/Skill' }
+        remote: { $ref: '#/components/schemas/GitRemote' }
+        gh: { $ref: '#/components/schemas/GhStatus' }
+
+    ProjectAction:
+      type: object
+      required: [kind, path, reason, already_there]
+      properties:
+        kind: { type: string, enum: [create_dir, create_file, append_lines] }
+        path: { type: string }
+        reason:
+          type: string
+          description: |
+            为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。
+        already_there:
+          type: boolean
+          description: |
+            为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+            用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+        lines:
+          type: array
+          items: { type: string }
+          description: 将写入或追加的内容
+
+    GitRemote:
+      type: object
+      description: |
+        `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+        本地仓库、还没推过的项目都很常见。
+      properties:
+        url:
+          type: string
+          description: |
+            原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+            丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+            ★ URL 里夹的凭据已被摘掉。
+        host: { type: string, examples: [github.com] }
+        slug: { type: string, examples: ['owner/repo'] }
+        is_github: { type: boolean }
+
+    GhStatus:
+      type: object
+      required: [status]
+      description: |
+        本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+        `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+      properties:
+        status:
+          type: string
+          enum: [ready, not_installed, not_authenticated, probe_failed]
+          description: |
+            ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+            那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+        version: { type: string, examples: ['2.62.0'] }
+        account:
+          type: string
+          description: 登录的账号名。★ 取不到就留空，**不猜**
+        remedy:
+          type: string
+          description: 用户可以直接敲的一整条命令
+          examples: ['brew install gh', 'gh auth login']
+
     Role:
       type: object
       required: [id, display_name, operations, session_mode, permission_policy, runtime_name, is_preset]

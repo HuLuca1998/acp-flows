@@ -123,11 +123,45 @@ export interface paths {
         put?: never;
         /**
          * 把一个本地代码文件夹加进来
-         * @description ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-         *     顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-         *     加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         * @description ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+         *
+         *     顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+         *     `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         *
+         *     ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+         *     `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+         *     「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+         *     不是「永远不写」。
          */
         post: operations["addProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 创建项目前的预演——**只看不动**
+         * @description ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+         *     所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+         *
+         *     返回四块，正好对应设计稿弹层的四个区块：
+         *     将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+         *
+         *     ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+         *     是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+         *     而漂移的方向永远是「预演里没说的那件事被做了」。
+         */
+        post: operations["previewProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -531,6 +565,78 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+        };
+        ProjectPreview: {
+            path: string;
+            /** @description 默认显示名，取目录名 */
+            name?: string;
+            /**
+             * @description ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+             *     在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+             */
+            is_git_repo: boolean;
+            /** @description 将要做的每一步，**按执行顺序** */
+            actions: components["schemas"]["ProjectAction"][];
+            /**
+             * @description 在项目里发现的已有 Skill（扫 `**\/skills`，跳过 node_modules 与 target）。
+             *     每条带**项目内的相对路径**当来源——用户要能照着去找。
+             */
+            skills: components["schemas"]["Skill"][];
+            remote?: components["schemas"]["GitRemote"];
+            gh?: components["schemas"]["GhStatus"];
+        };
+        ProjectAction: {
+            /** @enum {string} */
+            kind: "create_dir" | "create_file" | "append_lines";
+            path: string;
+            /** @description 为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。 */
+            reason: string;
+            /**
+             * @description 为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+             *     用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+             */
+            already_there: boolean;
+            /** @description 将写入或追加的内容 */
+            lines?: string[];
+        };
+        /**
+         * @description `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+         *     本地仓库、还没推过的项目都很常见。
+         */
+        GitRemote: {
+            /**
+             * @description 原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+             *     丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+             *     ★ URL 里夹的凭据已被摘掉。
+             */
+            url?: string;
+            /** @example github.com */
+            host?: string;
+            /** @example owner/repo */
+            slug?: string;
+            is_github?: boolean;
+        };
+        /**
+         * @description 本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+         *     `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+         */
+        GhStatus: {
+            /**
+             * @description ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+             *     那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+             * @enum {string}
+             */
+            status: "ready" | "not_installed" | "not_authenticated" | "probe_failed";
+            /** @example 2.62.0 */
+            version?: string;
+            /** @description 登录的账号名。★ 取不到就留空，**不猜** */
+            account?: string;
+            /**
+             * @description 用户可以直接敲的一整条命令
+             * @example brew install gh
+             * @example gh auth login
+             */
+            remedy?: string;
         };
         Role: {
             /**
@@ -940,6 +1046,12 @@ export interface operations {
                      * @example /Users/me/work/my-app
                      */
                     path: string;
+                    /**
+                     * @description 是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                     *     并追加 `.gitignore`。**默认不做。**
+                     * @default false
+                     */
+                    initialize?: boolean;
                 };
             };
         };
@@ -951,6 +1063,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    previewProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example /Users/me/work/my-app */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPreview"];
                 };
             };
             default: components["responses"]["Problem"];

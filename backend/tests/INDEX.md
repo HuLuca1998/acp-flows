@@ -479,3 +479,11 @@
 | `TestDetect_NeverLeaksToken` | `internal/ghx/detect_test.go` | ghx | ★★ **Q41 的核心**：Result 的每个字段都不含 `gho_`。`gh auth status` 输出里就有一行 Token，整段塞进 Detail/Account 的话令牌会进日志、进界面 |
 | `TestDetect_UnparseableVersionStillWorks` | `internal/ghx/detect_test.go` | ghx | 版本号读不出不影响「装了且登录了」这个结论 |
 | `TestDetect_NotInstalledGivesInstallCommand` | `internal/ghx/detect_test.go` | ghx | 没装 → `brew install gh`（本机装了 gh 时跳过） |
+| `TestPreviewProject_ReturnsAllFourBlocks` | `internal/api/project_preview_test.go` | api | M3 U3.2.1：预演返回四块（将做什么 / 已有 Skill / remote / gh），**每一步都带 reason**——不说为什么的话用户凭什么点确认；skill 要标来源 |
+| `TestPreviewProject_DoesNotInitialize` | `internal/api/project_preview_test.go` | api | ★★ 预演**不动手**：判据是初始化器一次都没被调用。先看后做是这一步的全部意义 |
+| `TestAddProject_DoesNotInitializeByDefault` | `internal/api/project_preview_test.go` | api | ★★ 加项目**默认不初始化**——静默往用户的仓库里写东西是最快失去信任的方式 |
+| `TestAddProject_InitializesWhenAsked` | `internal/api/project_preview_test.go` | api | 显式传 `initialize:true` 才照计划执行 |
+| `TestAddProject_InitFailureIsReportedNotSilent` | `internal/api/project_preview_test.go` | api | ★ 初始化失败给出 `project_init_failed`，且**登记不回滚**：连登记一起撤的话用户点了「创建」却什么都没发生，而错误一闪而过 |
+| `TestPreviewProject_RejectsBadInput` | `internal/api/project_preview_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
+| `TestPreviewProject_UnconfiguredSaysSo` | `internal/api/project_preview_test.go` | api | 没装配回 503 |
+| `TestPreviewProject_EmptyCollectionsAreArrays` | `internal/api/project_preview_test.go` | api | 空集合序列化成 `[]` 不是 null |

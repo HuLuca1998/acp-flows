@@ -35,7 +35,9 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
+	projectstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/project"
 	skillstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/skill"
+	"github.com/HuLuca1998/acp-flows/backend/internal/ghx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
@@ -155,7 +157,16 @@ func run() error {
 	}
 	ids.PrimeSeq("proj", maxSeq)
 
-	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
+	// ★ 创建项目的预演要四件东西：算计划、扫已有 skill、读 remote、检测 gh。
+	// 任何一件缺了都不该让整次预演失败——扫不到 skill、没装 gh
+	// 都是很常见的正常状态。
+	projectSvc := project.New(db.Projects(), gitProbe{}, ids).
+		WithInit(
+			projectstore.Store{},
+			skillstore.Store{Home: paths.DataDir()},
+			gitx.RemoteProber{},
+			ghx.Detector{},
+		)
 	bus := eventbus.New(eventStore{db.Events()})
 	// ★ 权限中转站：Agent 问的话经它发到时间线，用户点的那一下经它回到 Agent。
 	//

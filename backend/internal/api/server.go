@@ -87,6 +87,8 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("GET /v1/runtimes", handleListRuntimes(cfg.Runtimes))
 
 	// 角色与 Skill：只读。这两页在 M2 之前一直是骨架占位。
+	mux.HandleFunc("POST /v1/projects/preview", handlePreviewProject(cfg.Projects))
+
 	mux.HandleFunc("GET /v1/roles", handleListRoles(cfg.Roles))
 	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills))
 

@@ -1,4 +1,5 @@
 import type { Memory, MemoryStatus } from '@/models/memory'
+import type { ProjectPreview } from '@/models/preview'
 import type { Project } from '@/models/project'
 import type { Role } from '@/models/role'
 import type { Runtime } from '@/models/runtime'
@@ -50,10 +51,14 @@ export async function listProjects(): Promise<Project[]> {
 /**
  * 把一个本地文件夹加进来。
  *
- * ★ 这个动作**往用户的项目目录里写零个字节**，只登记路径。
+ * ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+ *
+ * ★ `initialize` 为真时照预演的计划创建 `.acpflows/` 并追加 `.gitignore`——
+ * 而**传 true 之前必须先让他看过 `previewProject` 的结果**。
+ * 静默往用户的仓库里写东西是最快失去信任的方式。
  */
-export async function addProject(path: string): Promise<Project> {
-  return unwrap(await api.POST('/projects', { body: { path } }))
+export async function addProject(path: string, initialize = false): Promise<Project> {
+  return unwrap(await api.POST('/projects', { body: { path, initialize } }))
 }
 
 /** 移除项目。**只取消登记，不删用户的文件。** */
@@ -175,3 +180,14 @@ export async function reviewMemory(
     }),
   )
 }
+
+/**
+ * 创建项目前的预演：**只看不动**。
+ *
+ * ★★ 用户交出来的是他自己的代码仓库——「先说再做」是这一步的全部意义。
+ * 拿到的每一步都带 `reason`，界面必须把它显示出来。
+ */
+export async function previewProject(path: string): Promise<ProjectPreview> {
+  return unwrap(await api.POST('/projects/preview', { body: { path } }))
+}
+

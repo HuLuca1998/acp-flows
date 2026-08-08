@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
@@ -20,6 +22,11 @@ import (
 // 只会让 api 测试依赖本机环境。
 
 type stubProjects struct {
+	// 预演/初始化用
+	previewErr  error
+	initErr     error
+	initialized []string
+
 	items   []*model.Project
 	addErr  error
 	removed []string
@@ -42,6 +49,35 @@ func (s *stubProjects) List(context.Context) ([]*model.Project, error) { return 
 func (s *stubProjects) Remove(_ context.Context, id string) error {
 	s.removed = append(s.removed, id)
 	return nil
+}
+
+// ★ 预演与初始化：这个桩**记录调用**，因为
+// 「点确认之后到底初始化了没有」正是要断言的东西。
+func (s *stubProjects) PreviewInit(_ context.Context, path string) (*project.Preview, error) {
+	if s.previewErr != nil {
+		return nil, s.previewErr
+	}
+	return &project.Preview{
+		Path:      path,
+		Name:      "demo",
+		IsGitRepo: true,
+		Actions: []port.InitAction{
+			{Kind: "create_dir", Path: path + "/.acpflows", Reason: "唯一会碰的目录"},
+			{Kind: "append_lines", Path: path + "/.gitignore", Reason: "过程记录不进版本库", Lines: []string{".acpflows/runs/"}},
+		},
+		Skills: []port.SkillEntry{{
+			Name: "my-skill", Dir: "my-skill", Source: ".claude/skills",
+			Status: "draft", ValidationOK: false,
+			ValidationReason: "校验未通过：frontmatter 缺 description",
+		}},
+		Remote: port.GitRemoteInfo{URL: "git@github.com:o/r.git", Host: "github.com", Slug: "o/r", IsGitHub: true},
+		Gh:     port.GhInfo{Status: "ready", Version: "2.62.0", Account: "someone"},
+	}, nil
+}
+
+func (s *stubProjects) InitializeAt(path string) error {
+	s.initialized = append(s.initialized, path)
+	return s.initErr
 }
 
 func (s *stubProjects) Remedy(p *model.Project) string {

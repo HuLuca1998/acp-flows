@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next'
 
 import { listRuntimes } from '@/api/system'
 import { NAV_PAGES, type PageId } from '@/app/pages'
+import { CreateProjectDialog } from '@/features/project/CreateProjectDialog'
 import type { Runtime } from '@/models/runtime'
 import { Skeleton } from '@/ui/Skeleton'
+
 
 import { ProjectTree } from './ProjectTree'
 import styles from './Rail.module.css'
@@ -59,6 +61,10 @@ export function Rail({
   const { t } = useTranslation()
   const [runtimes, setRuntimes] = useState<Runtime[] | null>(null)
   const [probeFailed, setProbeFailed] = useState(false)
+  const [creating, setCreating] = useState(false)
+  // ★ 创建成功后换 key 让项目树重新拉一次——**不用刷新页面**。
+  // 让用户手动刷新的话，他会以为创建没成功。
+  const [treeVersion, setTreeVersion] = useState(0)
 
   useEffect(() => {
     void (async () => {
@@ -97,24 +103,30 @@ export function Rail({
         <section className={styles.section}>
           <header className={styles.sectionHead}>
             <span className={styles.sectionTitle}>{t('rail.projects')}</span>
-            {/* ★ 「创建项目」不再是死按钮：它跳到设置页的项目管理。
-                之前 disabled 的那个，用户点了毫无反应，
-                而他不知道是坏了还是没做。 */}
+            {/* ★★ 点开真正的创建项目对话框（M3）。
+                在此之前它只是跳到设置页的一个列表——用户看不到
+                「Duet 会往我的仓库里放什么」，而那正是他最需要知道的。 */}
             <button
               type="button"
               className={styles.sectionAction}
-              onClick={() => onNavigate('settings')}
+              onClick={() => setCreating(true)}
             >
               {t('rail.createProject')}
             </button>
           </header>
-          <ProjectTree onNewWork={onNewWork} onOpenWork={onOpenWork} />
+          <ProjectTree key={treeVersion} onNewWork={onNewWork} onOpenWork={onOpenWork} />
         </section>
       )}
 
       {/* ★ 「最近」是设计稿里的一块（跨项目的最近打开过）。
           现在还没有「打开过」这个记录，所以仍是骨架——但**不能删掉它**：
           删了的话下一个人不知道这里欠着东西。归 U5.1.1。 */}
+      <CreateProjectDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={() => setTreeVersion((v) => v + 1)}
+      />
+
       {!collapsed && (
         <section className={styles.section}>
           <span className={styles.sectionTitle}>{t('rail.recent')}</span>
