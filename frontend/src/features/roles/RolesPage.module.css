@@ -1,0 +1,217 @@
+/* 角色与 Runtime 页。照设计稿 §八 的表结构，密集档。 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-neutral-100);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hint {
+  padding: var(--space-6);
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+}
+
+/* ★ 表格自己横向滚，别让整页横向滚 */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-neutral-500);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-neutral-300);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.roleName {
+  color: var(--color-neutral-100);
+  font-weight: 500;
+}
+
+.ops {
+  margin-top: 2px;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.personality {
+  max-width: 260px;
+  color: var(--color-neutral-500);
+  line-height: 1.5;
+}
+
+.runtime,
+.mode {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ★ 只读与能写要**一眼分得出**：用户点开这一页就是想知道谁能动他的文件。 */
+.mode[data-mode='read_only'] {
+  border: 1px solid var(--color-border);
+  color: var(--color-neutral-400);
+}
+
+.mode[data-mode='guarded_write'],
+.mode[data-mode='unrestricted'] {
+  border: 1px solid var(--color-accent-500);
+  color: var(--color-accent-400);
+}
+
+.permission {
+  color: var(--color-neutral-400);
+  white-space: nowrap;
+}
+
+.soon {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.problems {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-500);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* 设计稿的标题是两层：小字眉标 + 大标题 */
+.eyebrow {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 每行左侧的圆点标记 */
+.dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--color-accent-400);
+  vertical-align: middle;
+}
+
+/* 禁用态的下拉：形态照设计稿，但点下去不会给一个空菜单 */
+.select,
+.mode {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-neutral-400);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.select i,
+.mode i {
+  color: var(--color-neutral-600);
+  font-size: 10px;
+}
+
+.promptBtn {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  cursor: not-allowed;
+}
+
+/* 设计稿底部的两个说明块——它们回答了用户打开这一页最可能问的两个问题 */
+.notes {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.note {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.noteTitle {
+  margin: 0 0 4px;
+  color: var(--color-neutral-300);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.noteBody {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.footnote {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  line-height: 1.6;
+}

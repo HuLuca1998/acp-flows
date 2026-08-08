@@ -57,3 +57,5 @@ frontend/tests/
 | `use-event-stream.test.ts`| `src/features/conversation/`| SSE 断线重连、Last-Event-ID 续传、乱序事件按 seq 归位 |
 | `UpdateCard.test.tsx`    | `src/features/settings/`     | 更新状态机：available → preparing → blocked 时展示被卡住的工作 |
 -->
+| `RolesPage.test.tsx` | `src/features/roles/` | ★★ **M2 完成标志第 1 条**：这一页在 M2 之前一直是骨架占位，而八个预置角色是**内置的**——用户打开看到空白只会以为应用坏了<br>★ 列出角色/承担的操作/Runtime；**只读与能写一眼分得出**（判据是语义档 `data-mode`，不是档名——按档名判断的话加一端就要加一串条件，漏一个的表现是「界面说它只读，实际它能写」）；档名来自后端不在前端翻译<br>★★ 查询失败**说出来而不是显示空表**——装作「一个角色都没有」的话，用户会去找「怎么添加角色」，而问题在别处<br>★ 绑定坏掉的角色照样列出并说明原因（跳过的话用户看到七个角色而不知少了哪个）<br>★ 设计稿底部两块说明是**原文**（对应 ACP 里的什么 / 为什么不设模型），且说明里写的是 `set_config_option` 而非已废弃的 `set_mode`——照抄的话用户按那句话查日志会找不到那条帧 |
+| `SkillPage.test.tsx` | `src/features/skill/` | ★★ **M2 完成标志第 2 条**：列出 Skill 与版本号；**校验没过时说清缺什么**（INV-SKL-2——只显示 draft 标签的话，用户唯一能做的事是删了重建，而重建出来还是 draft）；校验没过的条目在界面上有区分（它是需要用户动手的那一条）<br>★ **显示库的真实路径**而不是写死 `~/.acpflows/skills`——写死的话开发态与自定义数据目录下会告诉用户一个不存在的路径（真机走查抓到的）<br>★★ 扫不动**说出来而不是显示空态**——装作没有的话用户以为自己的 skill 丢了；空库时给出可操作的提示 |

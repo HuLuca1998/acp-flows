@@ -1,5 +1,7 @@
 import type { Project } from '@/models/project'
+import type { Role } from '@/models/role'
 import type { Runtime } from '@/models/runtime'
+import type { Skill } from '@/models/skill'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import type { Work } from '@/models/work'
 
@@ -114,4 +116,26 @@ export async function cancelWork(workID: string): Promise<void> {
       typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
     )
   }
+}
+
+/**
+ * 角色与 Runtime 绑定表。八个预置角色，**顺序就是设计稿的行序**。
+ *
+ * ★ 后端没装配时会返回 503 而不是空列表——预置角色是内置的，
+ * 空表只会让用户以为应用坏了。所以这里的失败**必须**显示出来。
+ */
+export async function listRoles(): Promise<Role[]> {
+  const body = unwrap(await api.GET('/roles'))
+  return body.roles
+}
+
+/**
+ * Skill 库。不传 scope 时是全局库（`~/.acpflows/skills`）。
+ *
+ * ★ 扫不动时后端返回错误而不是空列表——装作「一个都没有」的话，
+ * 用户以为自己的 skill 丢了，而实际是目录读不了。
+ */
+export async function listSkills(): Promise<Skill[]> {
+  const body = unwrap(await api.GET('/skills'))
+  return body.skills
 }

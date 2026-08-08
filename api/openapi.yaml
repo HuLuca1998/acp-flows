@@ -355,6 +355,57 @@ paths:
               schema: { $ref: '#/components/schemas/CapabilityMatrix' }
         default: { $ref: '#/components/responses/Problem' }
 
+  # ── 角色 · Skill · 记忆（M2）────────────────────────────────
+  /roles:
+    get:
+      tags: [role]
+      operationId: listRoles
+      summary: 角色与 Runtime 绑定表
+      description: |
+        八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+
+        ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+        `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+        返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+        要展示实际档名时用 `mode_name`，它是后端翻译好的。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles]
+                properties:
+                  roles:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+
+  /skills:
+    get:
+      tags: [skill]
+      operationId: listSkills
+      summary: Skill 库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string, enum: [project, global] }
+          description: 不传时返回全局库
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [skills]
+                properties:
+                  skills:
+                    type: array
+                    items: { $ref: '#/components/schemas/Skill' }
+        default: { $ref: '#/components/responses/Problem' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -607,6 +658,88 @@ components:
           description: 用户的需求原话
 
     # ── Runtime ───────────────────────────────────────────────
+    Role:
+      type: object
+      required: [id, display_name, operations, session_mode, permission_policy, runtime_name, is_preset]
+      properties:
+        id:
+          type: string
+          description: 角色标识，不是封闭枚举（用户可加自定义角色）
+          examples: [implementer, unit_reviewer, memory_curator]
+        display_name: { type: string, examples: [实现工程师] }
+        operations:
+          type: array
+          items: { type: string }
+          description: |
+            承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+            漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+          examples: [[implement]]
+        duty: { type: string, description: 职责 }
+        personality: { type: string, description: 性格与提示语气 }
+        boundary:
+          type: string
+          description: 边界——这个角色明令不做的事。**是可测的约束，不是文案**
+        output: { type: string, description: 产出物 }
+        session_mode:
+          type: string
+          enum: [read_only, guarded_write, unrestricted]
+          description: |
+            **语义**档位，不是某一端的档名。
+            存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+            保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+        mode_name:
+          type: string
+          description: |
+            后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+            前端不许自己翻译——那需要认识品牌名。
+          examples: [default, plan, read-only]
+        permission_policy:
+          type: string
+          enum: [ask_each, auto_allow_read]
+          description: 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+        runtime_name:
+          type: string
+          description: 当前绑定的 Runtime（推荐绑定可被用户覆盖）
+        is_preset: { type: boolean }
+        problem:
+          type: string
+          description: |
+            绑定查不到或档位翻译不出来时的原因。
+            ★ 出问题的角色**照样返回**，只是带着这一条——
+            跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+
+    Skill:
+      type: object
+      required: [name, dir, scope, source, status, validation_ok]
+      properties:
+        name: { type: string, examples: [rust-test-first] }
+        dir: { type: string, description: 目录名；frontmatter 缺 name 时它就是显示名 }
+        version:
+          type: string
+          description: '`主.次` 两段，与应用版本的三段不是一回事'
+          examples: ['2.1']
+        description: { type: string }
+        compatibility: { type: string, examples: ['cargo >= 1.80'] }
+        scope: { type: string, enum: [project, global] }
+        source:
+          type: string
+          description: |
+            扫到它的目录约定。**必须给**——不标来源的话，
+            用户不知道 Duet 翻了他哪些目录。
+          examples: ['.acpflows/skills', '.claude/skills']
+        status:
+          type: string
+          enum: [draft, active, deprecated]
+          description: ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+        validation_ok: { type: boolean }
+        validation_reason:
+          type: string
+          description: |
+            没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+            静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+          examples: ['校验未通过：frontmatter 缺 description']
+        hit_count: { type: integer, description: 命中计数 }
+
     Runtime:
       type: object
       required: [name, installed, status]

@@ -414,3 +414,12 @@
 | `TestRunTurn_ModeFollowsTheRole` | `internal/acp/agent/role_test.go` | acp | ★★ 把「角色 → 语义档 → 那一端的档名」整条链路验穿：实现工程师发 `default`、审查员与需求分析师发 `plan`、留空按实现工程师。少了它的话「所有角色都发同一个档」测不出来 |
 | `TestRunTurn_RefusesWhenAgentCannotRestrict` | `internal/acp/agent/role_test.go` | acp | Agent 不声明任何 mode 能力 → 拒绝开工，**线上一句 prompt 都没有** |
 | `TestRunTurn_UnknownRoleIsRefusedNotDefaulted` | `internal/acp/agent/role_test.go` | acp | 认不出的角色报错且错误里点名是哪个，**不回落到默认角色**——回落的后果是「本该审查员做的事被实现工程师做了」，而这种错没有症状：审查照常「通过」 |
+| `TestListRoles_ReturnsEightPresets` | `internal/api/roles_test.go` | api | M2 U2.4.1：八个角色都出来、四要素不空、顺序是设计稿行序。★ 用**真的** app 服务 + 真的 adapter，mock 掉任一头就测不出「domain 的角色 + adapter 的绑定拼得对不对」 |
+| `TestListRoles_ExposesSemanticModeAndTranslatedName` | `internal/api/roles_test.go` | api | ★★ 同时给出**语义档**与**翻译好的档名**：实现工程师 `guarded_write`→`agent`（codex）、审查员 `read_only`→`plan`（claude）、测试执行者 `read_only`→`read-only`（codex）。直接返回档名的话前端就得认识品牌相关的取值 |
+| `TestListRoles_UnconfiguredIsNotAnEmptyList` | `internal/api/roles_test.go` | api | ★★ 没装配回 503 而**不是 200 空列表**——八个预置角色是内置的，空表只会让用户以为应用坏了 |
+| `TestListRoles_BrokenBindingStillListsTheRole` | `internal/api/roles_test.go` | api | ★ 绑定坏掉的角色照样列出来并带原因；跳过的话用户看到七个角色而不知少了哪个 |
+| `TestListSkills_CarriesValidationReasonToTheUI` | `internal/api/skills_test.go` | api | M2 U2.4.1：真目录真文件 → 版本/描述/兼容性原样到界面；**校验没过的带原因**；扫出来一律 `draft`；来源必须标出 |
+| `TestListSkills_EmptyIsArrayNotNull` | `internal/api/skills_test.go` | api | ★ 空集合序列化成 `[]` 不是 `null`——null 会让前端崩在 `.map` 上，而「一个都没有」正是新用户的常态 |
+| `TestListSkills_ProjectScopeSaysNotReady` | `internal/api/skills_test.go` | api | ★ 项目级 Skill 还没做（要等创建项目）→ 回 501 **明说没有**，而不是回空列表让用户以为自己的 skill 没被认出来 |
+| `TestListSkills_UnconfiguredIsNotAnEmptyList` | `internal/api/skills_test.go` | api | 没装配回 503 并给出可查的错误码 |
+| `TestListSkills_ScanFailureIsReported` | `internal/api/skills_test.go` | api | ★ 扫不动要说出来，不装作「一个都没有」——装作没有的话用户以为自己的 skill 丢了 |

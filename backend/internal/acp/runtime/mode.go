@@ -92,3 +92,19 @@ func RecommendedRuntimeFor(roleID string) (string, error) {
 	}
 	return name, nil
 }
+
+// Bindings 实现 port.RoleBindings。
+//
+// ★ 这个类型存在的意义就是**把品牌知识关在这一层**：
+// 上面两张表（档名映射 + 推荐绑定）都只有这个包认识。
+type Bindings struct{}
+
+// RuntimeFor 返回角色的推荐 Runtime。
+func (Bindings) RuntimeFor(roleID string) (string, error) {
+	return RecommendedRuntimeFor(roleID)
+}
+
+// ModeNameOn 把语义档翻译成那一端的档名。
+func (Bindings) ModeNameOn(runtimeName string, mode model.SessionMode) (string, error) {
+	return ModeNameOn(runtimeName, mode)
+}

@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
 )
 
@@ -48,6 +49,11 @@ type Config struct {
 	// Permissions 收下用户对权限请求的应答。
 	// 为 nil 时端点返回 permission_service_unavailable。
 	Permissions permissionAnswerer
+	// Roles 是角色表。为 nil 时端点返回 roles_unavailable——
+	// **不是 200 空列表**：八个预置角色是内置的，看到空表用户只会以为应用坏了。
+	Roles roleLister
+	// Skills 是 Skill 库。为 nil 时端点返回 skills_unavailable。
+	Skills port.SkillScanner
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -77,6 +83,10 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// 环境检测：只看，不碰用户的 ~/.claude 与 ~/.codex，也不发起任何
 	// 会产生费用的模型调用。
 	mux.HandleFunc("GET /v1/runtimes", handleListRuntimes(cfg.Runtimes))
+
+	// 角色与 Skill：只读。这两页在 M2 之前一直是骨架占位。
+	mux.HandleFunc("GET /v1/roles", handleListRoles(cfg.Roles))
+	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills))
 
 	// 项目：添加只登记路径，**往用户的项目目录里写零个字节**。
 	mux.HandleFunc("GET /v1/projects", handleListProjects(cfg.Projects))

@@ -273,6 +273,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 角色与 Runtime 绑定表
+         * @description 八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+         *
+         *     ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+         *     `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+         *     返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+         *     要展示实际档名时用 `mode_name`，它是后端翻译好的。
+         */
+        get: operations["listRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Skill 库 */
+        get: operations["listSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -448,6 +490,99 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+        };
+        Role: {
+            /**
+             * @description 角色标识，不是封闭枚举（用户可加自定义角色）
+             * @example implementer
+             * @example unit_reviewer
+             * @example memory_curator
+             */
+            id: string;
+            /** @example 实现工程师 */
+            display_name: string;
+            /**
+             * @description 承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+             *     漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+             * @example [
+             *       "implement"
+             *     ]
+             */
+            operations: string[];
+            /** @description 职责 */
+            duty?: string;
+            /** @description 性格与提示语气 */
+            personality?: string;
+            /** @description 边界——这个角色明令不做的事。**是可测的约束，不是文案** */
+            boundary?: string;
+            /** @description 产出物 */
+            output?: string;
+            /**
+             * @description **语义**档位，不是某一端的档名。
+             *     存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+             *     保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+             * @enum {string}
+             */
+            session_mode: "read_only" | "guarded_write" | "unrestricted";
+            /**
+             * @description 后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+             *     前端不许自己翻译——那需要认识品牌名。
+             * @example default
+             * @example plan
+             * @example read-only
+             */
+            mode_name?: string;
+            /**
+             * @description 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+             * @enum {string}
+             */
+            permission_policy: "ask_each" | "auto_allow_read";
+            /** @description 当前绑定的 Runtime（推荐绑定可被用户覆盖） */
+            runtime_name: string;
+            is_preset: boolean;
+            /**
+             * @description 绑定查不到或档位翻译不出来时的原因。
+             *     ★ 出问题的角色**照样返回**，只是带着这一条——
+             *     跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+             */
+            problem?: string;
+        };
+        Skill: {
+            /** @example rust-test-first */
+            name: string;
+            /** @description 目录名；frontmatter 缺 name 时它就是显示名 */
+            dir: string;
+            /**
+             * @description `主.次` 两段，与应用版本的三段不是一回事
+             * @example 2.1
+             */
+            version?: string;
+            description?: string;
+            /** @example cargo >= 1.80 */
+            compatibility?: string;
+            /** @enum {string} */
+            scope: "project" | "global";
+            /**
+             * @description 扫到它的目录约定。**必须给**——不标来源的话，
+             *     用户不知道 Duet 翻了他哪些目录。
+             * @example .acpflows/skills
+             * @example .claude/skills
+             */
+            source: string;
+            /**
+             * @description ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+             * @enum {string}
+             */
+            status: "draft" | "active" | "deprecated";
+            validation_ok: boolean;
+            /**
+             * @description 没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+             *     静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+             * @example 校验未通过：frontmatter 缺 description
+             */
+            validation_reason?: string;
+            /** @description 命中计数 */
+            hit_count?: number;
         };
         Runtime: {
             /**
@@ -904,6 +1039,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CapabilityMatrix"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        roles: components["schemas"]["Role"][];
+                    };
+                };
+            };
+        };
+    };
+    listSkills: {
+        parameters: {
+            query?: {
+                /** @description 不传时返回全局库 */
+                scope?: "project" | "global";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        skills: components["schemas"]["Skill"][];
+                    };
                 };
             };
             default: components["responses"]["Problem"];

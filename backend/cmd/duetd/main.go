@@ -30,9 +30,11 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/checkpoint"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/role"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
+	skillstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/skill"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
@@ -210,6 +212,12 @@ func run() error {
 		Works:        workSvc,
 		Permissions:  perms,
 		Checkpoints:  checkpoints,
+		// 角色表：定义在 domain，Runtime 绑定在 acp/runtime——
+		// 这里把两边拼起来。品牌名（claude / codex）只有 adapter 认识。
+		Roles: role.New(runtime.Bindings{}),
+		// Skill 库：只扫全局（`~/.acpflows/skills`）。
+		// 项目级的在创建项目时初始化（M3），那时才有项目。
+		Skills: skillstore.Store{Home: paths.DataDir()},
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
