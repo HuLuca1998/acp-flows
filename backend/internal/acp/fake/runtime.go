@@ -69,10 +69,11 @@ type Runtime struct {
 	transport     io.ReadWriteCloser
 	cancelServe   context.CancelFunc
 
-	mu       sync.Mutex
-	turnSeq  int
-	closed   bool
-	closeOut func()
+	mu              sync.Mutex
+	loadedSessionID string
+	turnSeq         int
+	closed          bool
+	closeOut        func()
 }
 
 // New 构造一个 Fake ACP Runtime。
@@ -212,6 +213,9 @@ func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameW
 		}()
 		return nil
 
+	case protocol.MethodSessionLoad:
+		return r.respondLoadSession(w, f)
+
 	case protocol.MethodSessionCancel:
 		// ★ 像真 Agent 那样收尾：结束当前轮并回 stopReason: cancelled。
 		//
@@ -347,4 +351,36 @@ func (r *Runtime) cancelSignal() <-chan struct{} {
 	r.cancelMu.Lock()
 	defer r.cancelMu.Unlock()
 	return r.cancelCh
+}
+
+// respondLoadSession 处理 session/load。
+//
+// ★ 不支持时回 **-32601**，那是真 Agent 的做法。回一个空的成功响应
+// 会让上层以为恢复成功了——而 Agent 那边根本没有这条会话，
+// 下一轮打过去就是「会话不存在」，而用户看到的只是「AI 忽然变笨了」。
+func (r *Runtime) respondLoadSession(w *frameWriter, f wireFrame) error {
+	behavior := r.script.Load
+	if behavior == nil || !behavior.Supported {
+		return w.respondError(f.ID, -32601, "fake: 本 Agent 不支持 session/load")
+	}
+	if behavior.Delay > 0 {
+		time.Sleep(time.Duration(behavior.Delay))
+	}
+
+	// ★ 记下被恢复的是哪一条：上层「恢复了却打在别的会话上」这类 bug
+	// 只有对着它才测得出来。
+	var req protocol.LoadSessionRequest
+	if err := json.Unmarshal(f.Params, &req); err == nil && req.SessionID != "" {
+		r.mu.Lock()
+		r.loadedSessionID = req.SessionID
+		r.mu.Unlock()
+	}
+	return w.respond(f.ID, protocol.LoadSessionResponse{})
+}
+
+// LoadedSessionID 返回最后一次 session/load 恢复的会话标识。
+func (r *Runtime) LoadedSessionID() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.loadedSessionID
 }

@@ -151,6 +151,31 @@ type PromptResponse struct {
 	Meta       json.RawMessage `json:"_meta,omitempty"`
 }
 
+// LoadSessionRequest 是 session/load 的 params。
+//
+// ★ 恢复一条**已有**会话，不是新开。Agent 会把那条会话的历史重放回来，
+// 于是新一轮能接着上次继续——这是「关掉再打开，它还记得刚才做到哪」
+// 的唯一实现途径。
+//
+// ★ 不是所有 Agent 都支持：不支持的会回 -32601，那时必须**显式降级**
+// 为新会话，绝不假装恢复成功。
+type LoadSessionRequest struct {
+	SessionID string `json:"sessionId"`
+	Cwd       string `json:"cwd"`
+	// MCPServers 与 session/new 同理：**不能是 nil**，
+	// nil slice 会写成 null 而覆盖掉 Agent 那边的配置。
+	MCPServers []MCPServer     `json:"mcpServers"`
+	Meta       json.RawMessage `json:"_meta,omitempty"`
+}
+
+// LoadSessionResponse 是 session/load 的响应。
+//
+// 字段与 NewSessionResponse 一致：Agent 可以借这次机会更新模式等信息。
+type LoadSessionResponse struct {
+	Modes *SessionModeState `json:"modes,omitempty"`
+	Meta  json.RawMessage   `json:"_meta,omitempty"`
+}
+
 // CancelNotification 是 session/cancel 的 params。
 //
 // ★ session/cancel 是**通知，不是请求** —— 发出去不会有响应。

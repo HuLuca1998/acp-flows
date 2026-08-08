@@ -99,6 +99,15 @@ type Session struct {
 	// 阻塞它等于阻塞整条会话。
 	mu      sync.Mutex
 	onEvent func(Event)
+	// fresh 表示这是一条全新会话（不是恢复出来的）。
+	// resumeErr 记着降级的原因。
+	//
+	// ★ 两者一起构成「恢复失败」的**显式信号**。假装恢复成功的话，
+	// 用户以为 AI 记得之前的事，实际它一无所知——他接着上文提问，
+	// AI 答非所问，双方都不知道发生了什么。
+	fresh     bool
+	resumeErr error
+
 	// inTurn 表示正有一轮在跑。
 	//
 	// ★ 不能拿 onEvent 是否为 nil 当判据：调用方完全可以不关心事件而传 nil
@@ -125,6 +134,30 @@ type Session struct {
 // ★ **先校验 cwd 再发任何请求。** 反过来的话，Agent 那边已经开了一个会话
 // 而我们这边报了错——它会挂在那儿占着资源，没人再去关它。
 func Open(ctx context.Context, opts Options) (*Session, error) {
+	s, err := dial(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.initialize(ctx, opts); err != nil {
+		_ = s.Close()
+		return nil, err
+	}
+	if err := s.newSession(ctx, opts); err != nil {
+		_ = s.Close()
+		return nil, err
+	}
+	return s, nil
+}
+
+// dial 校验 cwd、建连接、起读循环。**还没说过一句话。**
+//
+// ★ 拆出来是为了让 Resume 复用：它要在同一条连接上先试 session/load，
+// 失败再退回 session/new。重新连一次的话，那个 Agent 进程要重拉，
+// 几秒钟就没了。
+//
+// ★ **先校验 cwd 再建连接。** 反过来的话，Agent 那边已经起来了
+// 而我们这边报了错——它会挂在那儿占着资源，没人再去关它。
+func dial(ctx context.Context, opts Options) (*Session, error) {
 	if !filepath.IsAbs(opts.Cwd) {
 		return nil, fmt.Errorf("%w: %q", ErrCwdNotAbsolute, opts.Cwd)
 	}
@@ -144,33 +177,38 @@ func Open(ctx context.Context, opts Options) (*Session, error) {
 		defer close(s.serveDone)
 		s.serveErr = s.conn.Serve(ctx)
 	}()
+	return s, nil
+}
 
+// initialize 走协议握手。
+func (s *Session) initialize(ctx context.Context, opts Options) error {
 	name, version := opts.ClientName, opts.ClientVersion
 	if name == "" {
 		name, version = "duet", "0.0.0"
 	}
-	var initResp protocol.InitializeResponse
+	var resp protocol.InitializeResponse
 	if err := s.conn.CallInto(ctx, protocol.MethodInitialize, protocol.InitializeRequest{
 		ProtocolVersion: acpProtocolVersion,
 		ClientInfo:      &protocol.Implementation{Name: name, Version: version},
-	}, &initResp); err != nil {
-		_ = s.Close()
-		return nil, fmt.Errorf("initialize: %w", err)
+	}, &resp); err != nil {
+		return fmt.Errorf("initialize: %w", err)
 	}
+	return nil
+}
 
-	var newResp protocol.NewSessionResponse
+// newSession 开一条全新会话。
+func (s *Session) newSession(ctx context.Context, opts Options) error {
+	var resp protocol.NewSessionResponse
 	if err := s.conn.CallInto(ctx, protocol.MethodSessionNew, protocol.NewSessionRequest{
 		Cwd: opts.Cwd,
 		// ★ 不能是 nil：nil slice 会写成 null，而 claude 用 null 覆盖 thread config
 		// 的 mcp_servers 键，禁用条目全部丢失（acp-field-notes.md §4）。
 		MCPServers: []protocol.MCPServer{},
-	}, &newResp); err != nil {
-		_ = s.Close()
-		return nil, fmt.Errorf("session/new: %w", err)
+	}, &resp); err != nil {
+		return fmt.Errorf("session/new: %w", err)
 	}
-
-	s.id = newResp.SessionID
-	return s, nil
+	s.id = resp.SessionID
+	return nil
 }
 
 // ID 返回会话标识。后续的取消、恢复都靠它。

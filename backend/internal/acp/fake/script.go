@@ -44,9 +44,22 @@ func (d *Dur) UnmarshalJSON(b []byte) error {
 type Script struct {
 	Name       string              `json:"name"`
 	NewSession *NewSessionBehavior `json:"new_session,omitempty"`
-	Turns      []Turn              `json:"turns"`
+	// Load 定制 session/load 的行为。为 nil 时**不支持**——
+	// 那是更保守的默认值：逼着上层去测降级路径。
+	Load  *LoadSessionBehavior `json:"load,omitempty"`
+	Turns []Turn               `json:"turns"`
 	// Default 在轮次用完后复用，用于「随便再问几轮」的场景。
 	Default *Turn `json:"default,omitempty"`
+}
+
+// LoadSessionBehavior 定制 session/load 的行为。
+//
+// ★ `Supported` 为 false 时回 -32601（方法不支持）——那是真 Agent
+// 不支持恢复时的样子，也是上层降级路径唯一能测的场景。
+type LoadSessionBehavior struct {
+	Supported bool `json:"supported"`
+	// Delay 是响应前的等待时长。
+	Delay Dur `json:"delay,omitempty"`
 }
 
 // NewSessionBehavior 定制 session/new 的响应。
