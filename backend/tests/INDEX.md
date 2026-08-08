@@ -346,3 +346,22 @@
 | `TestUnitContract_R4_VersionIncrementsByOne` | `internal/domain/model/plan_test.go` | domain | 契约版本号严格递增不跳号 |
 | `TestUnitContract_RevisedIsUnfrozen` | `internal/domain/model/plan_test.go` | domain | 修订出来的新契约没冻结（能继续加标准），而**旧的那份一个字不变**——那是「修订」与「改写」的全部区别 |
 | `TestPlanModel_StaysPure` | `internal/domain/model/plan_test.go` | domain | domain 是纯计算：构造与校验都不需要 context、不取当前时间 |
+| `TestPresetRoles_R1_EightRolesMatchDesign` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R1：★ 八个预置角色的 id / 显示名 / 承担操作逐条对上 `INVENTORY.md` §八，**顺序就是设计稿行序**（界面照它渲染）。数量单独断言——第一版清单只抽到 5 个，漏了滚动区外那三行 |
+| `TestPresetRoles_R1b_EveryOperationHasAnOwner` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R1b（INV-ROLE-6）：★★ 11 个 AI 操作每个都有且只有一个角色认领；漏派的后果是**跑到那一步才发现没人干**，而那时计划已经排好了 |
+| `TestRoleByID_R4_UnknownRoleErrsNoFallback` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R4：认不出的角色名返回 `ErrUnknownRole` 且不返回任何角色。★ 静默回落的后果是「本该审查员做的事被实现工程师做了」，而实现方审查自己正是 INV-ATT-8 禁止的 |
+| `TestRoleByID_R4b_EveryPresetIsRetrievable` | `internal/domain/model/role_test.go` | domain | 八个预置角色都按 id 取得出来，取出来的显示名对得上 |
+| `TestRole_INVROLE2_HasNoModelOrEffortField` | `internal/domain/model/role_test.go` | domain | INV-ROLE-2：★ 反射断言 `Role` 没有 model / reasoning_effort 一类字段——ACP 不提供这两个设置，它们是观测结果不是配置项（§16.5）。加上去毫不费力且加完测试照绿，所以用反射守 |
+| `TestPresetRoles_R5_UserFacingRolesAreReadOnly` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R5（**Q42**）：需求分析师 / 计划架构师 / 单元设计师 / 实现审查员 / 记忆管理员五个角色的会话档位必须是只读。★ 判据在档位上而不在权限裁决上——实测证明客户端全拒拦不住沙箱内的写 |
+| `TestPresetRoles_R5b_OnlyImplementerMayWrite` | `internal/domain/model/role_test.go` | domain | 反向穷举：除实现工程师外任何角色拿到写权限就红（上一条只查名单里的五个，漏掉新角色时测不出）；「放开」档一个都不该用上 |
+| `TestPermissionPolicy_R6_ClosedEnumOfTwo` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R6：权限裁决只有「逐条询问 / 自动允许读」——设计稿的下拉里**没有**「一律拒绝」，别把旧 `session.Policy` 那三种搬过来 |
+| `TestRole_R6b_WithPermissionPolicyRejectsInvalid` | `internal/domain/model/role_test.go` | domain | `WithPermissionPolicy` 拒非法值、返回新实例、原实例不变 |
+| `TestPresetRoles_R7_ReturnsCopies` | `internal/domain/model/role_test.go` | domain | ★ `PresetRoles()` / `Operations()` 返回副本。不返回副本的话调用方一个 `sort.Slice` 就把预置表顺序永久改了，而界面照那个顺序渲染 |
+| `TestAllOperations_R7b_ReturnsCopy` | `internal/domain/model/role_test.go` | domain | 同上，操作全集也是副本 |
+| `TestPresetRoles_FourElementsAllFilled` | `internal/domain/model/role_test.go` | domain | §16.2 的四要素（职责 / 性格 / 边界 / 产出）都填了——边界是可测的约束不是文案，空着的话角色卡是一片空白 |
+| `TestModeNameOn_R3_SameIntentDiffersPerRuntime` | `internal/acp/runtime/mode_test.go` | acp | M2 U2.1.1 R3：★★ 同一个「只读」claude 叫 `plan`、codex 叫 `read-only`，**一个字都不一样**。硬编码成某一端的取值 → 换 Runtime 时发出对方不认识的档名 → 收权失败，而失败的表现是「沙箱照旧放行」 |
+| `TestModeNameOn_R3b_CodexHasNoAutoMode` | `internal/acp/runtime/mode_test.go` | acp | ★ 设计稿角色表给 codex 写的 `auto` 是 **0.16.0 的旧档名**，1.1.7 已改；照设计稿抄会静默收权失败（`acp-field-notes.md` §7 裁定 2） |
+| `TestModeNameOn_R3c_UnknownRuntimeErrsNoGuess` | `internal/acp/runtime/mode_test.go` | acp | 没登记映射的 Runtime 返回 `ErrUnknownRuntime` 且不返回档名——猜一个出来等于在不知道权限多大的情况下开工 |
+| `TestModeNameOn_R3d_MapHasNoHoles` | `internal/acp/runtime/mode_test.go` | acp | 三个语义档 × 两个 Runtime 全部翻译得出；漏填一格要到真开会话时才发现 |
+| `TestRecommendedRuntimeFor_R2_EightPresetBindings` | `internal/acp/runtime/mode_test.go` | acp | M2 U2.1.1 R2：八个角色的推荐 Runtime 对上设计稿角色表。★ 「推荐」是认真的——设计稿有「恢复推荐绑定」按钮，说明用户改得动 |
+| `TestRecommendedRuntimeFor_R2b_UnlistedRoleErrs` | `internal/acp/runtime/mode_test.go` | acp | 自定义角色没有推荐绑定时报错，不给「反正 claude 能干」的默认值 |
+| `TestPresetRoles_R2c_BindingAndModeFitTogether` | `internal/acp/runtime/mode_test.go` | acp | ★★ 把两张表**连起来**验：单看都对，合起来可能是「某角色推荐 codex，而 codex 上没有它要的那一档」——那种错只在真开会话时暴露 |
