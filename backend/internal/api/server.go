@@ -42,6 +42,9 @@ type Config struct {
 	EventHistory eventHistory
 	// Works 是工作用例。为 nil 时相关端点返回 work_service_unavailable。
 	Works workService
+	// Checkpoints 列出可恢复的工作。
+	// 为 nil 时端点返回 checkpoint_service_unavailable。
+	Checkpoints checkpointService
 	// Permissions 收下用户对权限请求的应答。
 	// 为 nil 时端点返回 permission_service_unavailable。
 	Permissions permissionAnswerer
@@ -88,6 +91,7 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("POST /v1/works", handleStartWork(cfg.Works))
 	mux.HandleFunc("POST /v1/works/{id}/permission", handleAnswerPermission(cfg.Permissions))
 	mux.HandleFunc("POST /v1/works/{id}/cancel", handleCancelWork(cfg.Works))
+	mux.HandleFunc("GET /v1/system/resume", handleListResumable(cfg.Checkpoints))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

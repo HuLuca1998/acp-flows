@@ -318,3 +318,31 @@
 | `TestResume_ValidatesCwdBeforeTalking` | `internal/acp/session/resume_test.go` | acp | 先校验 cwd 再说话——反过来的话 Agent 已经加载了会话而我们报了错，它挂在那儿占资源 |
 | `TestResume_EmptySessionIDOpensFresh` | `internal/acp/session/resume_test.go` | acp | 没有旧 ID 时直接开新的，不发一个注定失败的 load |
 | `TestResume_ErrorMessageIsReadable` | `internal/acp/session/resume_test.go` | acp | 降级原因里带上是哪条会话——排查时得看得出「哪条没恢复上」 |
+| `TestListResumable_R1_OnlyPausedWorks` | `internal/app/checkpoint/service_test.go` | app | M4 U4.1.2 R1：★ **只列 paused**（穷举全部状态核对）——把跑完的、失败的也列出来的话，用户对着一串条目不知道该点哪个 |
+| `TestListResumable_EmptyIsASlice` | `internal/app/checkpoint/service_test.go` | app | 空结果返回空切片而非 nil——api 层要序列化成 `[]`，前端对 null 调 `.map()` 会白屏 |
+| `TestListResumable_R1_CarriesPausedAt` | `internal/app/checkpoint/service_test.go` | app | 带上暂停时间——开着三四个工作时，用户靠它认出哪个是刚才那个 |
+| `TestResume_R3_DirtyWorktreeIsReported` | `internal/app/checkpoint/service_test.go` | app | M4 U4.1.2 R3：★★ 工作区被手工改过时**先告知、且一个字节都不改**（状态仍是 paused）——先斩后奏的话，用户点「取消」也来不及了。★ 用**真 `gitx.IsDirty`**，假实现只会回一个我们自己设的布尔值 |
+| `TestResume_UntrackedFileCountsAsDirty` | `internal/app/checkpoint/service_test.go` | app | ★★ **未跟踪的新文件也算脏**。★ 与上一条分开写：上一条改的是已跟踪文件，把 `status --porcelain` 换成 `diff --name-only` 它照样绿（造负例时发现的） |
+| `TestResume_ForcedProceedsAndKeepsChanges` | `internal/app/checkpoint/service_test.go` | app | 确认后恢复，**不覆盖用户的改动**（本单元 forbidden_changes 明写） |
+| `TestResume_R2_RestoresRunnableState` | `internal/app/checkpoint/service_test.go` | app | M4 U4.1.2 R2：恢复后状态回到能接着跑的那一个，且与落库一致 |
+| `TestResume_NonPausedIsRejected` | `internal/app/checkpoint/service_test.go` | app | ★ 断言**具体的** `ErrNotResumable`，不是「有错就行」——状态检查删掉之后后面的 Transition 也会失败，「有错就行」照样绿（造负例时发现的） |
+| `TestResume_UnknownWorkIsRejected` | `internal/app/checkpoint/service_test.go` | app | 恢复不存在的工作要报错，不是静静成功 |
+| `TestResume_MissingWorktreeIsAnError` | `internal/app/checkpoint/service_test.go` | app | ★ 断言**上游的真实原因**传上来了：不校验的话路径变空串、脏检查在空路径上失败，照样返回错误，而「工作区没了」被「查工作区状态失败」盖住（造负例时发现的） |
+| `TestListResumable_ReturnsItems` | `internal/api/resume_test.go` | api | `/v1/system/resume` 返回条目与暂停时间 |
+| `TestListResumable_EmptyIsJSONArray` | `internal/api/resume_test.go` | api | ★★ 空时序列化成 `[]` 而非 `null`——「一个可恢复的都没有」正是绝大多数用户每次打开应用时的状态 |
+| `TestListResumable_UnconfiguredIs503` | `internal/api/resume_test.go` | api | 没配服务回 503 而非 404 |
+| `TestListResumable_FailureIsNotAnEmptyList` | `internal/api/resume_test.go` | api | ★★ 查询失败**绝不降级成空列表**——那会让用户以为「没有可恢复的」，而实际是查不了，他会以为自己的工作丢了 |
+| `TestListResumable_RequiresToken` | `internal/api/resume_test.go` | api | 没带 token 401 |
+| `TestPlanVersion_R1_HasNoMutators` | `internal/domain/model/plan_test.go` | domain | M4 U4.2.1 R1：★★ 反射断言 `PlanVersion` **没有任何指针接收者的导出方法**（计划只能新增版本不能改写，INV-PLAN-4）。★ 必须对**指针类型**取方法集——值类型的方法集不含指针接收者的方法，加一个 setter 上去照样绿（造负例时发现的） |
+| `TestUnitContract_R1_FrozenIsImmutable` | `internal/domain/model/plan_test.go` | domain | ★★ 对着冻结的契约把每个导出方法都调一遍，核对内容没变。★ 判据不能是「有没有指针接收者」——`UnitID()` 这类读方法用指针接收者完全正常 |
+| `TestUnitContract_CriteriaIsACopy` | `internal/domain/model/plan_test.go` | domain | ★★ `Criteria()` 返回副本，改它不影响契约——返回内部切片的话，任何拿到它的人都能改掉一份冻结的契约，「冻结」两个字名存实亡（造负例时发现「修订后旧契约几条标准」那条盖不住它） |
+| `TestPlanVersion_R2_RequiresDispositionForEveryAccepted` | `internal/domain/model/plan_test.go` | domain | M4 U4.2.1 R2：★★ v ≥ 2 必须对**每一项**已验收工作给出处置；漏一项、多给一个没验收过的、取值不认识——各有各的错误码 |
+| `TestPlanVersion_FirstVersionNeedsNoDisposition` | `internal/domain/model/plan_test.go` | domain | v1 不需要处置——那时还没有任何已验收的工作 |
+| `TestDisposition_AllValuesAreValid` | `internal/domain/model/plan_test.go` | domain | 处置是封闭枚举（仍有效/需补充/需回滚/已废弃），标识全 ASCII（界面按它查词条） |
+| `TestPlanVersion_R4_VersionIncrementsByOne` | `internal/domain/model/plan_test.go` | domain | M4 U4.2.1 R4：版本号严格递增不跳号——跳号的话用户看到 v1 之后是 v3，会以为自己漏看了几版 |
+| `TestUnitContract_R3_FrozenRejectsChanges` | `internal/domain/model/plan_test.go` | domain | M4 U4.2.1 R3：冻结后加标准报 `ErrContractFrozen`——之后还能改的话，AI 可以一边做一边把标准改成自己刚好达到的样子 |
+| `TestUnitContract_FreezeIsIdempotent` | `internal/domain/model/plan_test.go` | domain | 重复冻结不报错——用户点两下「冻结」是常态 |
+| `TestUnitContract_EmptyCannotFreeze` | `internal/domain/model/plan_test.go` | domain | ★ 空契约不许冻结——「做完了」没有任何判据，AI 说做完了就是做完了 |
+| `TestUnitContract_R4_VersionIncrementsByOne` | `internal/domain/model/plan_test.go` | domain | 契约版本号严格递增不跳号 |
+| `TestUnitContract_RevisedIsUnfrozen` | `internal/domain/model/plan_test.go` | domain | 修订出来的新契约没冻结（能继续加标准），而**旧的那份一个字不变**——那是「修订」与「改写」的全部区别 |
+| `TestPlanModel_StaysPure` | `internal/domain/model/plan_test.go` | domain | domain 是纯计算：构造与校验都不需要 context、不取当前时间 |
