@@ -176,6 +176,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/permission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 应答一次权限请求
+         * @description Agent 想动用户的东西时会发一条 `request_permission` 事件到时间线，
+         *     **并把这一轮挂起等应答**。用户在界面上点了某个选项，就走这个端点送回去。
+         *
+         *     ★ `option_id` 是 **Agent 自己定义的不透明字符串**，从事件载荷的
+         *     `options[].option_id` 原样取，**不要自己造、也不要按类别重新匹配**。
+         *     搞错的话，用户点「拒绝」而 Agent 收到「允许」——这是整个权限体系里
+         *     后果最严重的一种错。
+         *
+         *     ★ 同一条请求**只能应答一次**。重复应答返回 409 且不再向 Agent 发第二条：
+         *     Agent 那边只在等一个响应，多发的会被当成不认识的请求而静静丢弃，
+         *     界面上却什么提示都没有。
+         *
+         *     ★ 这个端点**不做超时**。用户可能去泡了杯咖啡；替他超时等于替他做决定。
+         *     要中止只能靠取消整个工作（那时所有 pending 的请求都会收到 `cancelled`）。
+         */
+        post: operations["answerPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runtimes": {
         parameters: {
             query?: never;
@@ -408,12 +441,47 @@ export interface components {
             type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
             /** Format: date-time */
             ts: string;
+            /**
+             * @description 按 `type` 变化的载荷。**开放形状**（`additionalProperties: true`）——
+             *     ACP 的原始字段原样带上，前端认得的自己取，认不得的排查时也能看到全貌。
+             *
+             *     我们自己加的字段一律 `acp_` 前缀，永远不和 Agent 的字段撞名。
+             *     这条是踩出来的：翻译层曾经用 `kind` 覆盖了 ACP `tool_call` 自带的
+             *     `kind`（工具种类），结果同一个键有时是判别值有时是工具类别。
+             *
+             *     `request_permission` 的载荷形状见 `PermissionAskPayload` ——
+             *     它是**唯一需要前端按字段读**的一类，因为用户要照着它点按钮。
+             */
             payload?: {
                 [key: string]: unknown;
             };
         };
     };
     responses: {
+        /**
+         * @description Agent 给出的一个可选应答。
+         *
+         *     ★ `option_id` 是 **Agent 自己定义的不透明字符串**。界面上原样带着它，
+         *     应答时原样送回——不要自己造、不要按 `kind` 重新匹配、不要排序后取第一个。
+         */
+        PermissionOption: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /**
+         * @description `type = request_permission` 的事件载荷。
+         *
+         *     ★ 这一轮**挂着等应答**，没有超时。用户不点，AI 就一直等——
+         *     那是刻意的：替他超时等于替他做决定。
+         */
+        PermissionAskPayload: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
         /** @description 错误（RFC 9457） */
         Problem: {
             headers: {
@@ -670,6 +738,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Work"];
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    answerPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 工作标识 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 事件载荷里的 `ask_id`，标识是哪一条请求 */
+                    ask_id: string;
+                    /** @description 用户选的那个选项的 `option_id`，**原样回传**。 */
+                    option_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已送达 Agent */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };
