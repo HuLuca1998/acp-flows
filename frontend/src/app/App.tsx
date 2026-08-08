@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { listProjects } from '@/api/system'
-import { ChatPage } from '@/features/chat'
+import { ChatPage, type ChatIntent } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
 import type { Project } from '@/models/project'
@@ -45,6 +45,17 @@ export function App() {
 
   // 面包屑要显示**真实的**当前项目。null 表示还没查到或一个都没有。
   const [project, setProject] = useState<Project | null>(null)
+  // 左栏点「新建对话」/「打开工作」时，把意图传给对话页。
+  // ★ 用一个带序号的对象而不是裸字符串：同一个项目连点两次「新建对话」，
+  // 裸字符串不变，对话页不会有反应——而用户明明点了两下。
+  const [intent, setIntent] = useState<ChatIntent | null>(null)
+  const [intentSeq, setIntentSeq] = useState(0)
+
+  const openIntent = (next: ChatIntent) => {
+    setIntent(next)
+    setIntentSeq((n) => n + 1)
+    setPageId(DEFAULT_PAGE) // 左栏点的是对话，就切回对话主区
+  }
 
   useEffect(() => {
     void (async () => {
@@ -131,6 +142,8 @@ export function App() {
           onNavigate={setPageId}
           collapsed={!railOpen}
           width={railWidth}
+          onNewWork={(projectPath) => openIntent({ kind: 'new', projectPath })}
+          onOpenWork={(workID) => openIntent({ kind: 'open', workID })}
         />
         {railOpen && (
           <Resizer
@@ -144,7 +157,11 @@ export function App() {
         )}
 
         <main className={styles.main}>
-          {navPage === null ? <ChatPage /> : <navPage.Component />}
+          {navPage === null ? (
+            <ChatPage intent={intent} intentSeq={intentSeq} />
+          ) : (
+            <navPage.Component />
+          )}
         </main>
 
         {showContext && (

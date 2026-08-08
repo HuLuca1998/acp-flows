@@ -1,0 +1,111 @@
+/* 项目树。照设计稿：可折叠的项目名 + 下挂工作 + 「新建对话」。 */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.project {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.projectName {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-300);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.projectName:hover {
+  background: var(--color-surface);
+}
+
+/* 项目名可能很长，截断而不是把左栏撑开 */
+.projectLabel {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 工作缩进一级，让「谁属于谁」一眼看出来 */
+.work {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 5px 8px 5px 20px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-500);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.work:hover {
+  background: var(--color-surface);
+  color: var(--color-neutral-300);
+}
+
+.workTitle {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 状态用等宽小字，跟在标题后面——照设计稿的「executing · 3/7」 */
+.workState {
+  flex: none;
+  color: var(--color-neutral-700);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+/* 正在等用户的工作要跳出来：他不看就永远停在那儿 */
+.work[data-state='waiting_user'] .workState {
+  color: var(--color-accent-300);
+}
+
+.work[data-state='failed'] .workState,
+.work[data-state='initializing_failed'] .workState {
+  color: var(--color-fail);
+}
+
+.newWork {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 8px 4px 20px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-600);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.newWork:hover {
+  background: var(--color-surface);
+  color: var(--color-accent-300);
+}
+
+.hint {
+  margin: 0;
+  padding: 0 8px;
+  color: var(--color-neutral-600);
+  font-size: 11.5px;
+  line-height: 1.5;
+}

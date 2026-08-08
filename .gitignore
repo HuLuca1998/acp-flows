@@ -49,3 +49,6 @@ tauri-signing-*.key*
 
 # ── Claude Code 本地覆盖 ─────────────────────────────────
 .claude/settings.local.json
+
+# 设计稿的本地对照副本（design/PARITY.md 说明怎么用）
+frontend/public/design/
