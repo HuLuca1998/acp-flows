@@ -242,6 +242,12 @@ check-icons: ## 图标产物是否与源 SVG 同步
 	@bash scripts/check/check-icons.sh
 
 .PHONY: probe
+restrict-probe: ## ★ 真机验收权：收权后让它建文件，判据在磁盘上（**有模型开销**）
+	cd $(BACKEND) && go run ./cmd/restrictprobe claude
+	cd $(BACKEND) && go run ./cmd/restrictprobe codex
+	@echo "★ 判据是「工作目录 0 项」。协议帧发出去了不等于收权生效——"
+	@echo "  见 docs/notes/acp-field-notes.md §2 的复验表。"
+
 probe: ## ★ 真机探针：零模型开销地核对 ACP Runtime 的真实行为
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/codex.json  codex
 	cd $(BACKEND) && go run ./cmd/acpprobe --out=tests/fixtures/probe/claude.json claude
