@@ -249,3 +249,17 @@
 | `TestNewSession_R3_UndeclaredCapabilityIsAbsentOnTheWire` | `internal/acp/fake/permission_test.go` | acp | M3 U3.1.1 R3：声明的能力**表现为真实协议行为**——不声明 modes 时 `session/new` 响应里真的没有那个字段，否则测的是我们自己的探针代码 |
 | `TestAskPermission_CarriesToolCall` | `internal/acp/fake/permission_test.go` | acp | 权限请求带 `toolCallId` 与 `sessionId`——不带的话界面只能问「要不要允许？」而说不出允许什么 |
 | `TestAskPermission_TwoAsksInOneTurn` | `internal/acp/fake/permission_test.go` | acp | 一轮里问两次，各自阻塞各自等应答（真 Agent 一轮问三五次是常态）；只处理第一次的实现会在这里挂住 |
+| `TestDecide_R1_AutoAllowReadonlyOnlyCoversReadKinds` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R1：★★ 「自动允许只读」**只对读类工具生效**，穷举 `ToolKind` 全集。只读是**白名单**（read/search/think）——反过来列危险的话，Agent 新增一类工具会默认落进「自动允许」，用户以为开的是「让它随便看」而实际是「让它随便改」 |
+| `TestDecide_R2_NeverGuessesAnOptionID` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R2：★★ 选项集合不认识时走保守分支，**绝不猜 optionId**（想允许却没有 allow 类 / 一个选项都没有 / 类别不认识）。猜的话可能替用户点了「永久允许」 |
+| `TestDecide_AskAlwaysDefers` | `internal/acp/session/permission_test.go` | acp | 「每次都问」就是每次都问，不因为是只读就放过 |
+| `TestDecide_RejectAllCoversEveryKind` | `internal/acp/session/permission_test.go` | acp | 「一律拒绝」对所有类别都拒绝，包括只读——用户明确表达的「我先看着，什么都别动」 |
+| `TestDecide_PrefersOnceOverAlways` | `internal/acp/session/permission_test.go` | acp | ★★ 优先 `once` 而非 `always`（脚本故意把 always 排前面）——选 always 的话，一次自动裁决会永久改变后续所有请求，而用户不知道发生过 |
+| `TestDecide_R4_ReasonIsAMachineCode` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R4：理由码是**机器可读枚举**（断言全 ASCII）——界面按它查词条，塞人话会把日志过滤规则改坏且没法翻译 |
+| `TestDecide_UnknownPolicyDefersToUser` | `internal/acp/session/permission_test.go` | acp | 认不出的策略回落到最保守的「交给用户」——配置被手改坏或旧版本遗留一个已删除的策略名时，默认放行是灾难 |
+| `TestAllPolicies_CoversEveryDecideBranch` | `internal/acp/session/permission_test.go` | acp | 策略全集与 `Decide` 的分支必须同步——加策略时漏一处，界面上选了它会变成「交给用户」 |
+| `TestSession_AutoDecidesWithoutAskingUser` | `internal/acp/session/permission_test.go` | acp | 策略能自动裁决时这一轮不停下来等人——否则「自动允许只读」这个开关等于没有 |
+| `TestSession_UserChoiceGoesBackVerbatim` | `internal/acp/session/permission_test.go` | acp | ★★ 用户选的 `optionId` **原样回给 Agent**。脚本用 id 与 kind 语义相反的选项——按类别重新匹配的话，用户点「拒绝」而 Agent 收到「允许」 |
+| `TestSession_AskUserFailureAnswersCancelled` | `internal/acp/session/permission_test.go` | acp | ★ 用户那边出错（界面关了、超时）时回 `cancelled`——随便挑一个的话，用户关掉窗口就等于默认同意了 |
+| `TestSession_NoAskUserAnswersCancelled` | `internal/acp/session/permission_test.go` | acp | ★★ 没配 `AskUser` 时回 `cancelled` 而非自动允许——装配漏一根线的表现必须是「什么都干不了」，不能是「什么都放行」 |
+| `TestSession_R4_EmitsDecisionWithReasonCode` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R4：裁决发一条带理由码的事件——用户回头问「它为什么没问我就改了文件」，答案得在时间线上找得到 |
+| `TestSession_R3_BlockingIsPerSession` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R3：★★ 阻塞**只是这一轮**——A 卡在权限请求上时 B 照常跑完。★ B 也必须发权限请求，否则加一把全局锁这条测试照样绿（造负例时发现的） |

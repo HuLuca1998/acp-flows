@@ -46,7 +46,7 @@ var (
 // ★ **保留原始载荷**：上层按 Kind 决定解成哪个变体，没见过的变体也能原样
 // 记进日志排查，而不是只知道「有个东西没认出来」。
 type Event struct {
-	// Kind 是判别值，13 类之一（或将来新增的）。
+	// Kind 是判别值，13 类之一（或将来新增的）；权限裁决用 KindPermissionDecided。
 	Kind protocol.SessionUpdateKind
 	// Text 是三种 chunk 变体的文本内容；其余类型为空。
 	Text string
@@ -57,7 +57,15 @@ type Event struct {
 	// 不是丢弃而是**标出来交上去**：静默吞掉的话，Agent 新增一类事件时
 	// 界面上表现为「AI 好像少说了点什么」，没有任何报错。
 	Unhandled bool
+	// Decision 只在 Kind == KindPermissionDecided 时有值。
+	Decision Decision
 }
+
+// KindPermissionDecided 是我们自己发的事件：一次权限裁决的结果。
+//
+// ★ 不是 ACP 的判别值，是我们加的——所以带 `duet.` 前缀，
+// 永远不会和 Agent 将来新增的类型撞名。
+const KindPermissionDecided protocol.SessionUpdateKind = "duet.permission_decided"
 
 // Options 是开一条会话需要的东西。
 type Options struct {
@@ -68,13 +76,17 @@ type Options struct {
 	// ClientName / ClientVersion 报给 Agent，留空时用默认值。
 	ClientName    string
 	ClientVersion string
+	// Permission 决定收到权限请求时怎么办。零值 = 每次都问、且没人接线
+	// （于是一律 cancelled）——最保守的那条。
+	Permission Permission
 }
 
 // Session 是一条已经建好的 ACP 会话。
 type Session struct {
-	conn      *jsonrpc.Conn
-	transport io.ReadWriteCloser
-	id        string
+	conn       *jsonrpc.Conn
+	transport  io.ReadWriteCloser
+	id         string
+	permission Permission
 
 	// onEvent 是当前这一轮的事件回调，由 Prompt 装上、返回前摘掉。
 	//
@@ -106,7 +118,11 @@ func Open(ctx context.Context, opts Options) (*Session, error) {
 		return nil, fmt.Errorf("%w: %s", ErrCwdNotFound, opts.Cwd)
 	}
 
-	s := &Session{transport: opts.Transport, serveDone: make(chan struct{})}
+	s := &Session{
+		transport:  opts.Transport,
+		permission: opts.Permission,
+		serveDone:  make(chan struct{}),
+	}
 	s.conn = jsonrpc.New(opts.Transport, opts.Transport, jsonrpc.HandlerFunc(s.handle))
 
 	go func() {
@@ -209,10 +225,15 @@ func (s *Session) Close() error {
 }
 
 // handle 处理 Agent 发来的请求与通知。
-func (s *Session) handle(_ context.Context, method string, params json.RawMessage) (any, error) {
-	if method != protocol.MethodSessionUpdate {
-		// 权限请求是 M3 的事。这里明确回不支持，而不是静默丢弃——
-		// 静默的话 Agent 会一直等一个永远不来的响应。
+func (s *Session) handle(ctx context.Context, method string, params json.RawMessage) (any, error) {
+	switch method {
+	case protocol.MethodRequestPermission:
+		return s.handlePermission(ctx, params)
+	case protocol.MethodSessionUpdate:
+		// 往下走
+	default:
+		// 明确回不支持，而不是静默丢弃——静默的话 Agent 会一直等
+		// 一个永远不来的响应。
 		return nil, &jsonrpc.Error{Code: -32601, Message: "method not supported yet: " + method}
 	}
 
