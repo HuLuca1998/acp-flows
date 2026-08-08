@@ -156,10 +156,20 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 	// 跑完就摘。留着的话，取消一个早就结束的工作会去动一条已经关掉的会话。
 	defer r.untrack(turn.WorkID)
 
+	// ★★ **收权在开会话时一次做完。**
+	//
+	// 算不出档名就**根本不开会话**——不是「先开了再说，收不上再算」。
+	// 中间那个窗口里 codex 跑在 workspace-write 沙箱，写操作连审批都不触发。
+	modeID, modeErr := modeIDFor(turn.RoleID, spec.Name)
+	if modeErr != nil {
+		return r.wrapAgentError(spec, proc, modeErr)
+	}
+
 	s, openErr := session.Open(ctx, session.Options{
-		Transport:  stdio{r: proc.Stdout(), w: proc.Stdin()},
-		Cwd:        turn.Cwd,
-		Permission: r.PermissionFor(turn),
+		Transport:      stdio{r: proc.Stdout(), w: proc.Stdin()},
+		Cwd:            turn.Cwd,
+		Permission:     r.PermissionFor(turn),
+		RequiredModeID: modeID,
 	})
 	if openErr != nil {
 		return r.wrapAgentError(spec, proc, fmt.Errorf("agent: open session: %w", openErr))

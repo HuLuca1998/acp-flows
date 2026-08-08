@@ -409,3 +409,8 @@
 | `TestMemory_SourceRefsReturnsCopy` | `internal/domain/model/memory_test.go` | domain | `SourceRefs()` 返回副本 |
 | `TestAllMemoryStatuses_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 状态全集返回副本 |
 | `TestAllMemoryKinds_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 类型全集返回副本 |
+| `TestRunTurn_SendsSetConfigOptionOnTheWire` | `internal/acp/agent/role_test.go` | acp | M2 U2.1.2 **最后一公里**：★★ 判据是 Agent 那侧**收到的帧**，不是「我们调了那个函数」。接上之前 `applyMode` 六条测试全绿而没有任何调用方传 `RequiredModeID`——那段代码一次都没跑过 |
+| `TestRunTurn_RestrictsBeforeAnyPrompt` | `internal/acp/agent/role_test.go` | acp | ★★ 收权帧在 prompt 帧**之前**。顺序反了的话，中间那个窗口里 codex 跑在 workspace-write 沙箱，写操作连审批都不触发 |
+| `TestRunTurn_ModeFollowsTheRole` | `internal/acp/agent/role_test.go` | acp | ★★ 把「角色 → 语义档 → 那一端的档名」整条链路验穿：实现工程师发 `default`、审查员与需求分析师发 `plan`、留空按实现工程师。少了它的话「所有角色都发同一个档」测不出来 |
+| `TestRunTurn_RefusesWhenAgentCannotRestrict` | `internal/acp/agent/role_test.go` | acp | Agent 不声明任何 mode 能力 → 拒绝开工，**线上一句 prompt 都没有** |
+| `TestRunTurn_UnknownRoleIsRefusedNotDefaulted` | `internal/acp/agent/role_test.go` | acp | 认不出的角色报错且错误里点名是哪个，**不回落到默认角色**——回落的后果是「本该审查员做的事被实现工程师做了」，而这种错没有症状：审查照常「通过」 |
