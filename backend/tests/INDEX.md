@@ -311,3 +311,10 @@
 | `TestProcessRunner_CancelRunningTurnDemandsKillWhenDead` | `internal/acp/agent/runner_test.go` | acp | ★★ 用真进程验 `KillAgent` 能把装死的 Agent 收掉。★ **先 track 进程再握手**——反过来的话，连 initialize 都不回的 Agent 会让 `session.Open` 挂住，而那时 KillAgent 找不到它（造这条测试时发现的） |
 | `TestCanCancel_MatchesTransitionTable` | `internal/domain/model/cancellable_test.go` | domain | ★★ 「能取消」与「迁得到 paused」必须一致。真机撞到：`CanCancel(clarifying)` 是 true 而迁移表里没这条出边——用户点了停，规则放行、状态机拒绝，他看到一句「invalid work state transition」。★ 只要求单向：`paused` 的入边不止「用户点停」（更新前的暂停也走它） |
 | `TestCancel_UserCancelIsNotAFailure` | `internal/app/work/service_test.go` | app | ★★ **用户主动停 ≠ AI 跑挂了**。真机撞到：点停之后那一轮因 `stopReason=cancelled` 返回错误，被「跑挂了」那条路径推到 failed，抢在 paused 之前——用户明明是自己点的停，界面说「失败」。★ 取消标记由 `runTurn` 的 goroutine 自己清（只有它知道什么时候真跑完），在 Cancel 里清的话序列会是 `[… paused failed]` |
+| `TestPrompt_R2_SameSessionAcrossTurns` | `internal/acp/session/resume_test.go` | acp | M4 U4.1.1 R2：★★ 两轮落在**同一个 sessionId** 上。这是前一个项目最严重的一条错误——标识在某一层丢了，第 2 轮对 Agent 是全新对话，而界面看着完全正常，用户只觉得「AI 忽然变笨了」 |
+| `TestResume_R1_ContinuesExistingSession` | `internal/acp/session/resume_test.go` | acp | M4 U4.1.1 R1：走 `session/load` 接上旧会话（不是 `session/new`），恢复后 `ID()` 是那一条、`IsFresh()` 为假 |
+| `TestResume_NewTurnStaysOnResumedSession` | `internal/acp/session/resume_test.go` | acp | 恢复之后新一轮打在被恢复的那条会话上——恢复了却打在别的会话上等于白恢复 |
+| `TestResume_R3_FallsBackToFreshSessionExplicitly` | `internal/acp/session/resume_test.go` | acp | M4 U4.1.1 R3：★★ Agent 不支持 `session/load`（回 -32601）时**显式降级**：`IsFresh()` 为真、换新 ID、`ResumeError()` 有值。假装成功的话，用户接着上文提问而 AI 一无所知，双方都不知道发生了什么 |
+| `TestResume_ValidatesCwdBeforeTalking` | `internal/acp/session/resume_test.go` | acp | 先校验 cwd 再说话——反过来的话 Agent 已经加载了会话而我们报了错，它挂在那儿占资源 |
+| `TestResume_EmptySessionIDOpensFresh` | `internal/acp/session/resume_test.go` | acp | 没有旧 ID 时直接开新的，不发一个注定失败的 load |
+| `TestResume_ErrorMessageIsReadable` | `internal/acp/session/resume_test.go` | acp | 降级原因里带上是哪条会话——排查时得看得出「哪条没恢复上」 |
