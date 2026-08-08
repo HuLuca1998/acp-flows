@@ -132,7 +132,7 @@
 
 ---
 
-### ○ U3.1.4 · 权限请求接线：从 Agent 到界面再回去
+### ✓ U3.1.4 · 权限请求接线：从 Agent 到界面再回去
 
 > **2026-08-08 补登记。** `U3.1.1`–`U3.1.3` 做完之后发现 `S3.1` 缺了一环：
 > Fake 会问了、策略会裁了、卡片画好了，**但没有人把请求送到界面、
@@ -157,6 +157,24 @@
 | R3 | 应答后这一轮继续 | 断言应答之后收到 `turn_end` |
 | R4 | 重复应答同一条请求被拒 | 断言第二次返回错误码，且**不再向 Agent 发第二条应答** |
 | R5 | 工作被取消时 pending 的请求全部收到 `cancelled` | 断言 Fake 侧每条 pending 都被应答，没有一条挂着 |
+
+> **2026-08-08 已完成，真机端到端跑通两遍**（真 `claude-agent-acp` 改 README.md）：
+> 点「Reject」→ AI 回「你拒绝了这次编辑，所以 README.md 没有改动」，文件一字未动；
+> 点「Allow」→ worktree 里真的多了一行，而用户仓库仍然干净、没有孤儿进程。
+>
+> `app/permission.Broker` 是中转站：会话线程调 `Ask` 挂住，HTTP 线程调
+> `Answer` 叫醒。装配在 `cmd/duetd`——那是唯一能同时看见 acp 层与 app 层的地方。
+>
+> **走查抓到三个单测测不出的问题**：
+>
+> | 撞到的 | 根因 | 修在 |
+> |---|---|---|
+> | 启动失败时 panic，真正的原因（端口被占）被完全盖住 | `LogSink` 关掉后再写 = send on closed channel | `store/log_sink.go` 有界丢弃 |
+> | 卡片只写「AI 请求写入」，不说改哪个文件 | ACP 的 `toolCall.locations` / `rawInput` 没取 | `session.pathOf` |
+> | 路径是 worktree 绝对路径，撑成两行还暴露内部目录 | 没转成项目内相对路径 | `agent.shortenPath` |
+>
+> 第一个的代价最典型：一个普通的「address already in use」变成了一堆
+> goroutine 栈，排查方向完全被带偏。
 
 ---
 
