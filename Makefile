@@ -24,9 +24,17 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
+check: check-ci-parity check-naming check-gen check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
+.PHONY: check-ci-parity
+check-ci-parity: ## 校验 make check 是 CI 的超集（本地绿了推上去不该红）
+	@python3 scripts/check/lib/ci_parity.py .
+
+.PHONY: check-naming
+check-naming: ## 命名与文件组织规范（单文件行数、WaitDelay、品牌名……）
+	@bash scripts/check/check-naming.sh
+
 .PHONY: check-license
 check-license: ## 检查 LICENSE.md 没被裁过、版权人填实、README 说法一致
 	@scripts/check/check-license.sh
