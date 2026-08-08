@@ -247,6 +247,60 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Agent 给出的一个可选应答。
+         *
+         *     ★ `option_id` 是 **Agent 自己定义的不透明字符串**。界面上原样带着它，
+         *     应答时原样送回——不要自己造、不要按 `kind` 重新匹配、不要排序后取第一个。
+         */
+        PermissionOption: {
+            /** @example opt-allow */
+            option_id: string;
+            /**
+             * @description Agent 给的按钮文字。**照它显示**，不要替换成我们自己的说法——
+             *     Agent 可能给出「这个目录以后都允许」这种我们想不到的选项。
+             * @example 允许一次
+             */
+            name: string;
+            /**
+             * @description 只用来决定按钮的颜色，**不用来挑 option_id**。
+             * @enum {string}
+             */
+            kind: "allow_once" | "allow_always" | "reject_once" | "reject_always";
+        };
+        /**
+         * @description `type = request_permission` 的事件载荷。
+         *
+         *     ★ 这一轮**挂着等应答**，没有超时。用户不点，AI 就一直等——
+         *     那是刻意的：替他超时等于替他做决定。
+         */
+        PermissionAskPayload: {
+            /** @description 应答时带回去，标识是哪一条请求。 */
+            ask_id: string;
+            /** @description 对应时间线上的哪一次工具调用。 */
+            tool_call_id: string;
+            /**
+             * @description 哪个 Agent 在问——用户可能同时开着 claude 与 codex。
+             * @example codex
+             */
+            runtime: string;
+            /**
+             * @description 工具类别，界面据此说人话（「请求读取」/「请求写入」/「请求执行」）。
+             *     取值同 ACP 的 ToolKind；认不出时界面用兜底文案，不显示原始码。
+             * @example edit
+             */
+            kind?: string;
+            /** @description 涉及的文件路径。Agent 不一定给得出（比如执行命令）。 */
+            path?: string;
+            /**
+             * @description 是否越出了这个单元声明的写入边界。
+             *
+             *     ★ **没有依据时不要填 true。**「写入边界外」是一句很重的话，
+             *     乱说的话用户会对所有提示脱敏，真正越界那次他也不会看。
+             */
+            out_of_bounds?: boolean;
+            options: components["schemas"]["PermissionOption"][];
+        };
         Problem: {
             /**
              * @description ★ 机器可读错误码（snake_case），**前端据此查 i18n 词条**。
@@ -449,8 +503,13 @@ export interface components {
              *     这条是踩出来的：翻译层曾经用 `kind` 覆盖了 ACP `tool_call` 自带的
              *     `kind`（工具种类），结果同一个键有时是判别值有时是工具类别。
              *
-             *     `request_permission` 的载荷形状见 `PermissionAskPayload` ——
+             *     `type = request_permission` 的形状见 `PermissionAskPayload`。
              *     它是**唯一需要前端按字段读**的一类，因为用户要照着它点按钮。
+             *
+             *     ★ 故意**不**用 `oneOf` 把它绑进这里：那样会把所有事件的
+             *     payload 类型一起收紧，而我们本来就打算把 ACP 的字段原样透传。
+             *     代价是前端要自己按那个 schema 解析——`features/permission`
+             *     的 `toRequest` 做这件事，缺字段时跳过而不是白屏。
              */
             payload?: {
                 [key: string]: unknown;
@@ -458,30 +517,6 @@ export interface components {
         };
     };
     responses: {
-        /**
-         * @description Agent 给出的一个可选应答。
-         *
-         *     ★ `option_id` 是 **Agent 自己定义的不透明字符串**。界面上原样带着它，
-         *     应答时原样送回——不要自己造、不要按 `kind` 重新匹配、不要排序后取第一个。
-         */
-        PermissionOption: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content?: never;
-        };
-        /**
-         * @description `type = request_permission` 的事件载荷。
-         *
-         *     ★ 这一轮**挂着等应答**，没有超时。用户不点，AI 就一直等——
-         *     那是刻意的：替他超时等于替他做决定。
-         */
-        PermissionAskPayload: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content?: never;
-        };
         /** @description 错误（RFC 9457） */
         Problem: {
             headers: {

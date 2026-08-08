@@ -361,6 +361,13 @@ components:
         取值合法性由服务端查注册表校验。
 
   responses:
+    Problem:
+      description: 错误（RFC 9457）
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+  schemas:
     PermissionOption:
       type: object
       required: [option_id, name, kind]
@@ -421,13 +428,6 @@ components:
           type: array
           items: { $ref: '#/components/schemas/PermissionOption' }
 
-    Problem:
-      description: 错误（RFC 9457）
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/Problem' }
-
-  schemas:
     # ── 错误 ──────────────────────────────────────────────────
     Problem:
       type: object
@@ -684,6 +684,11 @@ components:
             这条是踩出来的：翻译层曾经用 `kind` 覆盖了 ACP `tool_call` 自带的
             `kind`（工具种类），结果同一个键有时是判别值有时是工具类别。
 
-            `request_permission` 的载荷形状见 `PermissionAskPayload` ——
+            `type = request_permission` 的形状见 `PermissionAskPayload`。
             它是**唯一需要前端按字段读**的一类，因为用户要照着它点按钮。
+
+            ★ 故意**不**用 `oneOf` 把它绑进这里：那样会把所有事件的
+            payload 类型一起收紧，而我们本来就打算把 ACP 的字段原样透传。
+            代价是前端要自己按那个 schema 解析——`features/permission`
+            的 `toRequest` 做这件事，缺字段时跳过而不是白屏。
           additionalProperties: true
