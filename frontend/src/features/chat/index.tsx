@@ -19,10 +19,32 @@ import styles from './ChatPage.module.css'
  * 这是 V5 与 V6 真正连起来的地方——用户在这里第一次看到「我说的话变成了
  * 一个正在进行的工作」。
  */
-export function ChatPage() {
+/**
+ * 左栏点过来的意图：在某个项目下开新对话，或打开一条已有的工作。
+ */
+export type ChatIntent =
+  | { kind: 'new'; projectPath: string }
+  | { kind: 'open'; workID: string }
+
+export type ChatPageProps = {
+  /** 左栏点过来的动作；为 null 表示用户直接进的对话页。 */
+  intent: ChatIntent | null
+  /**
+   * 意图的序号。
+   *
+   * ★ 同一个项目连点两次「新建对话」，`intent` 的内容不变——
+   * 只看内容的话第二次毫无动静，而用户明明点了两下。序号让每一次点击
+   * 都是一个新事件。
+   */
+  intentSeq: number
+}
+
+export function ChatPage({ intent, intentSeq }: ChatPageProps) {
   const { t } = useTranslation()
 
   const [projects, setProjects] = useState<Project[]>([])
+  // 左栏指定的项目路径。为空时回落到第一个项目（用户直接进对话页的情形）。
+  const [pickedProject, setPickedProject] = useState<string | null>(null)
   const [current, setCurrent] = useState<Work | null>(null)
   const [prompt, setPrompt] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
@@ -48,9 +70,37 @@ export function ChatPage() {
     })()
   }, [])
 
+  // ★ 依赖里带上 intentSeq：连点两次同一个项目也要各响应一次
+  useEffect(() => {
+    if (intent === null) {
+      return
+    }
+    if (intent.kind === 'new') {
+      setPickedProject(intent.projectPath)
+      setCurrent(null) // 新的一轮：不接着看上一条工作
+      setPrompt('')
+      setErrorCode(null)
+      return
+    }
+    void (async () => {
+      try {
+        const works = await listWorks()
+        setCurrent(works.find((w) => w.id === intent.workID) ?? null)
+      } catch (err) {
+        setErrorCode(errorCodeOf(err))
+      }
+    })()
+  }, [intent, intentSeq])
+
   const start = useCallback(async () => {
     const text = prompt.trim()
-    const project = projects[0]
+    // ★ 优先用左栏点的那个项目。固定取 projects[0] 的话，
+    // 用户在 B 项目下点「新建对话」，工作却建到了 A 项目里——
+    // 而他要到 AI 开始读错文件时才发现。
+    const project =
+      pickedProject === null
+        ? projects[0]
+        : (projects.find((p) => p.path === pickedProject) ?? projects[0])
     // ★ 空需求不发请求。发出去的话后端会拒，而用户看到的是一句莫名其妙的
     // 错误——他明明什么都没输入。
     if (text === '' || project === undefined || project.path === undefined) {
@@ -69,7 +119,7 @@ export function ChatPage() {
     } finally {
       setStarting(false)
     }
-  }, [prompt, projects])
+  }, [prompt, projects, pickedProject])
 
   return (
     <div className={styles.page}>

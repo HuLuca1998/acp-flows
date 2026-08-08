@@ -126,7 +126,10 @@ while IFS= read -r line; do
       printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
     *'"session/new"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
-      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","name":"\u6743\u9650\u6a21\u5f0f","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
     *'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"我看一下"}}}}\n'
@@ -180,7 +183,10 @@ while IFS= read -r line; do
       printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
     *'"session/new"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
-      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","name":"\u6743\u9650\u6a21\u5f0f","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
     *'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
@@ -230,10 +236,11 @@ case "$1" in
 esac
 while IFS= read -r line; do
   case "$line" in
-    *'"initialize"'*|*'"session/new"'*|*'"session/prompt"'*)
+    *'"initialize"'*|*'"session/new"'*|*'"session/set_config_option"'*|*'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       case "$line" in
-        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+        *'"session/set_config_option"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
         *'"session/prompt"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
         *) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
       esac ;;
@@ -294,10 +301,11 @@ case "$1" in
 esac
 while IFS= read -r line; do
   case "$line" in
-    *'"initialize"'*|*'"session/new"'*|*'"session/prompt"'*)
+    *'"initialize"'*|*'"session/new"'*|*'"session/set_config_option"'*|*'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       case "$line" in
-        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+        *'"session/set_config_option"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
         *'"session/prompt"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
         *) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
       esac ;;

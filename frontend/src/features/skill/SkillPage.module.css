@@ -1,0 +1,130 @@
+/* Skill 页。照设计稿 §十：条目 = 名字 + 版本 + 状态 + 校验原因。 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-neutral-100);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.subtitle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.source {
+  padding: 2px 7px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.count {
+  color: var(--color-neutral-600);
+}
+
+.hint {
+  padding: var(--space-6);
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.name {
+  color: var(--color-neutral-100);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.version {
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.status {
+  padding: 2px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-500);
+  font-size: 11px;
+}
+
+/* ★ 校验没过的要**看得出不一样**——它是需要用户动手的那一条。
+   用设计系统已有的 `--color-fail`（失败/失效），不新造 warning 一档。 */
+.status[data-ok='false'] {
+  border-color: var(--color-fail);
+  color: var(--color-fail);
+}
+
+.desc {
+  margin: 0;
+  color: var(--color-neutral-500);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.reason {
+  margin: 2px 0 0;
+  color: var(--color-fail);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.meta code {
+  font-family: var(--font-mono);
+}

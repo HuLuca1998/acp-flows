@@ -1,0 +1,178 @@
+/* 记忆页。照设计稿 §九：四档筛选 + 条目带类型与状态。 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-neutral-100);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hint {
+  padding: var(--space-6);
+  color: var(--color-neutral-500);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-fail);
+  font-size: 11.5px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+
+  /* 胶囊形：设计系统没有 pill 令牌，用最大圆角近似 */
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-neutral-500);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.tab[data-active='true'] {
+  border-color: var(--color-accent-500);
+  color: var(--color-neutral-100);
+}
+
+.tabCount {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+
+/* ★ 等人拍板的那条要**跳出来**——它是这一页唯一需要用户动手的东西。 */
+.item[data-status='candidate'] {
+  border-color: var(--color-accent-500);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.id {
+  color: var(--color-neutral-100);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.kind,
+.status {
+  padding: 2px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-neutral-500);
+  font-size: 10.5px;
+}
+
+.status[data-status='active'] {
+  border-color: var(--color-pass);
+  color: var(--color-pass);
+}
+
+.status[data-status='candidate'] {
+  border-color: var(--color-accent-500);
+  color: var(--color-accent-400);
+}
+
+.injectable {
+  color: var(--color-pass);
+  font-size: 10.5px;
+}
+
+.refs,
+.meta {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.confirm,
+.reject {
+  padding: 3px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-300);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.confirm {
+  border-color: var(--color-accent-500);
+  color: var(--color-accent-400);
+}
+
+.confirm:disabled,
+.reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.footnote {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+  line-height: 1.6;
+}

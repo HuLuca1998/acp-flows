@@ -164,9 +164,15 @@ paths:
       operationId: addProject
       summary: 把一个本地代码文件夹加进来
       description: |
-        ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-        顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-        加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+        ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+
+        顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+        `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+
+        ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+        `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+        「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+        不是「永远不写」。
       requestBody:
         required: true
         content:
@@ -179,12 +185,50 @@ paths:
                   type: string
                   description: 本地绝对路径
                   examples: ['/Users/me/work/my-app']
+                initialize:
+                  type: boolean
+                  default: false
+                  description: |
+                    是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                    并追加 `.gitignore`。**默认不做。**
       responses:
         '201':
           description: 已添加
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Project' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /projects/preview:
+    post:
+      tags: [project]
+      operationId: previewProject
+      summary: 创建项目前的预演——**只看不动**
+      description: |
+        ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+        所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+
+        返回四块，正好对应设计稿弹层的四个区块：
+        将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+
+        ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+        是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+        而漂移的方向永远是「预演里没说的那件事被做了」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string, examples: ['/Users/me/work/my-app'] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectPreview' }
         default: { $ref: '#/components/responses/Problem' }
 
   /projects/{id}:
@@ -353,6 +397,126 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CapabilityMatrix' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  # ── 角色 · Skill · 记忆（M2）────────────────────────────────
+  /roles:
+    get:
+      tags: [role]
+      operationId: listRoles
+      summary: 角色与 Runtime 绑定表
+      description: |
+        八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+
+        ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+        `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+        返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+        要展示实际档名时用 `mode_name`，它是后端翻译好的。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles]
+                properties:
+                  roles:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+
+  /skills:
+    get:
+      tags: [skill]
+      operationId: listSkills
+      summary: Skill 库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string, enum: [project, global] }
+          description: 不传时返回全局库
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [skills]
+                properties:
+                  skills:
+                    type: array
+                    items: { $ref: '#/components/schemas/Skill' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /memories:
+    get:
+      tags: [memory]
+      operationId: listMemories
+      summary: 记忆库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+            ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/MemoryStatus' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [memories]
+                properties:
+                  memories:
+                    type: array
+                    items: { $ref: '#/components/schemas/Memory' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /memories/{id}/review:
+    post:
+      tags: [memory]
+      operationId: reviewMemory
+      summary: 人工审核一条候选记忆
+      description: |
+        ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+        且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+
+        错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+        变成了以后每一轮的前提，而用户从没看过那句话。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, actor]
+              properties:
+                decision:
+                  type: string
+                  enum: [confirm, reject]
+                actor:
+                  type: string
+                  description: 是谁做的决定。**必填**，空值一律拒绝
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Memory' }
         default: { $ref: '#/components/responses/Problem' }
 
 components:
@@ -607,6 +771,213 @@ components:
           description: 用户的需求原话
 
     # ── Runtime ───────────────────────────────────────────────
+    ProjectPreview:
+      type: object
+      required: [path, is_git_repo, actions, skills]
+      properties:
+        path: { type: string }
+        name:
+          type: string
+          description: 默认显示名，取目录名
+        is_git_repo:
+          type: boolean
+          description: |
+            ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+            在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+        actions:
+          type: array
+          description: 将要做的每一步，**按执行顺序**
+          items: { $ref: '#/components/schemas/ProjectAction' }
+        skills:
+          type: array
+          description: |
+            在项目里发现的已有 Skill（扫 `**/skills`，跳过 node_modules 与 target）。
+            每条带**项目内的相对路径**当来源——用户要能照着去找。
+          items: { $ref: '#/components/schemas/Skill' }
+        remote: { $ref: '#/components/schemas/GitRemote' }
+        gh: { $ref: '#/components/schemas/GhStatus' }
+
+    ProjectAction:
+      type: object
+      required: [kind, path, reason, already_there]
+      properties:
+        kind: { type: string, enum: [create_dir, create_file, append_lines] }
+        path: { type: string }
+        reason:
+          type: string
+          description: |
+            为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。
+        already_there:
+          type: boolean
+          description: |
+            为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+            用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+        lines:
+          type: array
+          items: { type: string }
+          description: 将写入或追加的内容
+
+    GitRemote:
+      type: object
+      description: |
+        `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+        本地仓库、还没推过的项目都很常见。
+      properties:
+        url:
+          type: string
+          description: |
+            原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+            丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+            ★ URL 里夹的凭据已被摘掉。
+        host: { type: string, examples: [github.com] }
+        slug: { type: string, examples: ['owner/repo'] }
+        is_github: { type: boolean }
+
+    GhStatus:
+      type: object
+      required: [status]
+      description: |
+        本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+        `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+      properties:
+        status:
+          type: string
+          enum: [ready, not_installed, not_authenticated, probe_failed]
+          description: |
+            ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+            那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+        version: { type: string, examples: ['2.62.0'] }
+        account:
+          type: string
+          description: 登录的账号名。★ 取不到就留空，**不猜**
+        remedy:
+          type: string
+          description: 用户可以直接敲的一整条命令
+          examples: ['brew install gh', 'gh auth login']
+
+    Role:
+      type: object
+      required: [id, display_name, operations, session_mode, permission_policy, runtime_name, is_preset]
+      properties:
+        id:
+          type: string
+          description: 角色标识，不是封闭枚举（用户可加自定义角色）
+          examples: [implementer, unit_reviewer, memory_curator]
+        display_name: { type: string, examples: [实现工程师] }
+        operations:
+          type: array
+          items: { type: string }
+          description: |
+            承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+            漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+          examples: [[implement]]
+        duty: { type: string, description: 职责 }
+        personality: { type: string, description: 性格与提示语气 }
+        boundary:
+          type: string
+          description: 边界——这个角色明令不做的事。**是可测的约束，不是文案**
+        output: { type: string, description: 产出物 }
+        session_mode:
+          type: string
+          enum: [read_only, guarded_write, unrestricted]
+          description: |
+            **语义**档位，不是某一端的档名。
+            存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+            保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+        mode_name:
+          type: string
+          description: |
+            后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+            前端不许自己翻译——那需要认识品牌名。
+          examples: [default, plan, read-only]
+        permission_policy:
+          type: string
+          enum: [ask_each, auto_allow_read]
+          description: 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+        runtime_name:
+          type: string
+          description: 当前绑定的 Runtime（推荐绑定可被用户覆盖）
+        is_preset: { type: boolean }
+        problem:
+          type: string
+          description: |
+            绑定查不到或档位翻译不出来时的原因。
+            ★ 出问题的角色**照样返回**，只是带着这一条——
+            跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+
+    Skill:
+      type: object
+      required: [name, dir, scope, source, status, validation_ok]
+      properties:
+        name: { type: string, examples: [rust-test-first] }
+        dir: { type: string, description: 目录名；frontmatter 缺 name 时它就是显示名 }
+        version:
+          type: string
+          description: '`主.次` 两段，与应用版本的三段不是一回事'
+          examples: ['2.1']
+        description: { type: string }
+        compatibility: { type: string, examples: ['cargo >= 1.80'] }
+        scope: { type: string, enum: [project, global] }
+        source:
+          type: string
+          description: |
+            扫到它的目录约定。**必须给**——不标来源的话，
+            用户不知道 Duet 翻了他哪些目录。
+          examples: ['.acpflows/skills', '.claude/skills']
+        status:
+          type: string
+          enum: [draft, active, deprecated]
+          description: ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+        validation_ok: { type: boolean }
+        validation_reason:
+          type: string
+          description: |
+            没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+            静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+          examples: ['校验未通过：frontmatter 缺 description']
+        hit_count: { type: integer, description: 命中计数 }
+
+    MemoryStatus:
+      type: string
+      enum: [candidate, active, discarded, invalid, obsolete]
+      description: |
+        ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+        那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+        对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+
+    Memory:
+      type: object
+      required: [id, kind, scope, status, source_refs, injectable]
+      properties:
+        id: { type: string, examples: [mem-203] }
+        kind: { type: string, enum: [constraint, experience, fact] }
+        scope:
+          type: string
+          description: 项目名（L2）或 `*`（L3 跨项目）
+          examples: [acp-engine, '*']
+        status: { $ref: '#/components/schemas/MemoryStatus' }
+        source_refs:
+          type: array
+          items: { type: string }
+          description: |
+            依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+            空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+          examples: [[ev-412, unit-009]]
+        created_by: { type: string, examples: [memory_curator] }
+        confirmed_by:
+          type: string
+          description: |
+            是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+            空值表示还没人拍板。
+        reason: { type: string, description: 废弃理由（obsolete 才有） }
+        supersedes: { type: string, description: 被本条取代的记忆 }
+        injectable:
+          type: boolean
+          description: |
+            能不能进**新的**注入清单。只有 active 能进——
+            候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+        history_len: { type: integer, description: 变更历史条数，只增不减 }
+
     Runtime:
       type: object
       required: [name, installed, status]

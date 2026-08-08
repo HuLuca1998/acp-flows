@@ -87,6 +87,11 @@ func (s *Store) Works() *WorkRepo { return &WorkRepo{db: s.db, clk: s.clk} }
 // Projects 返回项目仓储。
 func (s *Store) Projects() *ProjectRepo { return &ProjectRepo{db: s.db, clk: s.clk} }
 
+// Memories 返回记忆仓储。
+//
+// ★★ 它**没有 Delete**（INV-MEM-6）：失效不等于删除。
+func (s *Store) Memories() *MemoryRepo { return &MemoryRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 

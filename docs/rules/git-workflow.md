@@ -70,7 +70,13 @@ Co-Authored-By: ...
 
 固定取值，不许自创：
 
-`acp` `domain` `app` `api` `store` `fsstore` `git` `gh` `event` `ui` `shell` `e2e` `ci` `docs` `deps`
+`acp` `domain` `app` `api` `store` `fsstore` `git` `gh` `event` `ui` `shell` `e2e` `ci`
+`docs` `design` `plan` `skills` `deps`
+
+★ `design` 是设计稿本身（`design/**`）——它是顶层目录、有自己的 `AGENTS.md`，
+改它和改 `docs/` 是两件事，混在一起以后就分不出「设计稿变了」还是「文档变了」。
+
+★ 这张表与 `scripts/check/lib/commit_msg.py` 的 `SCOPES` **必须一致**，加的时候两处一起改。
 
 **允许逗号分隔的多个 scope**：`feat(domain,store): …`
 

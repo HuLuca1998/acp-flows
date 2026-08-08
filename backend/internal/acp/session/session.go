@@ -79,6 +79,16 @@ type Options struct {
 	// Permission 决定收到权限请求时怎么办。零值 = 每次都问、且没人接线
 	// （于是一律 cancelled）——最保守的那条。
 	Permission Permission
+
+	// RequiredModeID 是这条会话必须运行在的档位，**已经翻译成这一端的档名**
+	// （claude 的 `plan` / codex 的 `read-only`）。翻译在
+	// `acp/runtime.ModeNameOn`，session 层只管协议。
+	//
+	// ★★ 非空时**收不了权就开不了会话**。留空表示不限制——
+	// 只有明确不需要限制的场景才留空，别拿它当「先跑起来再说」的后门：
+	// 实测证明收权失败**没有任何症状**（codex 默认档是沙箱，
+	// 沙箱内的写不触发审批，权限请求 0 次、文件照建）。
+	RequiredModeID string
 }
 
 // Session 是一条已经建好的 ACP 会话。
@@ -201,13 +211,32 @@ func (s *Session) newSession(ctx context.Context, opts Options) error {
 	var resp protocol.NewSessionResponse
 	if err := s.conn.CallInto(ctx, protocol.MethodSessionNew, protocol.NewSessionRequest{
 		Cwd: opts.Cwd,
-		// ★ 不能是 nil：nil slice 会写成 null，而 claude 用 null 覆盖 thread config
-		// 的 mcp_servers 键，禁用条目全部丢失（acp-field-notes.md §4）。
+		// ★ 必须是**空数组**，不能是 nil。
+		//
+		// nil slice 会写成 `null`；而 **codex-acp**（不是 claude——这条归因
+		// 之前写错了）在 session 级 mcpServers 非空时，会用它**整体覆盖**
+		// thread config 的 `mcp_servers` 键，`CODEX_CONFIG` 里那些
+		// `enabled: false` 的禁用条目全部丢失（acp-field-notes.md §4 硬规则 2）。
+		//
+		// 后果是：机器级的 MCP Server 会在这条会话里静默复活，
+		// 而 MCP 是**任意进程执行**——用户以为自己只是打开了一个项目。
 		MCPServers: []protocol.MCPServer{},
 	}, &resp); err != nil {
 		return fmt.Errorf("session/new: %w", err)
 	}
 	s.id = resp.SessionID
+
+	// ★★ **收权在这里，而且失败就整个开会话失败。**
+	//
+	// 顺序是刻意的：先拿到 sessionID（set_config_option 要带它），
+	// 再立刻收权，**在任何 prompt 之前**。中间不留窗口——
+	// codex 的默认档是 workspace-write 沙箱，那个窗口里的写操作
+	// 连审批都不会触发。
+	if opts.RequiredModeID != "" {
+		if err := s.applyMode(ctx, resp, opts.RequiredModeID); err != nil {
+			return fmt.Errorf("收权到 %q: %w", opts.RequiredModeID, err)
+		}
+	}
 	return nil
 }
 

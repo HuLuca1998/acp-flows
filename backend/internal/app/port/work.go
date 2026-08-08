@@ -51,6 +51,16 @@ type AgentTurn struct {
 	Cwd string
 	// Prompt 是用户提的需求。
 	Prompt string
+	// RoleID 是这一轮由哪个角色执行（`implementer` / `unit_reviewer` …）。
+	//
+	// ★★ **它决定这条会话有多大权限**：角色带着语义档位，
+	// 开会话时会翻译成那一端的档名发过去收权。
+	//
+	// ★ 留空时按**实现工程师**处理（受控写）。不是「不收权」——
+	// 不收权的表现是 codex 跑在 workspace-write 沙箱里，
+	// 沙箱内的写操作连审批都不触发（acp-field-notes.md §3 实测）。
+	// 装配漏了一根线的表现必须是「权限最小」，不能是「什么都放行」。
+	RoleID string
 }
 
 // AgentRunner 拉起一个 Agent 跑一轮对话，把它说的话发到事件总线。

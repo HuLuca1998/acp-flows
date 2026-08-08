@@ -33,7 +33,7 @@ describe('左栏 · Runtime 状态', () => {
   // 写死「尚未检测」而后端返回两个 ready，用户会以为应用没在工作——
   // 界面说谎比界面简陋糟得多。
   it('列出检测到的 Runtime 与版本', async () => {
-    render(<Rail currentPage="chat" onNavigate={noop} />)
+    render(<Rail currentPage="chat" onNavigate={noop} onNewWork={noop} onOpenWork={noop} />)
 
     await waitFor(() => {
       expect(screen.getByText(/claude/i)).toBeInTheDocument()
@@ -46,7 +46,7 @@ describe('左栏 · Runtime 状态', () => {
   // ★ 状态要**分得出好坏**：ready 与 not_authenticated 对用户是两件事——
   // 后者意味着他得去登录，而界面不说他就一直等。
   it('区分就绪与未登录', async () => {
-    render(<Rail currentPage="chat" onNavigate={noop} />)
+    render(<Rail currentPage="chat" onNavigate={noop} onNewWork={noop} onOpenWork={noop} />)
 
     const claude = await waitFor(() => {
       const el = screen.getByText(/claude/i).closest('[data-runtime]')
@@ -65,7 +65,7 @@ describe('左栏 · Runtime 状态', () => {
   // 一个都没检测到时说清楚，而不是留一片空白。
   it('一个都没有时给出提示', async () => {
     listRuntimes.mockResolvedValue([])
-    render(<Rail currentPage="chat" onNavigate={noop} />)
+    render(<Rail currentPage="chat" onNavigate={noop} onNewWork={noop} onOpenWork={noop} />)
 
     await waitFor(() => {
       expect(screen.getByText(/没有检测到/)).toBeInTheDocument()
@@ -78,7 +78,7 @@ describe('左栏 · Runtime 状态', () => {
   // 而抛异常会让整棵组件树塌掉。
   it('查询失败时左栏照常显示', async () => {
     listRuntimes.mockRejectedValue(new Error('后端没起来'))
-    render(<Rail currentPage="chat" onNavigate={noop} />)
+    render(<Rail currentPage="chat" onNavigate={noop} onNewWork={noop} onOpenWork={noop} />)
 
     await waitFor(() => {
       expect(screen.getByText(/检测失败|没有检测到/)).toBeInTheDocument()
@@ -89,7 +89,7 @@ describe('左栏 · Runtime 状态', () => {
 
   // 折叠成图标条时不显示 Runtime 栏——48px 放不下，硬塞会溢出。
   it('折叠时不显示 Runtime 栏', async () => {
-    render(<Rail currentPage="chat" onNavigate={noop} collapsed />)
+    render(<Rail currentPage="chat" onNavigate={noop} onNewWork={noop} onOpenWork={noop} collapsed />)
 
     await waitFor(() => {
       expect(listRuntimes).toHaveBeenCalled()

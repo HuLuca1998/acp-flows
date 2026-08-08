@@ -185,3 +185,50 @@ type CancelNotification struct {
 	SessionID string          `json:"sessionId"`
 	Meta      json.RawMessage `json:"_meta,omitempty"`
 }
+
+// SetConfigOptionRequest 是 session/set_config_option 的 params。
+//
+// ★★ **参数名是 `configId`，不是 `optionId`。**
+// 写错的话 Agent 收到一个它不认识的字段，配置**静默不生效**——
+// 而响应仍然是成功的。收权失败没有任何症状，这是最坏的一种失败
+// （acp-field-notes.md §7 裁定 3）。
+//
+// ★ Value 是 json.RawMessage：select 型的值是字符串，boolean 型是 true/false，
+// 用 string 接会把 boolean 写成 `"true"` 而 Agent 期望的是 `true`。
+type SetConfigOptionRequest struct {
+	SessionID string          `json:"sessionId"`
+	ConfigID  string          `json:"configId"`
+	Value     json.RawMessage `json:"value"`
+	Meta      json.RawMessage `json:"_meta,omitempty"`
+}
+
+// SetConfigOptionResponse 是 session/set_config_option 的响应。
+//
+// ★ 响应带回**全量**配置项，用它当场回读校验：
+// 「发出去成功了」不等于「设进去了」。
+type SetConfigOptionResponse struct {
+	ConfigOptions []ConfigOption  `json:"configOptions,omitempty"`
+	Meta          json.RawMessage `json:"_meta,omitempty"`
+}
+
+// SetModeRequest 是 session/set_mode 的 params。
+//
+// ★ **已废弃，只作降级路径。** 官方挂了废弃告示，迁移方向是
+// set_config_option（acp-field-notes.md §7 裁定 3）。
+// 新代码一律先试 set_config_option。
+type SetModeRequest struct {
+	SessionID string          `json:"sessionId"`
+	ModeID    string          `json:"modeId"`
+	Meta      json.RawMessage `json:"_meta,omitempty"`
+}
+
+// SetModeResponse 是 session/set_mode 的响应。空对象。
+type SetModeResponse struct {
+	Meta json.RawMessage `json:"_meta,omitempty"`
+}
+
+// ConfigCategoryMode 是「会话模式」这一类配置项的 category。
+//
+// ★ 按 category 取而不是按 id：两端 id 不同（claude 的 effort /
+// codex 的 reasoning_effort），category 才是协议给的稳定语义键。
+const ConfigCategoryMode = "mode"

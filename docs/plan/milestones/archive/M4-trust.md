@@ -1,6 +1,6 @@
 # M4 · 值得信任
 
-> 对应验收点 **V9 · V10 · V11 · V12**（[`../acceptance.md`](../acceptance.md)）。
+> 对应验收点 **V9 · V10 · V11 · V12**（[`../acceptance.md`](../../acceptance.md)）。
 
 ## 目标
 
@@ -20,7 +20,7 @@
 1. 恢复失败时**伪造「会话仍连续」**——宁可显式降级为新会话
 2. 证据由 AI 转述而非应用直接采集
 3. 计划被改写而不是新增版本
-4. 撞上 [`../open-questions.md`](../open-questions.md) 未决项
+4. 撞上 [`../open-questions.md`](../../open-questions.md) 未决项
 
 ---
 

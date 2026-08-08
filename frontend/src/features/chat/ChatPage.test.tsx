@@ -76,7 +76,7 @@ afterEach(() => {
 describe('对话页', () => {
   it('一个项目都没有时，让用户先去加项目而不是干瞪眼', async () => {
     listProjects.mockResolvedValue([])
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     await waitFor(() => {
       expect(screen.getByText(/先添加一个项目/)).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('对话页', () => {
 
   it('有项目时给出输入框，提交后建工作', async () => {
     const user = userEvent.setup()
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     const input = await screen.findByRole('textbox')
     await user.type(input, '帮我加个功能')
@@ -102,7 +102,7 @@ describe('对话页', () => {
   // 莫名其妙的错误——他明明什么都没输入。
   it('空需求不发请求', async () => {
     const user = userEvent.setup()
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     await screen.findByRole('textbox')
     await user.click(screen.getByRole('button', { name: /开始/ }))
@@ -117,7 +117,7 @@ describe('对话页', () => {
   it('建工作失败时显示错误', async () => {
     const user = userEvent.setup()
     startWork.mockRejectedValue({ type: 'work_project_not_a_repo' })
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     const input = await screen.findByRole('textbox')
     await user.type(input, '做点事')
@@ -131,7 +131,7 @@ describe('对话页', () => {
   // 建好之后才连事件流——没有工作就没有要看的事件。
   it('建好工作之后才订阅事件流', async () => {
     const user = userEvent.setup()
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     await screen.findByRole('textbox')
     expect(FakeEventStream.instances, '还没有工作就连上了').toHaveLength(0)
@@ -149,10 +149,63 @@ describe('对话页', () => {
     listWorks.mockResolvedValue([
       { id: 'work-09', state: 'executing', project: '/Users/me/work/my-app' },
     ])
-    render(<ChatPage />)
+    render(<ChatPage intent={null} intentSeq={0} />)
 
     await waitFor(() => {
       expect(FakeEventStream.instances).toHaveLength(1)
     })
+  })
+})
+
+// ── 左栏点「新建对话」/「打开工作」时的响应（M2 完成标志第 1 条）──
+
+describe('响应左栏的动作', () => {
+  // ★★ 点某个项目下的「新建对话」→ **在那个项目下**开，不是在第一个项目下。
+  //
+  // 用固定的 projects[0] 的话，用户在 B 项目下点「新建对话」，
+  // 工作却建到了 A 项目里——而他要到 AI 开始读错文件时才发现。
+  it('在点的那个项目下建工作', async () => {
+    const user = userEvent.setup()
+    listProjects.mockResolvedValue([
+      { id: 'proj-01', name: 'a', path: '/work/a', is_git_repo: true },
+      { id: 'proj-02', name: 'b', path: '/work/b', is_git_repo: true },
+    ])
+    render(<ChatPage intent={{ kind: 'new', projectPath: '/work/b' }} intentSeq={1} />)
+
+    await user.type(await screen.findByRole('textbox'), '做点事')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+
+    await waitFor(() => {
+      expect(startWork).toHaveBeenCalledWith('/work/b', '做点事')
+    })
+  })
+
+  // ★ 点「打开工作」→ 直接看那条工作的时间线，不用重新提需求。
+  it('打开已有工作时直接连它的事件流', async () => {
+    listWorks.mockResolvedValue([
+      { id: 'work-07', state: 'executing', project: '/work/a' },
+      { id: 'work-09', state: 'paused', project: '/work/a' },
+    ])
+    render(<ChatPage intent={{ kind: 'open', workID: 'work-09' }} intentSeq={1} />)
+
+    await waitFor(() => {
+      expect(FakeEventStream.instances).toHaveLength(1)
+    })
+  })
+
+  // ★★ 同一个项目连点两次「新建对话」要有两次反应。
+  //
+  // 只看 intent 内容的话，第二次点 intent 没变，界面毫无动静——
+  // 而用户明明点了两下。序号就是为这个存在的。
+  it('连点两次「新建对话」都有反应', async () => {
+    const { rerender } = render(
+      <ChatPage intent={{ kind: 'new', projectPath: '/work/a' }} intentSeq={1} />,
+    )
+    await screen.findByRole('textbox')
+
+    rerender(<ChatPage intent={{ kind: 'new', projectPath: '/work/a' }} intentSeq={2} />)
+
+    // 第二次点之后输入框仍在、且是空的（新的一轮）
+    expect((await screen.findByRole('textbox')).getAttribute('value') ?? '').toBe('')
   })
 })

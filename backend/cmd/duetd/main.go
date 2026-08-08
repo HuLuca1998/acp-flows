@@ -28,11 +28,16 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/checkpoint"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/memory"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/role"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
+	projectstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/project"
+	skillstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/skill"
+	"github.com/HuLuca1998/acp-flows/backend/internal/ghx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
@@ -152,7 +157,16 @@ func run() error {
 	}
 	ids.PrimeSeq("proj", maxSeq)
 
-	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
+	// ★ 创建项目的预演要四件东西：算计划、扫已有 skill、读 remote、检测 gh。
+	// 任何一件缺了都不该让整次预演失败——扫不到 skill、没装 gh
+	// 都是很常见的正常状态。
+	projectSvc := project.New(db.Projects(), gitProbe{}, ids).
+		WithInit(
+			projectstore.Store{},
+			skillstore.Store{Home: paths.DataDir()},
+			gitx.RemoteProber{},
+			ghx.Detector{},
+		)
 	bus := eventbus.New(eventStore{db.Events()})
 	// ★ 权限中转站：Agent 问的话经它发到时间线，用户点的那一下经它回到 Agent。
 	//
@@ -210,6 +224,14 @@ func run() error {
 		Works:        workSvc,
 		Permissions:  perms,
 		Checkpoints:  checkpoints,
+		// 角色表：定义在 domain，Runtime 绑定在 acp/runtime——
+		// 这里把两边拼起来。品牌名（claude / codex）只有 adapter 认识。
+		Roles: role.New(runtime.Bindings{}),
+		// Skill 库：只扫全局（`~/.acpflows/skills`）。
+		// 项目级的在创建项目时初始化（M3），那时才有项目。
+		Skills: skillstore.Store{Home: paths.DataDir()},
+		// 记忆库：DB 只存索引与状态，正文在 md 文件里（INV-MEM-8）。
+		Memories: memory.New(db.Memories()),
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)

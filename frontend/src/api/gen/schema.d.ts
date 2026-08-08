@@ -123,11 +123,45 @@ export interface paths {
         put?: never;
         /**
          * 把一个本地代码文件夹加进来
-         * @description ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-         *     顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-         *     加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         * @description ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+         *
+         *     顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+         *     `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         *
+         *     ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+         *     `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+         *     「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+         *     不是「永远不写」。
          */
         post: operations["addProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 创建项目前的预演——**只看不动**
+         * @description ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+         *     所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+         *
+         *     返回四块，正好对应设计稿弹层的四个区块：
+         *     将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+         *
+         *     ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+         *     是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+         *     而漂移的方向永远是「预演里没说的那件事被做了」。
+         */
+        post: operations["previewProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -267,6 +301,89 @@ export interface paths {
         put?: never;
         /** 重新探测能力矩阵 */
         post: operations["probeRuntime"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 角色与 Runtime 绑定表
+         * @description 八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+         *
+         *     ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+         *     `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+         *     返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+         *     要展示实际档名时用 `mode_name`，它是后端翻译好的。
+         */
+        get: operations["listRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Skill 库 */
+        get: operations["listSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 记忆库 */
+        get: operations["listMemories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 人工审核一条候选记忆
+         * @description ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+         *     且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+         *
+         *     错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+         *     变成了以后每一轮的前提，而用户从没看过那句话。
+         */
+        post: operations["reviewMemory"];
         delete?: never;
         options?: never;
         head?: never;
@@ -448,6 +565,218 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+        };
+        ProjectPreview: {
+            path: string;
+            /** @description 默认显示名，取目录名 */
+            name?: string;
+            /**
+             * @description ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+             *     在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+             */
+            is_git_repo: boolean;
+            /** @description 将要做的每一步，**按执行顺序** */
+            actions: components["schemas"]["ProjectAction"][];
+            /**
+             * @description 在项目里发现的已有 Skill（扫 `**\/skills`，跳过 node_modules 与 target）。
+             *     每条带**项目内的相对路径**当来源——用户要能照着去找。
+             */
+            skills: components["schemas"]["Skill"][];
+            remote?: components["schemas"]["GitRemote"];
+            gh?: components["schemas"]["GhStatus"];
+        };
+        ProjectAction: {
+            /** @enum {string} */
+            kind: "create_dir" | "create_file" | "append_lines";
+            path: string;
+            /** @description 为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。 */
+            reason: string;
+            /**
+             * @description 为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+             *     用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+             */
+            already_there: boolean;
+            /** @description 将写入或追加的内容 */
+            lines?: string[];
+        };
+        /**
+         * @description `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+         *     本地仓库、还没推过的项目都很常见。
+         */
+        GitRemote: {
+            /**
+             * @description 原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+             *     丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+             *     ★ URL 里夹的凭据已被摘掉。
+             */
+            url?: string;
+            /** @example github.com */
+            host?: string;
+            /** @example owner/repo */
+            slug?: string;
+            is_github?: boolean;
+        };
+        /**
+         * @description 本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+         *     `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+         */
+        GhStatus: {
+            /**
+             * @description ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+             *     那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+             * @enum {string}
+             */
+            status: "ready" | "not_installed" | "not_authenticated" | "probe_failed";
+            /** @example 2.62.0 */
+            version?: string;
+            /** @description 登录的账号名。★ 取不到就留空，**不猜** */
+            account?: string;
+            /**
+             * @description 用户可以直接敲的一整条命令
+             * @example brew install gh
+             * @example gh auth login
+             */
+            remedy?: string;
+        };
+        Role: {
+            /**
+             * @description 角色标识，不是封闭枚举（用户可加自定义角色）
+             * @example implementer
+             * @example unit_reviewer
+             * @example memory_curator
+             */
+            id: string;
+            /** @example 实现工程师 */
+            display_name: string;
+            /**
+             * @description 承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+             *     漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+             * @example [
+             *       "implement"
+             *     ]
+             */
+            operations: string[];
+            /** @description 职责 */
+            duty?: string;
+            /** @description 性格与提示语气 */
+            personality?: string;
+            /** @description 边界——这个角色明令不做的事。**是可测的约束，不是文案** */
+            boundary?: string;
+            /** @description 产出物 */
+            output?: string;
+            /**
+             * @description **语义**档位，不是某一端的档名。
+             *     存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+             *     保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+             * @enum {string}
+             */
+            session_mode: "read_only" | "guarded_write" | "unrestricted";
+            /**
+             * @description 后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+             *     前端不许自己翻译——那需要认识品牌名。
+             * @example default
+             * @example plan
+             * @example read-only
+             */
+            mode_name?: string;
+            /**
+             * @description 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+             * @enum {string}
+             */
+            permission_policy: "ask_each" | "auto_allow_read";
+            /** @description 当前绑定的 Runtime（推荐绑定可被用户覆盖） */
+            runtime_name: string;
+            is_preset: boolean;
+            /**
+             * @description 绑定查不到或档位翻译不出来时的原因。
+             *     ★ 出问题的角色**照样返回**，只是带着这一条——
+             *     跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+             */
+            problem?: string;
+        };
+        Skill: {
+            /** @example rust-test-first */
+            name: string;
+            /** @description 目录名；frontmatter 缺 name 时它就是显示名 */
+            dir: string;
+            /**
+             * @description `主.次` 两段，与应用版本的三段不是一回事
+             * @example 2.1
+             */
+            version?: string;
+            description?: string;
+            /** @example cargo >= 1.80 */
+            compatibility?: string;
+            /** @enum {string} */
+            scope: "project" | "global";
+            /**
+             * @description 扫到它的目录约定。**必须给**——不标来源的话，
+             *     用户不知道 Duet 翻了他哪些目录。
+             * @example .acpflows/skills
+             * @example .claude/skills
+             */
+            source: string;
+            /**
+             * @description ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+             * @enum {string}
+             */
+            status: "draft" | "active" | "deprecated";
+            validation_ok: boolean;
+            /**
+             * @description 没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+             *     静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+             * @example 校验未通过：frontmatter 缺 description
+             */
+            validation_reason?: string;
+            /** @description 命中计数 */
+            hit_count?: number;
+        };
+        /**
+         * @description ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+         *     那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+         *     对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+         * @enum {string}
+         */
+        MemoryStatus: "candidate" | "active" | "discarded" | "invalid" | "obsolete";
+        Memory: {
+            /** @example mem-203 */
+            id: string;
+            /** @enum {string} */
+            kind: "constraint" | "experience" | "fact";
+            /**
+             * @description 项目名（L2）或 `*`（L3 跨项目）
+             * @example acp-engine
+             * @example *
+             */
+            scope: string;
+            status: components["schemas"]["MemoryStatus"];
+            /**
+             * @description 依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+             *     空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+             * @example [
+             *       "ev-412",
+             *       "unit-009"
+             *     ]
+             */
+            source_refs: string[];
+            /** @example memory_curator */
+            created_by?: string;
+            /**
+             * @description 是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+             *     空值表示还没人拍板。
+             */
+            confirmed_by?: string;
+            /** @description 废弃理由（obsolete 才有） */
+            reason?: string;
+            /** @description 被本条取代的记忆 */
+            supersedes?: string;
+            /**
+             * @description 能不能进**新的**注入清单。只有 active 能进——
+             *     候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+             */
+            injectable: boolean;
+            /** @description 变更历史条数，只增不减 */
+            history_len?: number;
         };
         Runtime: {
             /**
@@ -717,6 +1046,12 @@ export interface operations {
                      * @example /Users/me/work/my-app
                      */
                     path: string;
+                    /**
+                     * @description 是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                     *     并追加 `.gitignore`。**默认不做。**
+                     * @default false
+                     */
+                    initialize?: boolean;
                 };
             };
         };
@@ -728,6 +1063,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    previewProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example /Users/me/work/my-app */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPreview"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -904,6 +1267,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CapabilityMatrix"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        roles: components["schemas"]["Role"][];
+                    };
+                };
+            };
+        };
+    };
+    listSkills: {
+        parameters: {
+            query?: {
+                /** @description 不传时返回全局库 */
+                scope?: "project" | "global";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        skills: components["schemas"]["Skill"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMemories: {
+        parameters: {
+            query?: {
+                /**
+                 * @description 项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+                 *     ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+                 */
+                scope?: string;
+                status?: components["schemas"]["MemoryStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        memories: components["schemas"]["Memory"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reviewMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "confirm" | "reject";
+                    /** @description 是谁做的决定。**必填**，空值一律拒绝 */
+                    actor: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Memory"];
                 };
             };
             default: components["responses"]["Problem"];
