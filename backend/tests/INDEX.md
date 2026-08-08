@@ -391,3 +391,21 @@
 | `TestScan_IgnoresLooseFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | 散装文件不算 skill——skill 是目录不是文件 |
 | `TestScan_HandlesCRLF` | `internal/fsstore/skill/scan_test.go` | fsstore | ★ Windows 换行的 SKILL.md 也读得出来。读不出的症状是「缺 name、description」，会把人引向一个根本没写错的文件 |
 | `TestScan_SortedByDir` | `internal/fsstore/skill/scan_test.go` | fsstore | 结果按目录名排序，不受文件系统返回顺序影响 |
+| `TestMemoryKind_R1_ClosedEnum` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R1：类型封闭枚举（constraint / experience / fact）；`note` 与空串一律非法 |
+| `TestMemoryStatus_R2_FiveStatesFourTransitions` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R2（INV-MEM-4）：**五态**（设计稿筛选器那三档是界面分组，「已失效」同时装 invalid 与 obsolete）；迁移只有四条；★ **没有任何一条边指回 candidate**——有回边的话，一条被人确认过、注入了几十轮的记忆能重新变成待审 |
+| `TestProposeCandidate_INVMEM2_OnlyCreatesCandidates` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-2 **绝不自动写入**：唯一的构造入口只造得出 candidate，刚建出来不可注入、没有 confirmedBy |
+| `TestMemory_INVMEM2_ConfirmNeedsAnActor` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-2：`candidate → active` 必须带一个**人**的动作。空 actor / 全空白都拒；确认后记下是谁放行的。允许空 actor 的话一句 `Confirm("")` 就绕过整条规矩而代码读起来完全正常 |
+| `TestProposeCandidate_INVMEM3_RequiresSourceRefs` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-3：没有 `source_refs` 就不能成为记忆——空着的话 AI 的一句臆断就能变成以后每一轮的前提 |
+| `TestProposeCandidate_RejectsBadInput` | `internal/domain/model/memory_test.go` | domain | 空 id / 不认识的类型 / 空 scope 一律拒，错误信息点名是哪一项 |
+| `TestMemory_R4_OnlyActiveIsInjectable` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R4（INV-MEM-5）：只有 active 进**新**注入清单；candidate 进了就等于自动写入，invalid 进了等于失效没生效 |
+| `TestMemory_R4b_DiscardedAndObsoleteNotInjectable` | `internal/domain/model/memory_test.go` | domain | 被否决的、已废弃的都不可注入 |
+| `TestMemory_INVMEM1_ScopeIsolation` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-1：P1 的记忆永不出现在 P2 的清单里，也不出现在跨项目列表里。串项目 = 把 A 的约束当成 B 的前提，而两个项目的约定常常正好相反 |
+| `TestMemory_R3_CrossProjectVisibleEverywhere` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R3：L3 跨项目记忆对所有项目可见 |
+| `TestMemory_INVMEM4_RejectsIllegalTransitions` | `internal/domain/model/memory_test.go` | domain | 非法迁移一律拒且状态不变；三个终态（discarded/invalid/obsolete）没有出边 |
+| `TestMemory_INVMEM7_DeprecateNeedsReason` | `internal/domain/model/memory_test.go` | domain | INV-MEM-7：废弃必须给理由，`supersedes` 不能指向自身；被拒时状态不变 |
+| `TestMemory_INVMEM6_HasNoDeleteMethod` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-6 反射断言**没有 Delete**（失效 ≠ 删除）。★ 对**指针类型**取方法集——值类型的方法集不含指针接收者的方法（PlanVersion 那条负例的教训） |
+| `TestMemory_INVMEM8_DoesNotHoldContent` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-8 反射断言模型**不存正文**：正文只在 md 文件里。存两份的话迟早对不上，而「哪一份是真的」没有答案 |
+| `TestMemory_INVMEM10_HistoryGrowsOnEveryChange` | `internal/domain/model/memory_test.go` | domain | INV-MEM-10：每次状态变更追加一条历史；★ **被拒的迁移不留历史**——它什么都没发生 |
+| `TestMemory_SourceRefsReturnsCopy` | `internal/domain/model/memory_test.go` | domain | `SourceRefs()` 返回副本 |
+| `TestAllMemoryStatuses_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 状态全集返回副本 |
+| `TestAllMemoryKinds_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 类型全集返回副本 |
