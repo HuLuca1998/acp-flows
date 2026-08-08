@@ -192,7 +192,57 @@
   ★ 设计稿角色表里有一列 `会话模式 set_mode`（值 `plan`）——
   **用 ACP 的 set_mode 收权才是设计稿的做法**，而不是靠我们自己拒绝
 
+### 「只读」在哪一层限制（2026-08-08 用户确认：**ACP 层**）
+
+> 用户原话：「对的，在 acp 哪一层限制」
+
+**在 ACP 层收权，不在我们的权限裁决层拦。** 区别是实打实的
+（`acp-field-notes.md` §3 的实测表）：
+
+| 做法 | `request_permission` 次数 | 文件建了吗 |
+|---|---|---|
+| codex 默认档 `agent` + **我们全拒** | **0** | ✅ **建了** |
+| `read-only` 档 + 我们全拒 | 2 | ❌ 没建 |
+
+★ **一份看起来很严的全拒代码，在默认档下从未被调用过**——
+因为 `agent` 档 = `workspace-write` 沙箱，**沙箱内的写操作根本不触发审批**。
+靠客户端拒绝是拦不住的，必须在 Runtime 那一侧把档位收掉。
+
+### ★ 用哪个方法：`set_config_option`，不是 `set_mode`
+
+`acp-field-notes.md` §7 冲突裁定第 3 条：
+
+> `session/set_mode` 官方已挂废弃告示。迁移方向是
+> **`session/set_config_option`**（按 `category` 取 `mode`）。
+> **新代码直接写 `set_config_option`**，`set_mode` 只作降级。
+
+所以实现是：**先试 `set_config_option`，不支持再降级到 `set_mode`**，
+两个都不支持时**明确报错并拒绝开工**——不能假装收了权。
+
+### ★ 档位取值：设计稿那个是过时的
+
+`acp-field-notes.md` §7 冲突裁定第 2 条：
+
+> 设计稿角色表把 codex 绑到 `auto`——那是 codex **0.16.0** 的旧档名，
+> 1.1.7 已改成 `read-only` / `agent` / `agent-full-access`。**笔记为准。**
+
+所以角色配置里的档位下拉要用**实测的取值**，不是设计稿写的 `auto`。
+这是 `PARITY.md` 里一条**有理由的偏离**（设计稿用了过时档名）。
+
+### 三层防线，缺一不可
+
+```
+① Runtime 沙箱档（set_config_option）  ← 执法开关，不设等于没有
+② 隔离的 cwd（worktree）               ← 边界
+③ OS 级兜底（容器 / 独立用户 / 只读挂载） ← 最后一道
+```
+
+我现在只有 ②。`M2` 定义角色时补 ①。
+
 ### 归属
 
-新 `M4`（需求）与 `M6`（契约干活）都依赖这条。写进
-[`roadmap-v2-draft.md`](roadmap-v2-draft.md) 的验收标准。
+- **`M2`**（角色库）：档位配置 + `set_config_option` 收权 + 降级路径
+- **`M5`**（需求）：对话会话常驻 + 只读档位生效的验收
+- **`M7`**（契约干活）：实现会话按契约边界配档
+
+写进 [`roadmap-v2-draft.md`](roadmap-v2-draft.md) 的验收标准。
