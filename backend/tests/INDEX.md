@@ -365,3 +365,12 @@
 | `TestRecommendedRuntimeFor_R2_EightPresetBindings` | `internal/acp/runtime/mode_test.go` | acp | M2 U2.1.1 R2：八个角色的推荐 Runtime 对上设计稿角色表。★ 「推荐」是认真的——设计稿有「恢复推荐绑定」按钮，说明用户改得动 |
 | `TestRecommendedRuntimeFor_R2b_UnlistedRoleErrs` | `internal/acp/runtime/mode_test.go` | acp | 自定义角色没有推荐绑定时报错，不给「反正 claude 能干」的默认值 |
 | `TestPresetRoles_R2c_BindingAndModeFitTogether` | `internal/acp/runtime/mode_test.go` | acp | ★★ 把两张表**连起来**验：单看都对，合起来可能是「某角色推荐 codex，而 codex 上没有它要的那一档」——那种错只在真开会话时暴露 |
+| `TestApplyMode_R1_PrefersSetConfigOption` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R1：两个方法都可用时走 `set_config_option`，`set_mode` 调用次数为 0。★ 后者官方已挂废弃告示，先试旧的会让代码一直走在废弃路径上直到它被移除 |
+| `TestApplyMode_R2_ParamIsConfigIdNotOptionId` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R2：★★ 参数名是 `configId`。判据是**档位真的变了**（Fake 那侧回读），不是「请求发出去了」——写成 `optionId` 时 Agent 什么都不设而响应仍然成功。另外直查线上帧的键名 |
+| `TestApplyMode_R3_LooksUpByCategoryNotID` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R3：按 `category` 取配置项。三个不同的 id 都要能取到，且前面塞了别的 category 的项以排除「取第一项蒙对」 |
+| `TestApplyMode_R4_FallsBackToSetMode` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R4：只声明 `modes` 没有 `configOptions` 时降级到 `set_mode`，且档位真的设进去了。「不支持」的判据是 Agent 自己声明的能力 |
+| `TestApplyMode_R5_RefusesWhenNeitherSupported` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R5：★★ 两个都不支持 → `ErrCannotRestrictMode`，不返回可用会话，**且一句 prompt 都不发**。收不了权还继续跑等于让 AI 在不受限档位上动用户代码 |
+| `TestApplyMode_R6_VerifiesByReadingBack` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R6：要设的档位不在可选值里 → 发之前就拒绝（`ErrModeNotAvailable`） |
+| `TestApplyMode_R6b_ErrsWhenReadBackDiffers` | `internal/acp/session/mode_test.go` | acp | ★ Agent 收下请求、回成功、但值没变（`IgnoreConfigWrites`）→ 回读发现不一致，报 `ErrModeNotApplied`。与 R6 的区别：那条是发之前查出来，这条是发之后才发现——只有前者的话，Agent 悄悄忽略一个合法请求时我们照样一路绿灯 |
+| `TestApplyMode_EmptyModeSkipsRestriction` | `internal/acp/session/mode_test.go` | acp | `RequiredModeID` 留空时不发任何收权请求——不是所有会话都需要限制 |
+| `TestApplyMode_LegacyRejectsUnavailableMode` | `internal/acp/session/mode_test.go` | acp | 降级路径上档位不在 `availableModes` 里也要拒绝，且不发 `set_mode` |

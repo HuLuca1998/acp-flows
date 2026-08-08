@@ -79,6 +79,16 @@ type Options struct {
 	// Permission 决定收到权限请求时怎么办。零值 = 每次都问、且没人接线
 	// （于是一律 cancelled）——最保守的那条。
 	Permission Permission
+
+	// RequiredModeID 是这条会话必须运行在的档位，**已经翻译成这一端的档名**
+	// （claude 的 `plan` / codex 的 `read-only`）。翻译在
+	// `acp/runtime.ModeNameOn`，session 层只管协议。
+	//
+	// ★★ 非空时**收不了权就开不了会话**。留空表示不限制——
+	// 只有明确不需要限制的场景才留空，别拿它当「先跑起来再说」的后门：
+	// 实测证明收权失败**没有任何症状**（codex 默认档是沙箱，
+	// 沙箱内的写不触发审批，权限请求 0 次、文件照建）。
+	RequiredModeID string
 }
 
 // Session 是一条已经建好的 ACP 会话。
@@ -215,6 +225,18 @@ func (s *Session) newSession(ctx context.Context, opts Options) error {
 		return fmt.Errorf("session/new: %w", err)
 	}
 	s.id = resp.SessionID
+
+	// ★★ **收权在这里，而且失败就整个开会话失败。**
+	//
+	// 顺序是刻意的：先拿到 sessionID（set_config_option 要带它），
+	// 再立刻收权，**在任何 prompt 之前**。中间不留窗口——
+	// codex 的默认档是 workspace-write 沙箱，那个窗口里的写操作
+	// 连审批都不会触发。
+	if opts.RequiredModeID != "" {
+		if err := s.applyMode(ctx, resp, opts.RequiredModeID); err != nil {
+			return fmt.Errorf("收权到 %q: %w", opts.RequiredModeID, err)
+		}
+	}
 	return nil
 }
 
