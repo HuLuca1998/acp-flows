@@ -255,7 +255,7 @@
 
 ---
 
-### ○ U3.2.3 · 取消的业务规则：什么时候不许停
+### ✓ U3.2.3 · 取消的业务规则：什么时候不许停
 
 > **2026-08-08 补登记。** `U3.2.1` 的 R6 触发了那个单元的 `stop_conditions`
 > （必须扩大写入范围）：「工作处于什么状态」是 domain / app 的知识，
@@ -280,3 +280,22 @@
 
 > **R5 接的是 `U3.2.1` 的 `MustKill`**：那个函数给出了「必须杀」的信号，
 > 但真正去杀的是 app 层——它才持有进程句柄。
+
+> **2026-08-08 已完成。** 规则在 `domain/model.CanCancel`（纯判断，穷举全部
+> 11 个状态），用例在 `app/work.Cancel`，端点是 `POST /v1/works/{id}/cancel`。
+>
+> **顺序是「先问规则再动手」**：不行就直接拒、**一次协议取消都不发**。
+> 反过来的话，审查中的工作已经被掐掉了才发现不该掐。
+>
+> **跨层不传哨兵错误**：`port.AgentCanceller.CancelTurn` 返回
+> `(mustKill bool, err error)`。app 层不许 import acp（depguard 挡着），
+> 拿不到 `session.ErrCancelTimeout`——而「必须杀进程」这件事太重要，
+> 不能靠调用方去 `errors.Is` 一个它看不见的类型。
+>
+> **`ProcessRunner` 顺带获得了取消能力**（超出 `allowed_changes`，
+> 但那份「哪个工作对应哪个进程」的映射只有它有）：
+> ★ **先 track 进程再握手**——反过来的话，一个连 `initialize` 都不回的 Agent
+> 会让 `session.Open` 挂住，而那时 `KillAgent` 找不到它，用户点了停界面转圈
+> 而进程一直跑着。造那条真进程测试时撞出来的。
+>
+> **造了九个负例**，全部会红。

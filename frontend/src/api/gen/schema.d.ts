@@ -176,6 +176,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 停下这个工作正在跑的那一轮
+         * @description ★ **不是所有状态都能停。** 审查中的工作会被拒绝（`work_cancel_not_allowed`）——
+         *     独立审查正在产出证据，半路掐掉的话那个单元既没通过也没被驳回，
+         *     卡在一个说不清的状态里。
+         *
+         *     正常停下之后工作进入 `paused`，并落一条 `checkpoint` 事件——
+         *     用户回头想接着干，得有东西告诉他「上次停在哪」。
+         *
+         *     ★ **Agent 停不下来时会被强制结束**，工作进入 `failed`。
+         *     这一步是「界面说已取消、后台还在烧钱改文件」的唯一防线：
+         *     只报错不杀的话，用户以为什么都没发生。那时本端点仍返回错误，
+         *     但工作状态与事件都已经落好。
+         */
+        post: operations["cancelWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -773,6 +803,27 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Work"];
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    cancelWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已停下 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
@@ -45,6 +46,24 @@ type ProcessRunner struct {
 	DetectTimeout time.Duration
 	// Log 留空时用 slog.Default()。
 	Log *slog.Logger
+
+	// live 记着每个工作正在跑的那一轮，供取消用。
+	//
+	// ★ 跑完必须摘掉：留着的话，取消一个早就结束的工作会去动一条
+	// 已经关掉的会话——轻则报一句看不懂的错，重则卡在那儿等一个
+	// 永远不来的收尾。而 app 层拿到错误会把一个成功结束的工作推到 failed。
+	mu   sync.Mutex
+	live map[string]*liveTurn
+}
+
+// liveTurn 是正在跑的一轮：会话与它的进程。
+//
+// ★ session 可以是 nil——进程起来了但**握手还没完成**时就是这样。
+// 那时用户照样能点「停」，而我们必须能杀掉它：一个连 initialize 都不回的
+// Agent 正是最该被杀的那种。先 track 进程、会话后补。
+type liveTurn struct {
+	session *session.Session
+	proc    *runtime.Process
 }
 
 // AskUserFunc 把权限请求交给用户，阻塞到他做出选择。
@@ -129,7 +148,26 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		}
 	}()
 
-	runErr := Run(ctx, Spec{
+	// ★ **先记下进程再握手。** 反过来的话，一个连 initialize 都不回的
+	// Agent 会让 session.Open 挂住，而那时 KillAgent 找不到它——
+	// 用户点了停，界面转圈，那个进程一直跑着。
+	lt := &liveTurn{proc: proc}
+	r.track(turn.WorkID, lt)
+	// 跑完就摘。留着的话，取消一个早就结束的工作会去动一条已经关掉的会话。
+	defer r.untrack(turn.WorkID)
+
+	s, openErr := session.Open(ctx, session.Options{
+		Transport:  stdio{r: proc.Stdout(), w: proc.Stdin()},
+		Cwd:        turn.Cwd,
+		Permission: r.PermissionFor(turn),
+	})
+	if openErr != nil {
+		return r.wrapAgentError(spec, proc, fmt.Errorf("agent: open session: %w", openErr))
+	}
+	r.attachSession(turn.WorkID, s)
+	defer func() { _ = s.Close() }()
+
+	runErr := RunOn(ctx, s, Spec{
 		Permission:   r.PermissionFor(turn),
 		Transport:    stdio{r: proc.Stdout(), w: proc.Stdin()},
 		Cwd:          turn.Cwd,
@@ -139,16 +177,92 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		Sink:         busSink{bus: r.Bus, ctx: ctx, log: log},
 		Log:          log,
 	})
-	if runErr == nil {
+	return r.wrapAgentError(spec, proc, runErr)
+}
+
+// wrapAgentError 把 Agent 的 stderr 带进错误。
+//
+// ★ 不带的话，用户看到的是「连接断开」，而真正的原因
+// （「请先登录」之类）躺在一个没人读的管道里。
+func (r *ProcessRunner) wrapAgentError(
+	spec runtime.Spec, proc *runtime.Process, err error,
+) error {
+	if err == nil {
 		return nil
 	}
-
-	// ★ 把 Agent 的 stderr 带回来。不带的话，用户看到的是「连接断开」，
-	// 而真正的原因（「请先登录」之类）躺在一个没人读的管道里。
 	if msg := strings.TrimSpace(proc.Stderr()); msg != "" {
-		return fmt.Errorf("%s: %w（它说：%s）", spec.Name, runErr, lastLines(msg, 5))
+		return fmt.Errorf("%s: %w（它说：%s）", spec.Name, err, lastLines(msg, 5))
 	}
-	return fmt.Errorf("%s: %w", spec.Name, runErr)
+	return fmt.Errorf("%s: %w", spec.Name, err)
+}
+
+// CancelTurn 实现 port.AgentCanceller：停掉这个工作正在跑的那一轮。
+//
+// ★ 没在跑时**不报错**：用户点一个本来就该没反应的按钮不该看到吓人的错误，
+// 而 app 层拿到错误会把一个已经成功结束的工作推到 failed。
+func (r *ProcessRunner) CancelTurn(ctx context.Context, workID string) (bool, error) {
+	lt := r.lookup(workID)
+	if lt == nil {
+		return false, nil
+	}
+	if lt.session == nil {
+		// 进程起来了但握手还没完成。**这种最该杀**：
+		// 一个连 initialize 都不回的 Agent 不会响应任何取消。
+		return true, fmt.Errorf("agent: 工作 %s 的会话尚未建立", workID)
+	}
+	err := lt.session.Cancel(ctx)
+	// ★ 把「必须杀」翻成一个布尔值交出去：app 层不许 import acp
+	// （depguard 挡着），拿不到那边的哨兵错误。
+	return session.MustKill(err), err
+}
+
+// KillAgent 实现 port.AgentCanceller：杀掉这个工作的 Agent 进程组。
+//
+// ★ 这是「界面说已取消、后台还在烧钱改文件」的唯一防线。
+func (r *ProcessRunner) KillAgent(workID string) {
+	lt := r.lookup(workID)
+	if lt == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
+	defer cancel()
+	if err := lt.proc.Stop(ctx); err != nil {
+		log := r.Log
+		if log == nil {
+			log = slog.Default()
+		}
+		log.Warn("强制结束 Agent 进程失败", "work_id", workID, "err", err)
+	}
+}
+
+func (r *ProcessRunner) track(workID string, lt *liveTurn) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.live == nil {
+		r.live = make(map[string]*liveTurn)
+	}
+	r.live[workID] = lt
+}
+
+// attachSession 在握手完成后把会话补进去。
+func (r *ProcessRunner) attachSession(workID string, s *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if lt := r.live[workID]; lt != nil {
+		lt.session = s
+	}
+}
+
+func (r *ProcessRunner) untrack(workID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.live, workID)
+}
+
+func (r *ProcessRunner) lookup(workID string) *liveTurn {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.live[workID]
 }
 
 // pick 挑第一个就绪的 Runtime。

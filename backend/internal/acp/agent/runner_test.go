@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/agent"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
@@ -262,4 +263,134 @@ func contains(list []string, want string) bool {
 		}
 	}
 	return false
+}
+
+// ── U3.2.3 · 取消：ProcessRunner 要记得住谁在跑 ──────────────
+
+// ★ 没在跑的工作取消**不报错**。
+//
+// 报错的话，用户点一个本来就该没反应的按钮会看到一句吓人的错误；
+// 而 app 层拿到错误会把工作推到 failed——一个已经跑完的工作被标成失败。
+func TestProcessRunner_CancelIdleWorkIsNoop(t *testing.T) {
+	r := &agent.ProcessRunner{}
+
+	mustKill, err := r.CancelTurn(context.Background(), "work-nope")
+	if err != nil {
+		t.Errorf("取消一个没在跑的工作报错了: %v", err)
+	}
+	if mustKill {
+		t.Error("没在跑却要求杀进程")
+	}
+}
+
+// ★★ 跑完之后**不能还留着记录**。
+//
+// 留着的话，取消一个早就结束的工作会去动一条已经关掉的会话——
+// 轻则报一句看不懂的错，重则卡在那儿等一个永远不来的收尾。
+func TestProcessRunner_ForgetsFinishedTurns(t *testing.T) {
+	bin := fakeAgentScript(t, "claude-agent-acp", `
+case "$1" in
+  --version) echo "0.63.0"; exit 0 ;;
+esac
+while IFS= read -r line; do
+  case "$line" in
+    *'"initialize"'*|*'"session/new"'*|*'"session/prompt"'*)
+      id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+      case "$line" in
+        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+        *'"session/prompt"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
+        *) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
+      esac ;;
+  esac
+done
+`)
+	r := &agent.ProcessRunner{
+		Specs: []runtime.Spec{{Name: "claude", Bin: bin, VersionArgs: []string{"--version"}}},
+		Bus:   &busRecorder{},
+	}
+
+	if err := r.RunTurn(context.Background(), port.AgentTurn{
+		WorkID: "work-01", Cwd: t.TempDir(), Prompt: "做点事",
+	}); err != nil {
+		t.Fatalf("跑一轮失败: %v", err)
+	}
+
+	// 跑完了：取消它应该是空操作
+	mustKill, err := r.CancelTurn(context.Background(), "work-01")
+	if err != nil {
+		t.Errorf("取消一个已经跑完的工作报错了: %v——"+
+			"app 层会把它推到 failed，而它本来是成功结束的", err)
+	}
+	if mustKill {
+		t.Error("已经跑完了却要求杀进程")
+	}
+}
+
+// ★★ 取消正在跑的那一轮，**并且能把进程收掉**。
+//
+// 用一个装死的假 Agent：连 initialize 都不回，取消必然超时 → mustKill。
+func TestProcessRunner_CancelRunningTurnDemandsKillWhenDead(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	bin := fakeAgentScript(t, "claude-agent-acp", `
+case "$1" in
+  --version) echo "0.63.0"; exit 0 ;;
+esac
+echo $$ > `+pidFile+`
+# 什么都不回，装死
+sleep 300
+`)
+	r := &agent.ProcessRunner{
+		Specs: []runtime.Spec{{Name: "claude", Bin: bin, VersionArgs: []string{"--version"}}},
+		Bus:   &busRecorder{},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = r.RunTurn(ctx, port.AgentTurn{
+			WorkID: "work-01", Cwd: t.TempDir(), Prompt: "做点事",
+		})
+	}()
+
+	// 等进程起来
+	waitPID(t, pidFile)
+
+	// 杀掉它——这是 app 层在 mustKill 之后会做的事
+	r.KillAgent("work-01")
+
+	waitGone(t, pidFile, "KillAgent 之后进程还活着——"+
+		"「界面说已取消、后台还在烧钱改文件」正是这么来的")
+}
+
+func waitPID(t *testing.T, path string) string {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if raw, err := os.ReadFile(path); err == nil && len(strings.TrimSpace(string(raw))) > 0 {
+			return strings.TrimSpace(string(raw))
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("假 Agent 没起来")
+	return ""
+}
+
+func waitGone(t *testing.T, pidFile, why string) {
+	t.Helper()
+	raw, err := os.ReadFile(pidFile)
+	if err != nil {
+		t.Fatalf("读 pid 失败: %v", err)
+	}
+	pid := strings.TrimSpace(string(raw))
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if !alive(t, pid) {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("%s（pid %s）", why, pid)
 }

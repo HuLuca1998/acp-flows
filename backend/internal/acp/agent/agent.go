@@ -120,11 +120,6 @@ func TimelineTypeOf(kind protocol.SessionUpdateKind) (typ string, ok bool) {
 // （refusal）都算错误，但用户有权看到 AI 在被打断前说了什么。
 // 唯一一个事件都不发的情况是这一轮压根没开始（比如 cwd 非法）。
 func Run(ctx context.Context, spec Spec) error {
-	log := spec.Log
-	if log == nil {
-		log = slog.Default()
-	}
-
 	s, err := session.Open(ctx, session.Options{
 		Transport:  spec.Transport,
 		Cwd:        spec.Cwd,
@@ -134,6 +129,19 @@ func Run(ctx context.Context, spec Spec) error {
 		return fmt.Errorf("agent: open session: %w", err)
 	}
 	defer func() { _ = s.Close() }()
+
+	return RunOn(ctx, s, spec)
+}
+
+// RunOn 在**已经开好的会话**上跑一轮。
+//
+// ★ 与 Run 分开，是为了让调用方能先拿到 Session 再跑——
+// ProcessRunner 需要它来实现取消（得记住「哪个工作对应哪条会话」）。
+func RunOn(ctx context.Context, s *session.Session, spec Spec) error {
+	log := spec.Log
+	if log == nil {
+		log = slog.Default()
+	}
 
 	prompt := spec.Prompt
 	if spec.SystemPrompt != "" {

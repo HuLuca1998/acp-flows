@@ -16,6 +16,8 @@ import (
 type workService interface {
 	Start(ctx context.Context, project, prompt string) (work.View, error)
 	List(ctx context.Context) ([]work.View, error)
+	// Cancel 停掉一个工作正在跑的那一轮。
+	Cancel(ctx context.Context, workID string) error
 }
 
 // workBody 对应 openapi 的 Work。
@@ -126,5 +128,46 @@ func toWorkBody(v work.View) workBody {
 	return workBody{
 		ID: v.ID, State: string(v.State),
 		Project: v.Project, Worktree: v.Worktree, Prompt: v.Prompt,
+	}
+}
+
+// handleCancelWork 处理 POST /v1/works/{id}/cancel。
+func handleCancelWork(svc workService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if svc == nil {
+			writeProblem(w, http.StatusServiceUnavailable,
+				"work_service_unavailable", "Work service is not configured")
+			return
+		}
+		workID := r.PathValue("id")
+		if strings.TrimSpace(workID) == "" {
+			writeProblem(w, http.StatusBadRequest, "work_id_required", "work id is required")
+			return
+		}
+
+		if err := svc.Cancel(r.Context(), workID); err != nil {
+			writeCancelProblem(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// writeCancelProblem 把取消的错误翻成 HTTP 状态码。
+//
+// ★ 「现在不能停」是 **409** 不是 500：500 会让界面提示
+// 「服务器出错，再试一次」，而用户一试还是同样的结果。
+// 409 对应的是「现在不能停」，界面该做的是说清楚为什么。
+func writeCancelProblem(w http.ResponseWriter, err error) {
+	code := work.ErrorCode(err)
+	switch code {
+	case "work_cancel_not_allowed":
+		writeProblem(w, http.StatusConflict, code, "this work cannot be cancelled right now")
+	case "work_not_found":
+		writeProblem(w, http.StatusNotFound, code, "work not found")
+	case "work_cancel_unavailable":
+		writeProblem(w, http.StatusServiceUnavailable, code, "cancel is not available")
+	default:
+		writeProblem(w, http.StatusInternalServerError, code, "could not cancel this work")
 	}
 }

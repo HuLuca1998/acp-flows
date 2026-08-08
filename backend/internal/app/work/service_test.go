@@ -472,3 +472,172 @@ func TestStart_NilRunnerDoesNotPanic(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 }
+
+// ── U3.2.3 · 取消：什么时候不许停、停不下来怎么办 ──────────────
+
+// cancelRecorder 记下被要求取消的工作，并可模拟「停不下来」。
+type cancelRecorder struct {
+	mu       sync.Mutex
+	calls    []string
+	err      error
+	mustKill bool
+	killed   []string
+}
+
+func (c *cancelRecorder) CancelTurn(_ context.Context, workID string) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.calls = append(c.calls, workID)
+	return c.mustKill, c.err
+}
+
+func (c *cancelRecorder) KillAgent(workID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.killed = append(c.killed, workID)
+}
+
+func (c *cancelRecorder) snapshot() (calls, killed []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]string(nil), c.calls...), append([]string(nil), c.killed...)
+}
+
+func serviceWithCancel(t *testing.T, repo *memWorks, bus *recordingBus, canceller port.AgentCanceller) *work.Service {
+	t.Helper()
+	svc := work.New(repo, realWorktrees{root: t.TempDir()}, bus, &seqIDs{}, nil)
+	svc.SetCanceller(canceller)
+	return svc
+}
+
+// 把一个工作推到指定状态，方便测各种分支。
+func seedWork(t *testing.T, repo *memWorks, id string, state constant.WorkState) {
+	t.Helper()
+	if err := repo.SaveWork(context.Background(), model.NewWorkAt(id, state)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// ★★ R1：审查中的工作拒绝取消，**并且不向 Agent 发协议取消**。
+//
+// 发了的话，独立审查会被半路掐掉——那个单元既没通过也没被驳回，
+// 卡在一个说不清的状态里。
+func TestCancel_R1_RefusesWhileReviewing(t *testing.T) {
+	repo, canceller := &memWorks{}, &cancelRecorder{}
+	seedWork(t, repo, "work-01", constant.WorkStateReviewingUnit)
+	svc := serviceWithCancel(t, repo, &recordingBus{}, canceller)
+
+	err := svc.Cancel(context.Background(), "work-01")
+	if err == nil {
+		t.Fatal("审查中却取消成功了")
+	}
+	if !errors.Is(err, model.ErrCancelNotAllowed) {
+		t.Errorf("错误 = %v, 想要 ErrCancelNotAllowed", err)
+	}
+
+	calls, _ := canceller.snapshot()
+	if len(calls) != 0 {
+		t.Errorf("拒绝了却还是发了 %d 次协议取消——"+
+			"独立审查会被半路掐掉，那个单元既没通过也没被驳回", len(calls))
+	}
+}
+
+// ★ R2：拒绝的理由是**机器可读的码**，界面按它查词条。
+func TestCancel_R2_RefusalCarriesACode(t *testing.T) {
+	repo := &memWorks{}
+	seedWork(t, repo, "work-01", constant.WorkStateReviewingUnit)
+	svc := serviceWithCancel(t, repo, &recordingBus{}, &cancelRecorder{})
+
+	err := svc.Cancel(context.Background(), "work-01")
+	if code := work.ErrorCode(err); code != "work_cancel_not_allowed" {
+		t.Errorf("错误码 = %q, 想要 work_cancel_not_allowed——界面按它查 i18n 词条", code)
+	}
+}
+
+// ★★ R4：取消成功后工作进入 `paused`，并且**落一条检查点事件**。
+//
+// 不落的话，用户回头想接着干，没有任何东西告诉他「上次停在哪」。
+func TestCancel_R4_PausesAndCheckpoints(t *testing.T) {
+	repo, bus := &memWorks{}, &recordingBus{}
+	seedWork(t, repo, "work-01", constant.WorkStateExecuting)
+	svc := serviceWithCancel(t, repo, bus, &cancelRecorder{})
+
+	if err := svc.Cancel(context.Background(), "work-01"); err != nil {
+		t.Fatalf("取消失败: %v", err)
+	}
+
+	if got := repo.savedStates["work-01"]; len(got) == 0 ||
+		got[len(got)-1] != constant.WorkStatePaused {
+		t.Errorf("落库的状态是 %v, 最后一个想要 paused", got)
+	}
+	if !hasEventType(bus, "checkpoint") {
+		t.Errorf("没落检查点事件（收到的是 %v）——"+
+			"用户回头想接着干，没有任何东西告诉他上次停在哪", bus.types())
+	}
+}
+
+// ★★ R5：取消超时后**杀进程并把工作推到 failed**。
+//
+// 只报错不杀的话，界面显示「取消失败」而那个 Agent 还在后台改文件——
+// 用户以为什么都没发生。
+func TestCancel_R5_TimeoutKillsAndFails(t *testing.T) {
+	repo, bus := &memWorks{}, &recordingBus{}
+	// ★ 用返回值表达「停不下来」，不跨层传 acp 的哨兵错误
+	canceller := &cancelRecorder{mustKill: true, err: errors.New("等了 10s 仍未收尾")}
+	seedWork(t, repo, "work-01", constant.WorkStateExecuting)
+	svc := serviceWithCancel(t, repo, bus, canceller)
+
+	err := svc.Cancel(context.Background(), "work-01")
+	if err == nil {
+		t.Fatal("取消超时了却返回成功")
+	}
+
+	_, killed := canceller.snapshot()
+	if len(killed) != 1 || killed[0] != "work-01" {
+		t.Errorf("杀进程记录 = %v, 想要 [work-01]——"+
+			"只报错不杀的话，界面说「取消失败」而那个 Agent 还在后台改文件", killed)
+	}
+	if got := repo.savedStates["work-01"]; len(got) == 0 ||
+		got[len(got)-1] != constant.WorkStateFailed {
+		t.Errorf("落库的状态是 %v, 最后一个想要 failed", got)
+	}
+	// 事件里要有原因码，否则用户只知道「失败了」
+	for _, e := range bus.snapshot() {
+		if e.Type == "state_change" && e.Payload["to"] == string(constant.WorkStateFailed) {
+			if reason, _ := e.Payload["reason"].(string); reason == "" {
+				t.Error("失败事件没带原因码")
+			}
+			return
+		}
+	}
+	t.Error("没发失败事件")
+}
+
+// 取消一个不存在的工作要报错，而不是静静成功。
+func TestCancel_UnknownWorkIsRejected(t *testing.T) {
+	svc := serviceWithCancel(t, &memWorks{}, &recordingBus{}, &cancelRecorder{})
+
+	if err := svc.Cancel(context.Background(), "work-nope"); err == nil {
+		t.Error("取消一个不存在的工作却成功了")
+	}
+}
+
+// 没配 canceller 时（只跑 API 冒烟）不崩，且明确报错。
+func TestCancel_NoCancellerIsAnError(t *testing.T) {
+	repo := &memWorks{}
+	seedWork(t, repo, "work-01", constant.WorkStateExecuting)
+	svc := work.New(repo, realWorktrees{root: t.TempDir()}, &recordingBus{}, &seqIDs{}, nil)
+
+	if err := svc.Cancel(context.Background(), "work-01"); err == nil {
+		t.Error("没有人能执行取消，却返回成功——界面会显示「已停止」而 AI 照跑")
+	}
+}
+
+func hasEventType(bus *recordingBus, typ string) bool {
+	for _, e := range bus.snapshot() {
+		if e.Type == typ {
+			return true
+		}
+	}
+	return false
+}

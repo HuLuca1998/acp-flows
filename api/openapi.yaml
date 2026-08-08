@@ -249,6 +249,33 @@ paths:
         default: { $ref: '#/components/responses/Problem' }
 
   # ── Runtime ─────────────────────────────────────────────────
+  /works/{id}/cancel:
+    post:
+      tags: [work]
+      operationId: cancelWork
+      summary: 停下这个工作正在跑的那一轮
+      description: |
+        ★ **不是所有状态都能停。** 审查中的工作会被拒绝（`work_cancel_not_allowed`）——
+        独立审查正在产出证据，半路掐掉的话那个单元既没通过也没被驳回，
+        卡在一个说不清的状态里。
+
+        正常停下之后工作进入 `paused`，并落一条 `checkpoint` 事件——
+        用户回头想接着干，得有东西告诉他「上次停在哪」。
+
+        ★ **Agent 停不下来时会被强制结束**，工作进入 `failed`。
+        这一步是「界面说已取消、后台还在烧钱改文件」的唯一防线：
+        只报错不杀的话，用户以为什么都没发生。那时本端点仍返回错误，
+        但工作状态与事件都已经落好。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: 已停下
+        default: { $ref: '#/components/responses/Problem' }
+
   /works/{id}/permission:
     post:
       tags: [work]

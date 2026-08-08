@@ -34,6 +34,7 @@ type Service struct {
 	bus       port.WorkEventBus
 	ids       port.IDGen
 	runner    port.AgentRunner
+	canceller port.AgentCanceller
 }
 
 // New 组装用例。runner 可以为 nil（只跑 API 冒烟时），那时工作建出来但没人干活。
