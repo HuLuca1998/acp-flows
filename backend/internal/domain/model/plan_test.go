@@ -29,20 +29,28 @@ import (
 // 是个有效判据——值接收者根本改不到原对象。契约那边不一样（见下面那条）。
 func TestPlanVersion_R1_HasNoMutators(t *testing.T) {
 	v := model.NewPlanVersion(1, "第一版", nil)
-	typ := reflect.TypeOf(v)
 
-	for i := 0; i < typ.NumMethod(); i++ {
-		m := typ.Method(i)
-		// ★ 判据是「接收者是不是指针」：值接收者改不到原对象，
-		// 而指针接收者的导出方法是唯一能改写它的途径。
-		if m.Type.In(0).Kind() == reflect.Ptr {
-			t.Errorf("PlanVersion 有一个指针接收者的导出方法 %q——\n"+
-				"计划只能新增版本不能改写（INV-PLAN-4）。"+
-				"要新增内容就造一个新版本，别在旧版本上动手。", m.Name)
-		}
-	}
-	if typ.NumMethod() == 0 {
+	// ★ 必须对着**指针类型**取方法集：值类型的方法集**不含**指针接收者的
+	// 方法，所以 reflect.TypeOf(v) 根本看不见 `func (v *PlanVersion) SetTitle`——
+	// 加一个 setter 上去，这条检查照样绿（造负例时发现的）。
+	ptrType := reflect.TypeOf(&v)
+	valType := reflect.TypeOf(v)
+
+	if ptrType.NumMethod() == 0 {
 		t.Fatal("一个导出方法都没有，这条检查什么也没证明")
+	}
+	if ptrType.NumMethod() != valType.NumMethod() {
+		// 指针方法集比值方法集多出来的，正是指针接收者的那些
+		t.Errorf("PlanVersion 有 %d 个指针接收者的导出方法——\n"+
+			"计划只能新增版本不能改写（INV-PLAN-4）。"+
+			"要新增内容就造一个新版本，别在旧版本上动手。",
+			ptrType.NumMethod()-valType.NumMethod())
+		for i := 0; i < ptrType.NumMethod(); i++ {
+			name := ptrType.Method(i).Name
+			if _, ok := valType.MethodByName(name); !ok {
+				t.Errorf("  其中一个是 %q", name)
+			}
+		}
 	}
 }
 
@@ -318,6 +326,28 @@ func TestUnitContract_RevisedIsUnfrozen(t *testing.T) {
 	// ★ 旧的那份**一个字都不能变**
 	if len(c.Criteria()) != 1 {
 		t.Errorf("修订之后旧契约变成了 %d 条标准——那叫改写不叫修订", len(c.Criteria()))
+	}
+}
+
+// ★★ `Criteria()` 返回的是**副本**，改它不影响契约本身。
+//
+// 返回内部切片的话，任何拿到它的人都能改掉一份冻结的契约——
+// 而「冻结」这两个字就名存实亡了。
+//
+// ★ 这条要单独写：只看「修订之后旧契约有几条标准」的话，
+// 把 `Criteria()` 改成返回内部切片它照样绿（造负例时发现的）。
+func TestUnitContract_CriteriaIsACopy(t *testing.T) {
+	c := model.NewUnitContract("unit-01", 1)
+	_ = c.AddCriterion("R1", "原文")
+	_ = c.Freeze()
+
+	got := c.Criteria()
+	got[0].Text = "被人改了"
+
+	if c.Criteria()[0].Text != "原文" {
+		t.Errorf("改了返回值，契约跟着变了（现在是 %q）——\n"+
+			"任何拿到它的人都能改掉一份冻结的契约，「冻结」两个字名存实亡",
+			c.Criteria()[0].Text)
 	}
 }
 
