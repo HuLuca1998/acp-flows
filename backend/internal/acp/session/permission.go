@@ -149,7 +149,11 @@ type PermissionAsk struct {
 	ToolCallID string
 	Title      string
 	Kind       protocol.ToolKind
-	Options    []protocol.PermissionOption
+	// Path 是要动的文件。**卡片上必须说清楚动的是哪个文件**——
+	// 只写「AI 请求写入」的话，用户没法判断该不该允许。
+	// Agent 不一定给得出（比如执行命令），那时留空。
+	Path    string
+	Options []protocol.PermissionOption
 	// Reason 是走到「问用户」这一步的理由码，界面可以据此解释「为什么问你」。
 	Reason string
 }
@@ -209,6 +213,7 @@ func (s *Session) handlePermission(ctx context.Context, params json.RawMessage) 
 		ToolCallID: req.ToolCall.ToolCallID,
 		Title:      req.ToolCall.Title,
 		Kind:       req.ToolCall.Kind,
+		Path:       pathOf(req.ToolCall),
 		Options:    req.Options,
 		Reason:     decision.Reason,
 	})
@@ -244,4 +249,31 @@ func (s *Session) emitDecision(d Decision) {
 		return
 	}
 	cb(Event{Kind: KindPermissionDecided, Decision: d})
+}
+
+// pathOf 从工具调用里取出要动的文件。
+//
+// ★ 优先 locations：那是 Agent **明确标出来的位置**；rawInput 是它收到的
+// 原始参数，字段名各家不一样（file_path / path / filePath 都见过）。
+// 两个都没有时返回空串——Agent 确实不一定给得出（比如执行一条命令）。
+func pathOf(tc protocol.ToolCallUpdate) string {
+	for _, loc := range tc.Locations {
+		if loc.Path != "" {
+			return loc.Path
+		}
+	}
+	if len(tc.RawInput) == 0 {
+		return ""
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(tc.RawInput, &raw); err != nil {
+		return ""
+	}
+	// 见过的几种写法，按常见程度排
+	for _, key := range []string{"file_path", "path", "filePath"} {
+		if v, ok := raw[key].(string); ok && v != "" {
+			return v
+		}
+	}
+	return ""
 }

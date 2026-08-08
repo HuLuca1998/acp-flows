@@ -263,3 +263,25 @@
 | `TestSession_NoAskUserAnswersCancelled` | `internal/acp/session/permission_test.go` | acp | ★★ 没配 `AskUser` 时回 `cancelled` 而非自动允许——装配漏一根线的表现必须是「什么都干不了」，不能是「什么都放行」 |
 | `TestSession_R4_EmitsDecisionWithReasonCode` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R4：裁决发一条带理由码的事件——用户回头问「它为什么没问我就改了文件」，答案得在时间线上找得到 |
 | `TestSession_R3_BlockingIsPerSession` | `internal/acp/session/permission_test.go` | acp | M3 U3.1.2 R3：★★ 阻塞**只是这一轮**——A 卡在权限请求上时 B 照常跑完。★ B 也必须发权限请求，否则加一把全局锁这条测试照样绿（造负例时发现的） |
+| `TestAsk_R1_PublishesEventWithOptions` | `internal/app/permission/broker_test.go` | app | M3 U3.1.4 R1：★★ 权限请求**作为事件发出去**且载荷带齐 `ask_id`/`tool_call_id`/`runtime`/`options`——只放内存的话界面永远不知道有人在等它 |
+| `TestAsk_R2_AnswerReturnsTheChosenOptionVerbatim` | `internal/app/permission/broker_test.go` | app | M3 U3.1.4 R2：用户选的 `optionId` 原样交回给等着的那一方 |
+| `TestAnswer_R4_SecondAnswerIsRejected` | `internal/app/permission/broker_test.go` | app | M3 U3.1.4 R4：★★ 同一条请求只能应答一次，第二次报 `ErrNotPending` **且不覆盖第一次的值**——Agent 只在等一个响应，多发的会被静静丢弃 |
+| `TestAnswer_UnknownAskIsRejected` | `internal/app/permission/broker_test.go` | app | 应答不存在的请求要报错——静静成功的话界面以为处理完了，而 AI 还在等 |
+| `TestAnswer_WrongWorkIsRejected` | `internal/app/permission/broker_test.go` | app | ★ 校验 workID：两个工作同时开着时，一次误点不该应答到另一个头上 |
+| `TestCancelWork_R5_ReleasesEveryPendingAsk` | `internal/app/permission/broker_test.go` | app | M3 U3.1.4 R5：★★ 取消一个工作时它 pending 的请求**全部**被叫醒——漏一条那条会话永远挂着，进程退不出去 |
+| `TestCancelWork_DoesNotTouchOtherWorks` | `internal/app/permission/broker_test.go` | app | 取消一个工作不影响别的工作——用户取消一个，另一个不该跟着废 |
+| `TestAsk_ContextCancelReleases` | `internal/app/permission/broker_test.go` | app | ctx 结束时解除等待，不永久挂着 |
+| `TestAsk_BusFailureDoesNotHang` | `internal/app/permission/broker_test.go` | app | ★★ 事件发不出去时**立刻失败不挂起**——挂起的话界面根本不知道有这条请求，而 AI 一直等，用户没有任何提示 |
+| `TestPending_ListsOpenAsksForWork` | `internal/app/permission/broker_test.go` | app | Pending 按工作隔离，应答后摘掉——不摘的话界面刷新会重复画出卡片 |
+| `TestAnswerPermission_PassesOptionIDVerbatim` | `internal/api/permission_test.go` | api | M3 U3.1.4 R2：★★ 端点**不做任何加工**，`option_id` 原样往下传——这一层不知道 Agent 定义了什么 |
+| `TestAnswerPermission_R4_DuplicateIs409` | `internal/api/permission_test.go` | api | M3 U3.1.4 R4：★★ 重复应答翻成 **409** 而非 500——500 会让界面提示「再试一次」，而用户一试就又发一条，无限循环 |
+| `TestAnswerPermission_RejectsMissingFields` | `internal/api/permission_test.go` | api | ★ 缺 `ask_id` / 空 `option_id` 一律 400 且**不转调**——空 id 送到 Agent，这一轮会以没人预料的方式收场 |
+| `TestAnswerPermission_UnconfiguredIs503` | `internal/api/permission_test.go` | api | 没配 Broker 时回 503 而非 404——404 会让人以为是路径写错了，而真正的原因是装配漏了一根线 |
+| `TestAnswerPermission_RequiresToken` | `internal/api/permission_test.go` | api | 没带 token 一律 401 且不转调——回环上任何本机进程都能替用户点「允许」 |
+| `TestRun_PassesPermissionConfigToSession` | `internal/acp/agent/agent_test.go` | acp | 权限配置真的传给会话——不传的话会话拿零值，「自动允许只读」在真跑时完全不生效 |
+| `TestProcessRunner_BindsWorkIDIntoAskUser` | `internal/acp/agent/agent_test.go` | acp | ★ 交给用户时把 workID 绑进去——不绑的话事件发不到对的时间线，用户会在 A 工作里看到 B 工作的权限卡片 |
+| `TestProcessRunner_NoAskUserLeavesItNil` | `internal/acp/agent/agent_test.go` | acp | 没配 AskUser 时留 nil，不塞一个假装有人在接的空函数 |
+| `TestLogSink_WriteAfterCloseDoesNotPanic` | `internal/store/log_sink_test.go` | store | ★★ Close 之后写日志**不许 panic**。真机撞到：进程启动失败 → main 用 `slog.Error` 记原因 → sink 已关 → 「send on closed channel」，而**真正的失败原因（端口被占）被 panic 栈完全盖住** |
+| `TestLogSink_DoubleCloseIsSafe` | `internal/store/log_sink_test.go` | store | 重复 Close 不炸——优雅退出路径上很容易调两次 |
+| `TestSession_PermissionAskCarriesPath` | `internal/acp/session/permission_test.go` | acp | ★★ 权限请求带上**动的是哪个文件**：优先 `locations`（Agent 明确标出的位置），退到 `rawInput.file_path`/`path`/`filePath`，都没有时留空。真机撞到：卡片上只写「AI 请求写入」，用户没法判断该不该允许 |
+| `TestProcessRunner_ShortensPathToProjectRelative` | `internal/acp/agent/agent_test.go` | acp | ★★ 交给用户的是**项目内相对路径**（`README.md`）而非 worktree 绝对路径（`/Users/…/worktrees/work-01/README.md`）——后者把卡片撑成两行，还把「worktree 放哪」摊给用户。★ worktree **之外**的保持原样：AI 要动 `/etc/hosts` 时完整路径才是有信息量的 |

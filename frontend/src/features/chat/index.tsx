@@ -5,6 +5,8 @@ import { listProjects, listWorks, startWork } from '@/api/system'
 import type { Project } from '@/models/project'
 import type { Work } from '@/models/work'
 
+import { PermissionDock } from '../permission/PermissionDock'
+import { usePermissions } from '../permission/use-permissions'
 import { Timeline } from '../timeline/Timeline'
 import { useEventStream } from '../timeline/use-event-stream'
 
@@ -26,6 +28,9 @@ export function ChatPage() {
   const [starting, setStarting] = useState(false)
 
   const { events } = useEventStream(current?.id ?? null)
+  // 待裁决的权限请求。★ 它排在时间线**上方**——AI 挂着等的时候，
+  // 用户要一眼看到「有件事在等我」，而不是往下滚才发现。
+  const { asks, decide } = usePermissions(current?.id ?? null, events)
 
   useEffect(() => {
     void (async () => {
@@ -69,6 +74,7 @@ export function ChatPage() {
     <div className={styles.page}>
       {renderComposer()}
       {errorCode !== null && <p className={styles.error}>{t(problemKey(errorCode))}</p>}
+      <PermissionDock asks={asks} onDecide={decide} />
       <Timeline events={events} />
     </div>
   )

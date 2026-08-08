@@ -25,13 +25,13 @@ import (
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/agent"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
-	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
-	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
 	"github.com/HuLuca1998/acp-flows/backend/internal/release"
@@ -152,9 +152,35 @@ func run() error {
 
 	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
 	bus := eventbus.New(eventStore{db.Events()})
+	// ★ 权限中转站：Agent 问的话经它发到时间线，用户点的那一下经它回到 Agent。
+	//
+	// 这里是**唯一**把 acp 层与 app 层接起来的地方——两边互不认识
+	// （depguard 挡着），装配只能在 cmd 做。
+	perms := permission.New(workBus{bus}, ids)
+
 	// ★ Agent 真的会被拉起来。这里传的是**内置注册表**（claude / codex）：
 	// 用哪一个由检测结果决定，上层不认识任何品牌名。
-	agentRunner := &agent.ProcessRunner{Bus: workBus{bus}}
+	agentRunner := &agent.ProcessRunner{
+		Bus: workBus{bus},
+		// 默认「每次都问」——最保守的那条。按角色配置是 M4 的事。
+		Policy: session.PolicyAsk,
+		AskUser: func(
+			ctx context.Context, workID string, ask session.PermissionAsk,
+		) (session.Answer, error) {
+			optionID, err := perms.Ask(ctx, permission.Ask{
+				WorkID:     workID,
+				ToolCallID: ask.ToolCallID,
+				Runtime:    runtimeNameOf(ask),
+				Kind:       string(ask.Kind),
+				Path:       ask.Path,
+				Options:    toBrokerOptions(ask.Options),
+			})
+			if err != nil {
+				return session.Answer{}, err
+			}
+			return session.Answer{OptionID: optionID}, nil
+		},
+	}
 	workSvc := work.New(
 		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner)
 
@@ -172,6 +198,7 @@ func run() error {
 		Bus:          bus,
 		EventHistory: eventStore{db.Events()},
 		Works:        workSvc,
+		Permissions:  perms,
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)
@@ -287,95 +314,4 @@ func writeSession(path string, port int, token string) error {
 		return fmt.Errorf("write session file: %w", err)
 	}
 	return nil
-}
-
-// gitProbe 把 gitx 接到 app/port 上。
-//
-// cmd 是唯一做依赖装配的地方，所以这层薄适配器放这里——
-// 让 gitx 直接返回 port 的类型会让基础设施依赖 app 的数据结构。
-type gitProbe struct{}
-
-func (gitProbe) ProbeGit(ctx context.Context, path string) (port.GitInfo, error) {
-	info, err := gitx.Probe(ctx, path)
-	if errors.Is(err, gitx.ErrNotADirectory) {
-		// 基础设施的错误类型不许穿到 app/api——翻成契约里的哨兵，
-		// 让界面能说出「这个文件夹找不到」而不是一句通用错误
-		return port.GitInfo{}, fmt.Errorf("%w: %s", port.ErrPathNotFound, path)
-	}
-	return port.GitInfo{IsRepo: info.IsRepo, DefaultBranch: info.DefaultBranch}, err
-}
-
-// eventStore 把 store 的事件仓储接到 eventbus 与 api 上。
-//
-// ★ 为什么需要这层翻译：store.Event 与 eventbus.Event 字段完全一致，
-// 但**具名结构体之间不能互相赋值**——Go 的结构化类型只对 interface 生效。
-// 而 depguard 的 infra 规则不许基础设施之间互相 import（store 不能认识
-// eventbus，反之亦然），所以接缝只能落在 cmd —— 唯一做装配的地方。
-type eventStore struct{ repo *store.EventRepo }
-
-func (s eventStore) AppendEvent(ctx context.Context, e *eventbus.Event) error {
-	row := &store.Event{
-		ID: e.ID, WorkID: e.WorkID, Source: e.Source,
-		Type: e.Type, TS: e.TS, Payload: e.Payload,
-	}
-	if err := s.repo.AppendEvent(ctx, row); err != nil {
-		return err
-	}
-	e.Seq = row.Seq // 序号由数据库发放，写回给调用方
-	return nil
-}
-
-func (s eventStore) MaxSeq(ctx context.Context) (int64, error) {
-	return s.repo.MaxSeq(ctx)
-}
-
-func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]eventbus.Event, error) {
-	rows, err := s.repo.EventsAfter(ctx, after, limit)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]eventbus.Event, 0, len(rows))
-	for _, r := range rows {
-		out = append(out, eventbus.Event{
-			ID: r.ID, Seq: r.Seq, WorkID: r.WorkID,
-			Source: r.Source, Type: r.Type, TS: r.TS, Payload: r.Payload,
-		})
-	}
-	return out, nil
-}
-
-// worktrees 把 gitx 的 worktree 操作接到 app/port 上。
-//
-// ★ root 是 `~/.acpflows/worktrees`——**用户项目之外**（open-questions Q30）。
-// 这一层存在的意义就是把那个路径决定钉死在装配处，
-// 不让 app 层自己去拼路径（拼错了就写进用户仓库了）。
-type worktrees struct{ root string }
-
-func (w worktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
-	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
-		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
-	})
-	return wt.Path, err
-}
-
-func (w worktrees) RemoveWorktree(ctx context.Context, repo, path string) error {
-	return gitx.RemoveWorktree(ctx, repo, path)
-}
-
-// workBus 把 app 层的工作事件接到事件总线上。
-//
-// 两个 Event 类型字段一致但不能互相赋值（结构化类型只对 interface 生效），
-// 而 depguard 不许 app 与 eventbus 互相依赖——接缝落在 cmd。
-type workBus struct{ bus *eventbus.Bus }
-
-func (b workBus) PublishWorkEvent(ctx context.Context, e port.WorkEvent) error {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		// 载荷编不出来不该让工作本身失败——事件是给界面看的
-		payload = []byte("{}")
-	}
-	return b.bus.Publish(ctx, eventbus.Event{
-		ID: "evt_" + e.WorkID, WorkID: e.WorkID,
-		Source: e.Source, Type: e.Type, Payload: payload,
-	})
 }

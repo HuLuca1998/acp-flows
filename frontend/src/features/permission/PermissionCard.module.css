@@ -1,0 +1,91 @@
+/* 权限卡片。照设计稿：盾牌 + 一句人话 + 路径 + 按钮组，**排在时间线里**。
+   不是弹窗——弹窗会把「它为什么要动这个文件」的上下文盖住。 */
+.card {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+
+  /* 拖窄左栏时按钮换行而不是溢出 */
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--s-inset, var(--color-surface));
+
+  /* 强调色描边：这一条要从周围的进展里跳出来，用户不能划过去 */
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+}
+
+.icon {
+  flex: none;
+  color: var(--color-accent-300);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.headline {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 12.5px;
+}
+
+/* 路径用等宽：用户要能一眼看清它到底要动哪个文件。 */
+.path {
+  margin-left: 6px;
+  overflow-wrap: anywhere;
+  color: var(--color-accent-300);
+  font-family: var(--font-mono);
+}
+
+.warn {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.allow,
+.reject {
+  flex: none;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.allow {
+  color: var(--color-accent-300);
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+}
+
+.allow:hover:not(:disabled) {
+  background: var(--color-accent-900);
+}
+
+.reject {
+  color: var(--color-neutral-400);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+}
+
+.reject:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+/* 提交中：看得出「已经点过了」，而不是像坏掉了。 */
+.allow:disabled,
+.reject:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.type {
+  flex: none;
+  color: var(--color-neutral-700);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}

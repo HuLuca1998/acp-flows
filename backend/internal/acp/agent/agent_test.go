@@ -11,6 +11,9 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/agent"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/fake"
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/protocol"
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/tests/testutil"
 )
 
@@ -430,4 +433,129 @@ func TestRun_DoesNotClobberAgentFields(t *testing.T) {
 		return
 	}
 	t.Error("一条 tool_call 都没有")
+}
+
+// ★★ U3.1.4：权限配置要**真的传下去**。
+//
+// 不传的话，会话拿到零值——每次都问、而且没人接线，于是一律 cancelled。
+// 表现是「自动允许只读」这个开关在真跑的时候完全不生效。
+func TestRun_PassesPermissionConfigToSession(t *testing.T) {
+	rt := newFake(t, &fake.Script{
+		Name: "perm",
+		Turns: []fake.Turn{{
+			Steps: []fake.Step{{Ask: &fake.PermissionAsk{
+				ToolCallID: "tool-1", Title: "读一下", Kind: protocol.ToolKindRead,
+				Options: []protocol.PermissionOption{
+					{OptionID: "opt-allow", Name: "允许一次", Kind: protocol.PermissionAllowOnce},
+					{OptionID: "opt-deny", Name: "拒绝", Kind: protocol.PermissionRejectOnce},
+				},
+			}}},
+			StopReason: protocol.StopReasonEndTurn,
+		}},
+	})
+
+	asked := 0
+	err := agent.Run(context.Background(), agent.Spec{
+		Transport: rt.Transport(), Cwd: t.TempDir(),
+		WorkID: "work-01", Prompt: "读一下", Sink: &recordingSink{},
+		Permission: session.Permission{
+			Policy: session.PolicyAutoAllowReadonly,
+			AskUser: func(context.Context, session.PermissionAsk) (session.Answer, error) {
+				asked++
+				return session.Answer{}, nil
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("这一轮失败了: %v", err)
+	}
+
+	if asked != 0 {
+		t.Errorf("问了用户 %d 次——策略是「自动允许只读」而这是读类工具，"+
+			"说明 Permission 根本没传给会话", asked)
+	}
+	if got := rt.LastPermissionOptionID(); got != "opt-allow" {
+		t.Errorf("回给 Agent 的 optionId = %q, 想要 opt-allow", got)
+	}
+}
+
+// ★ 交给用户时，工作标识要**绑进去**。
+//
+// 不绑的话，Broker 不知道这条请求属于哪个工作——事件发不到对的时间线上，
+// 而用户在 A 工作里看到 B 工作的权限卡片。
+func TestProcessRunner_BindsWorkIDIntoAskUser(t *testing.T) {
+	var gotWorkID string
+	r := &agent.ProcessRunner{
+		Specs: []runtime.Spec{{Name: "claude", Bin: "/nonexistent", VersionArgs: []string{"-v"}}},
+		AskUser: func(_ context.Context, workID string, _ session.PermissionAsk) (session.Answer, error) {
+			gotWorkID = workID
+			return session.Answer{}, nil
+		},
+	}
+
+	// 直接验闭包：拉真进程要一整套脚本，而这里要验的只是「workID 绑对了没」
+	ask := r.PermissionFor(port.AgentTurn{WorkID: "work-42"})
+	if ask.AskUser == nil {
+		t.Fatal("配了 AskUser 却没接上——会话拿到 nil，一律回 cancelled")
+	}
+	if _, err := ask.AskUser(context.Background(), session.PermissionAsk{}); err != nil {
+		t.Fatal(err)
+	}
+	if gotWorkID != "work-42" {
+		t.Errorf("绑进去的 workID = %q, 想要 work-42——"+
+			"用户会在 A 工作里看到 B 工作的权限卡片", gotWorkID)
+	}
+}
+
+// 没配 AskUser 时，会话拿到的必须是 **nil**，不是一个「总是成功」的空函数。
+//
+// 空函数会返回一个空的 Answer，而 session 把空 optionID 当成「用户没选」→
+// cancelled。绕了一圈结果一样，但中间多了一层假装有人在接的代码。
+func TestProcessRunner_NoAskUserLeavesItNil(t *testing.T) {
+	r := &agent.ProcessRunner{}
+	if r.PermissionFor(port.AgentTurn{WorkID: "work-01"}).AskUser != nil {
+		t.Error("没配 AskUser 却塞了一个空函数进去——中间多一层假装有人在接的代码")
+	}
+}
+
+// ★★ 交给用户的路径要是**项目内的相对路径**，不是 worktree 的绝对路径。
+//
+// 真机走查撞到的：卡片上写着
+// `/Users/luca/.duet-dev/.acpflows/worktrees/work-01/README.md`——
+// 撑成两行，而且把内部实现（worktree 放哪）摊给了用户。
+// 他关心的只有「README.md」。
+func TestProcessRunner_ShortensPathToProjectRelative(t *testing.T) {
+	cwd := "/tmp/worktrees/work-01"
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"worktree 里的文件", cwd + "/README.md", "README.md"},
+		{"深一层", cwd + "/src/api/main.go", "src/api/main.go"},
+		{"worktree 之外的保持原样", "/etc/hosts", "/etc/hosts"},
+		{"空路径还是空", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			r := &agent.ProcessRunner{
+				AskUser: func(_ context.Context, _ string, a session.PermissionAsk) (session.Answer, error) {
+					got = a.Path
+					return session.Answer{}, nil
+				},
+			}
+			perm := r.PermissionFor(port.AgentTurn{WorkID: "work-01", Cwd: cwd})
+			if _, err := perm.AskUser(context.Background(),
+				session.PermissionAsk{Path: tt.in}); err != nil {
+				t.Fatal(err)
+			}
+
+			if got != tt.want {
+				t.Errorf("path = %q, 想要 %q——"+
+					"绝对路径把卡片撑成两行，还把 worktree 放哪摊给了用户", got, tt.want)
+			}
+		})
+	}
 }

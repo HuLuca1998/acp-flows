@@ -42,6 +42,9 @@ type Config struct {
 	EventHistory eventHistory
 	// Works 是工作用例。为 nil 时相关端点返回 work_service_unavailable。
 	Works workService
+	// Permissions 收下用户对权限请求的应答。
+	// 为 nil 时端点返回 permission_service_unavailable。
+	Permissions permissionAnswerer
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -83,6 +86,7 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// 工作：切独立 worktree（**在用户项目之外**）、建会话、开始澄清需求。
 	mux.HandleFunc("GET /v1/works", handleListWorks(cfg.Works))
 	mux.HandleFunc("POST /v1/works", handleStartWork(cfg.Works))
+	mux.HandleFunc("POST /v1/works/{id}/permission", handleAnswerPermission(cfg.Permissions))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

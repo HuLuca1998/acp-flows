@@ -249,6 +249,52 @@ paths:
         default: { $ref: '#/components/responses/Problem' }
 
   # ── Runtime ─────────────────────────────────────────────────
+  /works/{id}/permission:
+    post:
+      tags: [work]
+      operationId: answerPermission
+      summary: 应答一次权限请求
+      description: |
+        Agent 想动用户的东西时会发一条 `request_permission` 事件到时间线，
+        **并把这一轮挂起等应答**。用户在界面上点了某个选项，就走这个端点送回去。
+
+        ★ `option_id` 是 **Agent 自己定义的不透明字符串**，从事件载荷的
+        `options[].option_id` 原样取，**不要自己造、也不要按类别重新匹配**。
+        搞错的话，用户点「拒绝」而 Agent 收到「允许」——这是整个权限体系里
+        后果最严重的一种错。
+
+        ★ 同一条请求**只能应答一次**。重复应答返回 409 且不再向 Agent 发第二条：
+        Agent 那边只在等一个响应，多发的会被当成不认识的请求而静静丢弃，
+        界面上却什么提示都没有。
+
+        ★ 这个端点**不做超时**。用户可能去泡了杯咖啡；替他超时等于替他做决定。
+        要中止只能靠取消整个工作（那时所有 pending 的请求都会收到 `cancelled`）。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: 工作标识
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ask_id, option_id]
+              properties:
+                ask_id:
+                  type: string
+                  description: 事件载荷里的 `ask_id`，标识是哪一条请求
+                option_id:
+                  type: string
+                  description: |
+                    用户选的那个选项的 `option_id`，**原样回传**。
+      responses:
+        '204':
+          description: 已送达 Agent
+        default: { $ref: '#/components/responses/Problem' }
+
   /runtimes:
     get:
       tags: [runtime]
@@ -322,6 +368,66 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
 
   schemas:
+    PermissionOption:
+      type: object
+      required: [option_id, name, kind]
+      description: |
+        Agent 给出的一个可选应答。
+
+        ★ `option_id` 是 **Agent 自己定义的不透明字符串**。界面上原样带着它，
+        应答时原样送回——不要自己造、不要按 `kind` 重新匹配、不要排序后取第一个。
+      properties:
+        option_id: { type: string, examples: ['opt-allow'] }
+        name:
+          type: string
+          description: |
+            Agent 给的按钮文字。**照它显示**，不要替换成我们自己的说法——
+            Agent 可能给出「这个目录以后都允许」这种我们想不到的选项。
+          examples: ['允许一次']
+        kind:
+          type: string
+          description: 只用来决定按钮的颜色，**不用来挑 option_id**。
+          enum: [allow_once, allow_always, reject_once, reject_always]
+
+    PermissionAskPayload:
+      type: object
+      required: [ask_id, tool_call_id, runtime, options]
+      description: |
+        `type = request_permission` 的事件载荷。
+
+        ★ 这一轮**挂着等应答**，没有超时。用户不点，AI 就一直等——
+        那是刻意的：替他超时等于替他做决定。
+      properties:
+        ask_id:
+          type: string
+          description: 应答时带回去，标识是哪一条请求。
+        tool_call_id:
+          type: string
+          description: 对应时间线上的哪一次工具调用。
+        runtime:
+          type: string
+          description: 哪个 Agent 在问——用户可能同时开着 claude 与 codex。
+          examples: ['codex']
+        kind:
+          type: string
+          description: |
+            工具类别，界面据此说人话（「请求读取」/「请求写入」/「请求执行」）。
+            取值同 ACP 的 ToolKind；认不出时界面用兜底文案，不显示原始码。
+          examples: ['edit']
+        path:
+          type: string
+          description: 涉及的文件路径。Agent 不一定给得出（比如执行命令）。
+        out_of_bounds:
+          type: boolean
+          description: |
+            是否越出了这个单元声明的写入边界。
+
+            ★ **没有依据时不要填 true。**「写入边界外」是一句很重的话，
+            乱说的话用户会对所有提示脱敏，真正越界那次他也不会看。
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionOption' }
+
     # ── 错误 ──────────────────────────────────────────────────
     Problem:
       type: object
@@ -570,4 +676,19 @@ components:
         ts: { type: string, format: date-time }
         payload:
           type: object
+          description: |
+            按 `type` 变化的载荷。**开放形状**（`additionalProperties: true`）——
+            ACP 的原始字段原样带上，前端认得的自己取，认不得的排查时也能看到全貌。
+
+            我们自己加的字段一律 `acp_` 前缀，永远不和 Agent 的字段撞名。
+            这条是踩出来的：翻译层曾经用 `kind` 覆盖了 ACP `tool_call` 自带的
+            `kind`（工具种类），结果同一个键有时是判别值有时是工具类别。
+
+            `type = request_permission` 的形状见 `PermissionAskPayload`。
+            它是**唯一需要前端按字段读**的一类，因为用户要照着它点按钮。
+
+            ★ 故意**不**用 `oneOf` 把它绑进这里：那样会把所有事件的
+            payload 类型一起收紧，而我们本来就打算把 ACP 的字段原样透传。
+            代价是前端要自己按那个 schema 解析——`features/permission`
+            的 `toRequest` 做这件事，缺字段时跳过而不是白屏。
           additionalProperties: true

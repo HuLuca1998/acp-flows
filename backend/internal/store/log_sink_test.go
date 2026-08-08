@@ -307,3 +307,47 @@ func itoa(n int) string {
 	}
 	return string(b)
 }
+
+// ★★ Close 之后再写**不许 panic**。
+//
+// 真机撞到的：进程启动失败 → main 想用 slog.Error 记下原因 → 那时
+// LogSink 已经关了 → 「send on closed channel」panic。
+// 用户看到的是一个 goroutine 栈，而**真正的启动失败原因被完全盖住**。
+//
+// 关掉之后写日志是正常的：优雅退出的顺序永远排不完美，而记一条日志
+// 不该有致命后果。
+func TestLogSink_WriteAfterCloseDoesNotPanic(t *testing.T) {
+	s := newStore(t)
+	sink := s.NewLogSink()
+
+	if err := sink.Close(); err != nil {
+		t.Fatalf("关闭失败: %v", err)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Close 之后写日志 panic 了：%v\n"+
+				"真正的后果是启动失败的原因被这个 panic 完全盖住——"+
+				"用户看到一个 goroutine 栈，而不是「为什么起不来」", r)
+		}
+	}()
+
+	sink.Write(logging.Entry{Level: slog.LevelError, Message: "退出路径上的一条日志"})
+	// 再写几条，确认不是碰巧
+	for i := 0; i < 10; i++ {
+		sink.Write(logging.Entry{Level: slog.LevelInfo, Message: "又一条"})
+	}
+}
+
+// 重复 Close 也不该炸——优雅退出路径上很容易调两次。
+func TestLogSink_DoubleCloseIsSafe(t *testing.T) {
+	s := newStore(t)
+	sink := s.NewLogSink()
+
+	if err := sink.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := sink.Close(); err != nil {
+		t.Errorf("第二次 Close 报错: %v", err)
+	}
+}

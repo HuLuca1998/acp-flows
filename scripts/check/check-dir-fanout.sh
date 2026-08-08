@@ -53,6 +53,25 @@ EXEMPT = {
                      "分子目录会让「新检查放哪」变成没有好答案的问题。超过 25 个时重新考虑",
 }
 
+# 测试文件与源文件的配对后缀，按语言。
+TEST_SUFFIXES = [
+    (".go", "_test.go"),
+    (".ts", ".test.ts"),
+    (".tsx", ".test.tsx"),
+    (".py", "_test.py"),
+]
+
+
+def paired_test(name, siblings):
+    """这个文件是不是「某个同目录源文件的测试」。"""
+    for ext, test_suffix in TEST_SUFFIXES:
+        if not name.endswith(test_suffix):
+            continue
+        source = name[: -len(test_suffix)] + ext
+        return source in siblings
+    return False
+
+
 violations = []
 for root, dirs, files in os.walk("."):
     dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
@@ -63,8 +82,20 @@ for root, dirs, files in os.walk("."):
         continue
     # 隐藏文件不算：它们通常是配置，不构成「这个目录在讲什么」的一部分。
     visible = [f for f in files if not f.startswith(".")]
-    if len(visible) > max_files:
-        violations.append((len(visible), rel or "."))
+
+    # ★ **与源文件配对的测试文件不单独计数。**
+    #
+    # 这条检查防的是「职责不单一」，而 foo_test.go 讲的正是 foo.go 那件事——
+    # 把它算成第二个职责的话，任何「一个文件一个测试」的目录到 8 个源文件
+    # 就会红，而阈值写的是 15。那会逼人要么少写测试、要么胡乱分包，
+    # 两个都比平铺糟。
+    #
+    # **孤立的测试文件照样算**：没有对应源文件的测试是独立的一坨，
+    # 它确实在讲一件单独的事。
+    counted = [f for f in visible if not paired_test(f, visible)]
+
+    if len(counted) > max_files:
+        violations.append((len(counted), rel or "."))
 
 if not violations:
     print(f"✓ 没有目录的平铺文件数超过 {max_files}")

@@ -62,6 +62,11 @@ type Spec struct {
 	// ★ 每轮都发的话，几十轮之后上下文里全是重复的同一段话，
 	// 既烧 token 又稀释用户真正说的内容（U2.2.2 的 R3）。
 	SystemPrompt string
+	// Permission 决定收到权限请求时怎么办。
+	//
+	// ★ 零值 = 每次都问、且没人接线（于是一律 cancelled）——最保守的那条。
+	// 装配漏了一根线的表现必须是「什么都干不了」，不能是「什么都放行」。
+	Permission session.Permission
 	// Sink 收事件；为 nil 时事件被丢弃（只跑不看）。
 	Sink Sink
 	// Log 可选；为 nil 时用 slog.Default()。
@@ -121,8 +126,9 @@ func Run(ctx context.Context, spec Spec) error {
 	}
 
 	s, err := session.Open(ctx, session.Options{
-		Transport: spec.Transport,
-		Cwd:       spec.Cwd,
+		Transport:  spec.Transport,
+		Cwd:        spec.Cwd,
+		Permission: spec.Permission,
 	})
 	if err != nil {
 		return fmt.Errorf("agent: open session: %w", err)

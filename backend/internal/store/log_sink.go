@@ -30,6 +30,18 @@ type LogSink struct {
 	done   chan struct{}
 	closer sync.Once
 
+	// closed 在 Close 之后为真。
+	//
+	// ★ 没有它的话，关掉之后再写会 panic「send on closed channel」。
+	// 那不是理论问题：进程启动失败时，main 要用 slog.Error 记下原因，
+	// 而那时 sink 已经关了——**真正的失败原因被 panic 栈完全盖住**，
+	// 用户看到的是一堆 goroutine 而不是「为什么起不来」。真机撞到过。
+	//
+	// 用读写锁而不是 atomic：Write 与 close(ch) 之间要真正互斥，
+	// 只标记的话仍然有「查完标记、还没发、对方关了」这个窗口。
+	mu     sync.RWMutex
+	closed bool
+
 	// dropped 记录因缓冲满而丢弃的条数。
 	// 满了就丢是刻意的——阻塞业务路径比丢几条日志严重得多。
 	dropped atomic64
@@ -46,8 +58,20 @@ func (s *Store) NewLogSink() *LogSink {
 	return sink
 }
 
-// Write 把一条日志塞进缓冲。**永不阻塞、永不返回错误。**
+// Write 把一条日志塞进缓冲。**永不阻塞、永不返回错误、永不 panic。**
+//
+// 关掉之后写日志是正常的：优雅退出的顺序永远排不完美，
+// 而记一条日志不该有致命后果。
 func (l *LogSink) Write(e logging.Entry) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	if l.closed {
+		// 已经关了：静静丢掉并计数。这时候进程正在退出，
+		// 落不落库都不重要——重要的是别把退出路径炸掉。
+		l.dropped.add(1)
+		return
+	}
+
 	select {
 	case l.ch <- e:
 	default:
@@ -58,7 +82,14 @@ func (l *LogSink) Write(e logging.Entry) {
 
 // Close 冲刷剩余日志并停止后台写入。
 func (l *LogSink) Close() error {
-	l.closer.Do(func() { close(l.ch) })
+	l.closer.Do(func() {
+		// ★ 拿写锁再关：与 Write 的读锁互斥，保证没有人正卡在
+		// 「查完 closed、还没发」那个窗口里。
+		l.mu.Lock()
+		l.closed = true
+		close(l.ch)
+		l.mu.Unlock()
+	})
 	<-l.done
 	return nil
 }

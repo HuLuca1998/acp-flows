@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 )
 
@@ -28,10 +30,66 @@ type ProcessRunner struct {
 	Bus port.WorkEventBus
 	// SystemPrompt 只拼在每条会话的第一轮前面。
 	SystemPrompt string
+	// Policy 是权限裁决策略。留空按 session.PolicyAsk 处理。
+	Policy session.Policy
+	// AskUser 把需要用户裁决的请求交出去，**阻塞到他做出选择**。
+	//
+	// ★ 比 session.AskUserFunc 多一个 workID：Broker 要知道这条请求属于
+	// 哪个工作，否则事件发不到对的时间线上，用户会在 A 工作里看到
+	// B 工作的权限卡片。
+	//
+	// 为 nil 时会话拿到的也是 nil（不是一个假装有人在接的空函数），
+	// 于是一律回 cancelled。
+	AskUser AskUserFunc
 	// DetectTimeout 留空时用 runtime.DefaultTimeout。
 	DetectTimeout time.Duration
 	// Log 留空时用 slog.Default()。
 	Log *slog.Logger
+}
+
+// AskUserFunc 把权限请求交给用户，阻塞到他做出选择。
+//
+// ★ **没有超时**：用户可能去泡了杯咖啡；替他超时等于替他做决定。
+type AskUserFunc func(ctx context.Context, workID string, ask session.PermissionAsk) (session.Answer, error)
+
+// PermissionFor 组出某一轮的权限配置：把 workID 绑进 AskUser，
+// 并把路径缩短成**项目内相对路径**。
+//
+// 导出是为了能直接验这两件事——拉一个真进程要一整套脚本，
+// 而这里要验的只是闭包。
+func (r *ProcessRunner) PermissionFor(turn port.AgentTurn) session.Permission {
+	perm := session.Permission{Policy: r.Policy}
+	if r.AskUser == nil {
+		// ★ 留 nil，不塞空函数：空函数返回空 Answer，session 把它当成
+		// 「用户没选」→ cancelled。绕一圈结果一样，但中间多了一层
+		// 假装有人在接的代码。
+		return perm
+	}
+	ask, cwd := r.AskUser, turn.Cwd
+	perm.AskUser = func(ctx context.Context, a session.PermissionAsk) (session.Answer, error) {
+		a.Path = shortenPath(cwd, a.Path)
+		return ask(ctx, turn.WorkID, a)
+	}
+	return perm
+}
+
+// shortenPath 把 worktree 里的绝对路径缩成项目内相对路径。
+//
+// ★ 用户关心的是「README.md」，不是
+// `/Users/luca/.acpflows/worktrees/work-01/README.md`——后者撑成两行，
+// 而且把「worktree 放在哪」这个内部实现摊给了他。真机走查撞到的。
+//
+// worktree 之外的路径**保持原样**：那时候完整路径才是有信息量的
+// （AI 要动 /etc/hosts 的话，用户必须看见这一点）。
+func shortenPath(cwd, path string) string {
+	if cwd == "" || path == "" || !filepath.IsAbs(path) {
+		return path
+	}
+	rel, err := filepath.Rel(cwd, path)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return path
+	}
+	return rel
 }
 
 // RunTurn 实现 port.AgentRunner：挑一个就绪的 Runtime，拉起来跑一轮。
@@ -72,6 +130,7 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 	}()
 
 	runErr := Run(ctx, Spec{
+		Permission:   r.PermissionFor(turn),
 		Transport:    stdio{r: proc.Stdout(), w: proc.Stdin()},
 		Cwd:          turn.Cwd,
 		WorkID:       turn.WorkID,

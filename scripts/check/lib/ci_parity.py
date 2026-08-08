@@ -41,11 +41,29 @@ EXEMPT_TARGETS = {
 SCRIPT_RE = re.compile(r"scripts/check/([a-z0-9-]+)\.sh")
 MAKE_RE = re.compile(r"\bmake\s+([a-z][a-z0-9-]*)")
 
+# ★ CI 里**直接跑的外部工具**（不经 make、不经 scripts/check）。
+#
+# 这一类原来整个被漏掉：contract job 直接 `npx redocly lint`，
+# 而 make check 里没有对应的目标——本地全绿，推上去 contract 红。
+# 撞过一次（把两个 schema 放进了 components/responses）。
+#
+# 键是识别用的关键词，值是 make check 里必须存在的目标。
+DIRECT_TOOLS = {
+    "redocly": "check-spec",
+}
+
 
 def ci_checks(ci_yml: Path) -> tuple[set[str], set[str]]:
-    """返回 CI 里跑的 (检查脚本名, make 目标名)。"""
+    """返回 CI 里跑的 (检查脚本名, make 目标名)。
+
+    直接跑的外部工具按 DIRECT_TOOLS 折算成它应该对应的 make 目标。
+    """
     text = ci_yml.read_text(encoding="utf-8")
-    return set(SCRIPT_RE.findall(text)), set(MAKE_RE.findall(text)) - EXEMPT_TARGETS
+    targets = set(MAKE_RE.findall(text)) - EXEMPT_TARGETS
+    for keyword, target in DIRECT_TOOLS.items():
+        if keyword in text:
+            targets.add(target)
+    return set(SCRIPT_RE.findall(text)), targets
 
 
 def make_targets(makefile: Path) -> dict[str, list[str]]:

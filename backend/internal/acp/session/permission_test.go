@@ -518,3 +518,79 @@ func waitAsk(t *testing.T, rt *fake.Runtime) {
 	}
 	t.Fatal("等 A 会话卡住超时")
 }
+
+// ★★ 交给用户时要带上**动的是哪个文件**。
+//
+// 不带的话，卡片上只写着「AI 请求写入」——用户没法判断该不该允许。
+// 真机走查撞到的：三个按钮都在，就是不知道要改什么。
+func TestSession_PermissionAskCarriesPath(t *testing.T) {
+	tests := []struct {
+		name  string
+		extra map[string]any
+		want  string
+	}{
+		{
+			"locations 里有路径",
+			map[string]any{"locations": []any{map[string]any{"path": "/repo/README.md", "line": 1}}},
+			"/repo/README.md",
+		},
+		{
+			"只有 rawInput.file_path",
+			map[string]any{"rawInput": map[string]any{"file_path": "/repo/main.go"}},
+			"/repo/main.go",
+		},
+		{
+			// locations 更准（它是 Agent 明确标出来的位置），rawInput 是原始参数
+			"两个都有时用 locations",
+			map[string]any{
+				"locations": []any{map[string]any{"path": "/repo/a.go"}},
+				"rawInput":  map[string]any{"file_path": "/repo/b.go"},
+			},
+			"/repo/a.go",
+		},
+		{"两个都没有时留空", map[string]any{}, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rt := newFakeAskWithToolCall(t, tt.extra)
+
+			var got session.PermissionAsk
+			s := openWith(t, rt, session.Permission{
+				Policy: session.PolicyAsk,
+				AskUser: func(_ context.Context, a session.PermissionAsk) (session.Answer, error) {
+					got = a
+					return session.Answer{OptionID: "opt-deny"}, nil
+				},
+			})
+			if _, err := s.Prompt(context.Background(), "改一下", nil); err != nil {
+				t.Fatal(err)
+			}
+
+			if got.Path != tt.want {
+				t.Errorf("path = %q, 想要 %q——"+
+					"卡片上只写「AI 请求写入」而不说哪个文件，用户没法判断该不该允许",
+					got.Path, tt.want)
+			}
+		})
+	}
+}
+
+// newFakeAskWithToolCall 造一个带自定义 toolCall 字段的权限请求脚本。
+func newFakeAskWithToolCall(t *testing.T, extra map[string]any) *fake.Runtime {
+	t.Helper()
+	return newFakeRuntime(t, &fake.Script{
+		Name: "ask-with-path",
+		Turns: []fake.Turn{{
+			Steps: []fake.Step{{Ask: &fake.PermissionAsk{
+				ToolCallID: "tool-1", Title: "写文件", Kind: protocol.ToolKindEdit,
+				ToolCallExtra: extra,
+				Options: []protocol.PermissionOption{
+					{OptionID: "opt-allow", Name: "允许", Kind: protocol.PermissionAllowOnce},
+					{OptionID: "opt-deny", Name: "拒绝", Kind: protocol.PermissionRejectOnce},
+				},
+			}}},
+			StopReason: protocol.StopReasonEndTurn,
+		}},
+	})
+}
