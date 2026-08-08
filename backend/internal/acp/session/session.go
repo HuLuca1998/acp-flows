@@ -99,6 +99,21 @@ type Session struct {
 	// 阻塞它等于阻塞整条会话。
 	mu      sync.Mutex
 	onEvent func(Event)
+	// inTurn 表示正有一轮在跑。
+	//
+	// ★ 不能拿 onEvent 是否为 nil 当判据：调用方完全可以不关心事件而传 nil
+	// （比如只想让它跑完），那时 Cancel 会以为「没在跑」而什么都不做——
+	// 用户点了停，界面毫无反应，而 AI 照跑。
+	inTurn bool
+
+	// ★ 取消的状态。**幂等靠它**：cancelling 为真时不再发第二条协议取消。
+	// 用户手快点两下是常态，而 Agent 收到第二条时那一轮多半已经结束，
+	// 它会当成一个不认识的会话，行为没有定义。
+	cancelling bool
+	cancelDone chan struct{}
+	// releasePermissions 用 cancelled 应答所有 pending 的权限请求。
+	// 由 handlePermission 串上、这一轮结束时摘掉。
+	releasePermissions func()
 
 	serveDone chan struct{}
 	serveErr  error
@@ -175,6 +190,7 @@ func (s *Session) Prompt(
 ) (protocol.StopReason, error) {
 	s.mu.Lock()
 	s.onEvent = onEvent
+	s.inTurn = true
 	s.mu.Unlock()
 
 	var resp protocol.PromptResponse
@@ -186,7 +202,13 @@ func (s *Session) Prompt(
 	// 摘掉回调：轮次之间 Agent 若多发一条通知，不该再打到上一轮的调用方身上。
 	s.mu.Lock()
 	s.onEvent = nil
+	s.inTurn = false
+	s.releasePermissions = nil
 	s.mu.Unlock()
+
+	// 这一轮收尾了：叫醒等着的 Cancel。放在摘回调之后——
+	// Cancel 的调用方拿到返回值时，事件已经不会再来了。
+	s.finishCancel()
 
 	if callErr != nil {
 		return resp.StopReason, fmt.Errorf("session/prompt: %w", callErr)
