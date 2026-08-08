@@ -454,3 +454,28 @@
 | `TestMakePlan_MarksExistingItems` | `internal/fsstore/project/init_test.go` | fsstore | 已初始化过的目录，条目标成「已经在了」而不是消失——用户要看的是「最终长什么样」 |
 | `TestMakePlan_RejectsBadRoots` | `internal/fsstore/project/init_test.go` | fsstore | 相对路径 / 不存在的目录 / 指向文件一律拒（相对路径的失败信息很难懂，在最外层就拦掉） |
 | `TestMakePlan_GitFileCountsAsRepo` | `internal/fsstore/project/init_test.go` | fsstore | ★ worktree / submodule 里 `.git` 是**文件**不是目录，报成非仓库的话那些项目都拿不到忽略规则 |
+| `TestDiscover_R1_FindsEverySkillsDirAndTagsSource` | `internal/fsstore/skill/discover_test.go` | fsstore | M3 U3.1.2 R1：★ 按设计稿扫 `**/skills`（不是只看两个固定目录）；每条标**项目内的相对路径**当来源——不标的话用户不知道 Duet 翻了他哪些目录，报绝对路径的话界面上一长串前缀全是噪声 |
+| `TestDiscover_R2_ReusesTheSameValidator` | `internal/fsstore/skill/discover_test.go` | fsstore | M3 U3.1.2 R2：★★ 同一个坏 frontmatter，`Discover` 与 `Scan` 给出**同样的原因文本**。另起一套的话用户会看到两种说法而不知道该信哪个 |
+| `TestDiscover_R3_DoesNotTouchUserFiles` | `internal/fsstore/skill/discover_test.go` | fsstore | R3：全目录指纹守只读（红线 3） |
+| `TestDiscover_R4_DoesNotFollowSymlinksOutOfProject` | `internal/fsstore/skill/discover_test.go` | fsstore | R4：★ 项目里一个指向 `~` 的链接就能让扫描漫游整个家目录 |
+| `TestDiscover_SkipsHeavyDirs` | `internal/fsstore/skill/discover_test.go` | fsstore | ★ 跳过 node_modules / target / dist / .git——不跳的话一个装了依赖的前端项目要走十几万个目录，而创建项目的弹层是**用户点了在等**的界面 |
+| `TestDiscover_DoesNotDescendIntoSkillDirs` | `internal/fsstore/skill/discover_test.go` | fsstore | ★ 找到 `skills/` 就停：继续下探的话每个 skill 自己的 `scripts/`、`references/` 都会被当成候选 |
+| `TestDiscover_R5_NoSkillsIsEmptyNotError` | `internal/fsstore/skill/discover_test.go` | fsstore | R5：没有 skill 目录是**空**不是错——绝大多数项目就是没有 |
+| `TestDiscover_EmptyRootIsEmpty` | `internal/fsstore/skill/discover_test.go` | fsstore | 空路径返回空 |
+| `TestDiscover_SortedBySourceThenDir` | `internal/fsstore/skill/discover_test.go` | fsstore | 结果按来源+目录名排序，不受文件系统顺序影响 |
+| `TestParseRemoteURL_R1_BothFormsGiveTheSameSlug` | `internal/gitx/remote_test.go` | gitx | M3 U3.1.3 R1：https / scp / `ssh://` / 带端口 / 结尾斜杠 五种真实写法都得到同一个 `owner/repo`；URL 原文始终保留 |
+| `TestParseRemoteURL_R4_NonGitHubIsKept` | `internal/gitx/remote_test.go` | gitx | R4：★ GitLab 与自建 remote **照常显示**——丢掉的话用 GitLab 的用户会看到「没有 remote」而他明明配了一个。★ 多级 group 取**最后两段**，否则 `group/sub` 会被当成 owner/repo |
+| `TestParseRemoteURL_StripsCredentials` | `internal/gitx/remote_test.go` | gitx | ★★ `https://user:token@github.com/...` 这种写法很常见，而这个字段会显示在界面上、写进日志——凭据必须摘掉 |
+| `TestParseRemoteURL_KeepsUrlWhenUnparseable` | `internal/gitx/remote_test.go` | gitx | 解析不出 owner/repo 时保留 URL 原文，不编造 slug |
+| `TestProbeRemote_R2_NoRemoteIsEmptyNotError` | `internal/gitx/remote_test.go` | gitx | R2：没有 origin **不是错误**（本地仓库、还没推过的项目都很常见），当成错误的话创建项目的预演会因一个正常状态而失败 |
+| `TestProbeRemote_ReadsConfiguredOrigin` | `internal/gitx/remote_test.go` | gitx | 真 git 仓库里配了 origin 就读得出来 |
+| `TestProbeRemote_NonRepoIsEmpty` | `internal/gitx/remote_test.go` | gitx | 非 git 目录返回空、不报错 |
+| `TestProbeRemote_R3_DoesNotModifyRepo` | `internal/gitx/remote_test.go` | gitx | R3：读 remote 不改仓库（判据是仓库全目录内容指纹，含 `.git` 里的配置） |
+| `TestDetect_ReadyReadsVersionAndAccount` | `internal/ghx/detect_test.go` | ghx | M3 U3.1.3 R5（**Q41**）：装了且登录了 → 读出版本与账号，且**不给修复命令**（没什么要修的） |
+| `TestDetect_NotAuthenticatedGivesLoginCommand` | `internal/ghx/detect_test.go` | ghx | 装了没登录 → `gh auth login`。★ `gh auth status` 没登录时以非 0 退出，**那是正常结论不是故障** |
+| `TestDetect_UnknownAuthFailureIsProbeFailedNotUnauthenticated` | `internal/ghx/detect_test.go` | ghx | ★★ 认不出的失败当成 probe_failed：给一句「请运行 gh auth login」而实际问题是别的，会让用户照着做一遍然后发现没用 |
+| `TestDetect_BrokenBinaryIsNotReportedAsMissing` | `internal/ghx/detect_test.go` | ghx | ★ 文件在但跑不起来（权限/架构/装坏了）≠ 没装——报成没装的话用户会去 brew install 一个已经在的东西 |
+| `TestDetect_UnparseableAccountIsEmptyNotGuessed` | `internal/ghx/detect_test.go` | ghx | ★ 账号名取不到就留空：显示一个错的账号名比不显示糟得多，用户会以为自己登在另一个账号上 |
+| `TestDetect_NeverLeaksToken` | `internal/ghx/detect_test.go` | ghx | ★★ **Q41 的核心**：Result 的每个字段都不含 `gho_`。`gh auth status` 输出里就有一行 Token，整段塞进 Detail/Account 的话令牌会进日志、进界面 |
+| `TestDetect_UnparseableVersionStillWorks` | `internal/ghx/detect_test.go` | ghx | 版本号读不出不影响「装了且登录了」这个结论 |
+| `TestDetect_NotInstalledGivesInstallCommand` | `internal/ghx/detect_test.go` | ghx | 没装 → `brew install gh`（本机装了 gh 时跳过） |

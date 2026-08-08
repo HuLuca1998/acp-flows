@@ -28,4 +28,10 @@ type SkillScanner interface {
 	// ★ 目录不存在返回**空列表而不是错误**：绝大多数用户一开始
 	// 就没有这个目录，当成错误的话设置页会显示一条吓人的报错。
 	ScanGlobal() ([]SkillEntry, error)
+
+	// DiscoverInProject 找出项目里已有的 skill（`**/skills`，跳过重目录）。
+	//
+	// ★ 创建项目时用它回答「发现已有 Skill 目录 · N」。
+	// 每条都带**项目内的相对路径**当来源——用户要能照着去找。
+	DiscoverInProject(projectPath string) ([]SkillEntry, error)
 }

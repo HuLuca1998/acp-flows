@@ -33,8 +33,23 @@ func (s Store) ScanGlobal() ([]port.SkillEntry, error) {
 		return nil, err
 	}
 
-	// ★ 空集合返回**空切片而不是 nil**：nil 会被序列化成 `null`，
-	// 而前端拿到 null 时会崩在 `.map` 上——空态本身是最常见的状态。
+	return toPortEntries(entries), nil
+}
+
+// DiscoverInProject 找出项目里已有的 skill。
+func (s Store) DiscoverInProject(projectPath string) ([]port.SkillEntry, error) {
+	entries, err := Discover(projectPath)
+	if err != nil {
+		return nil, err
+	}
+	return toPortEntries(entries), nil
+}
+
+// toPortEntries 把扫描结果翻成 port 的形状。
+//
+// ★ 空集合返回**空切片而不是 nil**：nil 会序列化成 `null`，
+// 而前端拿到 null 会崩在 `.map` 上——空态本身是最常见的状态。
+func toPortEntries(entries []Entry) []port.SkillEntry {
 	out := make([]port.SkillEntry, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, port.SkillEntry{
@@ -50,5 +65,5 @@ func (s Store) ScanGlobal() ([]port.SkillEntry, error) {
 			ValidationReason: e.Validation.Reason,
 		})
 	}
-	return out, nil
+	return out
 }

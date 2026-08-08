@@ -187,3 +187,7 @@ type failingScanner struct{}
 func (failingScanner) ScanGlobal() ([]port.SkillEntry, error) {
 	return nil, errBindingBroken
 }
+
+func (failingScanner) DiscoverInProject(string) ([]port.SkillEntry, error) {
+	return nil, errBindingBroken
+}

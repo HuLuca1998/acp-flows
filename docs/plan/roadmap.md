@@ -17,12 +17,13 @@
 
 | | |
 |---|---|
-| **现在做** | `U3.1.2` · 已有 Skill 扫描 |
+| **现在做** | `U3.2.1` · 创建项目对话框（前端）|
 | **`U2.1.1` 已完成** | `domain/model/role.go` 八个角色 + `acp/runtime/mode.go` 档位映射。<br>★ 会话档位存**语义**（只读/受控写/放开）不存档名——<br>　档名两端一个都不重合，存档名的话用户就换不了 Runtime。<br>★ 品牌名全在 adapter，domain 不认识 claude / codex。 |
 | **`U2.1.2` 已完成** | `acp/session/mode.go`：先试 `set_config_option`，降级 `set_mode`，<br>两个都不支持**报错拒绝开工**；设完当场回读校验。<br>★ 收权在 `session/new` 之后、任何 prompt 之前，中间不留窗口。 |
 | **`M2` 已完成** | 五条完成标志**逐条实操**过，证据在里程碑文件里。<br>★ 第 5 条用 `go run ./cmd/restrictprobe claude\|codex` 验的：<br>　收权后让它建文件，**判据在磁盘上**——两端都是 0 项。<br>★ 顺带修正了第 4 条：原文写「三个页面都能筛选」，<br>　而设计稿里角色页根本没有筛选器。 |
 | **`U3.1.1` 已完成** | `fsstore/project`：`MakePlan` 只读算计划、`Apply` 照单执行，<br>**同一份 Plan**——预演与执行各写一套的话必然漂移。<br>★ 踩到一个坑：`MkdirAll` 对已存在目录成功返回，<br>　记成「这次创建的」再回滚会删掉用户已有的东西。 |
-| **接着做什么** | 照 [`M3-project-onboarding.md`](milestones/M3-project-onboarding.md)：<br>`U3.1.2`（扫已有 skill）→ `U3.1.3`（GitHub remote）→ `U3.2.1`（弹层） |
+| **`M3` 后端三个单元都完成了** | 初始化预演/执行 · 扫已有 skill · GitHub remote + `gh` 检测。<br>差的是把它们接进 API 与那个弹层。 |
+| **接着做什么** | 照 [`M3-project-onboarding.md`](milestones/M3-project-onboarding.md) 的 `U3.2.1`：<br>先补 `/v1/projects/preview` 端点，再做弹层。 |
 | **别踩的坑** | ★ 权限档**不能硬编码成某一端的取值**：<br>claude 6 档、codex 3 档，同一个「只读」两端名字不同。<br>★ 设计稿写的 `auto` 是 codex **0.16.0 的旧档名**，1.1.7 已改。 |
 
 **做完一个单元就回来改这一节。** 它过期一次，下一轮 AI 就得自己翻十几份文档找起点。
