@@ -8,8 +8,18 @@
   min-width: 0;
 }
 
+/* 一行 = 头像 + 内容。★ 照设计稿：头像在**左侧**，内容在右侧，
+   两者横向排——不然卡片形态下头像会被挤成单独一行。 */
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  min-width: 0;
+}
+
 .item {
   display: flex;
+  flex: 1;
   gap: var(--space-3);
   min-width: 0;
   color: var(--color-neutral-400);
@@ -22,17 +32,24 @@
 
 /* 气泡：文本流。设计规范 §01——卡片一律 inset 描边，不用 border */
 .bubble {
-  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--s-inset);
   box-shadow: inset 0 0 0 1px var(--color-neutral-900);
 }
 
-/* 卡片：有结构的一坨，比气泡更重一层 */
+/* 卡片：有结构的一坨，比气泡更重一层。
+ *
+ * ★★ **横排一行**，照设计稿的 `edit crates/…/cancel.rs  +64 −12`。
+ * 竖着堆的话，一次工具调用要占三行——一屏能看到的东西少一半，
+ * 而用户正是靠「一屏看完这一轮干了什么」来判断要不要细看。
+ * 内容长了自然折行，不靠强制换行。 */
 .card {
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--s-raised);
   box-shadow: inset 0 0 0 1px var(--color-neutral-800);
@@ -43,8 +60,12 @@
 
    ★ 分列两侧不是装饰：挤在同一侧的话，一屏滚下来
    「哪句是我说的、哪句是它说的」要逐条读文字才分得清。 */
-.item[data-align='end'] {
-  align-self: flex-end;
+.row[data-align='end'] {
+  justify-content: flex-end;
+}
+
+.row[data-align='end'] .item {
+  flex: none;
   max-width: 540px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -79,11 +100,11 @@
 
 /* 状态用颜色提示，不占额外的行。
    跑完了还写着「进行中」是最容易让人误判的一种界面。 */
-.item[data-status='completed'] .detail {
+.row[data-status='completed'] .detail {
   color: var(--color-neutral-500);
 }
 
-.item[data-status='failed'] .detail {
+.row[data-status='failed'] .detail {
   color: var(--color-fail);
 }
 
@@ -134,4 +155,44 @@
    「这一版定下来了」——那意味着接下来的计划都照着它做。 */
 .requirement[data-frozen='true'] .frozen {
   color: var(--color-accent-400);
+}
+
+/* 头像方块。照设计稿：22×22、圆角、等宽两个字母。
+   ★★ 一屏扫过去**不读文字**就分得清哪几条是同一个人说的。 */
+.avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-900);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-700);
+  color: var(--color-neutral-300);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Claude 用 accent 一系，与设计稿的 CL 方块一致。
+   ★ 按 **runtime** 分色而不是按角色：一个 Runtime 承担多个角色，
+   按角色分的话同一个 AI 会有八种颜色，反而认不出来。 */
+.avatar[data-runtime='claude'] {
+  background: var(--color-accent-900);
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  color: var(--color-accent-400);
+}
+
+/* 消息体左侧色条，照设计稿 `inset 2px 0 0`。 */
+.row[data-align='start'] .text {
+  padding-left: var(--space-3);
+  box-shadow: inset 2px 0 0 var(--s-claude-edge);
+}
+
+/* 同一个人接着说时，头像的位置留白——让内容对齐在同一列上。
+   不留的话，第二行会往左顶，一段消息看起来像两段。 */
+.avatarGap {
+  flex: none;
+  width: 22px;
 }

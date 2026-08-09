@@ -72,12 +72,23 @@ export function Timeline({ events, hidden }: TimelineProps) {
 
   return (
     <div className={styles.list}>
-      {segments.map((seg) => {
+      {segments.map((seg, i) => {
         const renderer = rendererFor(seg.type);
+        // ★★ **连续同一个角色只在第一条显示头像与标签**（照设计稿）。
+        //
+        // 十条连续的工具调用每条都重复「claude · 需求分析师 · requirement v1」
+        // 的话，那三个标签占掉半行宽度，而它们完全一样——
+        // 用户要找的内容被自己的重复挤到了右边。
+        const prev = segments[i - 1];
+        const sameSpeaker =
+          prev !== undefined &&
+          prev.role === seg.role &&
+          prev.reqVersion === seg.reqVersion &&
+          prev.reqFrozen === seg.reqFrozen;
         return (
           <div
             key={seg.key}
-            className={`${styles.item} ${styles[renderer.shape]}`}
+            className={styles.row}
             data-event-type={seg.type}
             data-shape={renderer.shape}
             data-align={renderer.align ?? "start"}
@@ -89,7 +100,26 @@ export function Timeline({ events, hidden }: TimelineProps) {
               **不显示这一块**——填个「系统」上去会让用户以为
               有个叫「系统」的角色在干活。
             */}
-            {seg.roleName !== "" && (
+            {/*
+              ★★ 头像方块，照设计稿：`CL` / `CX`。
+              一屏扫过去**不读文字**就分得清哪几条是同一个人说的——
+              只有标签的话，用户要逐条读文字才认得出来。
+            */}
+            {seg.roleName !== "" && !sameSpeaker && (
+              <span
+                className={styles.avatar}
+                data-runtime={seg.runtime === "" ? undefined : seg.runtime}
+                aria-hidden="true"
+              >
+                {initialsOf(seg.runtime)}
+              </span>
+            )}
+            <div className={`${styles.item} ${styles[renderer.shape]}`}>
+            {seg.roleName !== "" && sameSpeaker && (
+              // 同一个人接着说：头像的位置留白，让内容对齐
+              <span className={styles.avatarGap} aria-hidden="true" />
+            )}
+            {seg.roleName !== "" && !sameSpeaker && (
               <span className={styles.role} data-role={seg.role}>
                 {seg.runtime !== "" && (
                   <span className={styles.runtime}>{seg.runtime}</span>
@@ -102,7 +132,7 @@ export function Timeline({ events, hidden }: TimelineProps) {
               `requirement v2` 是标识不翻译，「已冻结」是状态要翻译。
               没有需求快照（0）时**整块不显示**——「v0」比不显示更糟。
             */}
-            {seg.reqVersion > 0 && (
+            {seg.reqVersion > 0 && !sameSpeaker && (
               <span className={styles.requirement} data-frozen={seg.reqFrozen}>
                 {`requirement v${seg.reqVersion}`}
                 {seg.reqFrozen && (
@@ -115,11 +145,48 @@ export function Timeline({ events, hidden }: TimelineProps) {
               <span className={styles.detail}>{seg.detail}</span>
             )}
             <span className={styles.text}>{seg.text}</span>
+            </div>
           </div>
         );
       })}
     </div>
   );
+}
+
+/**
+ * 设计稿定死的那两个缩写。
+ *
+ * ★★ `CL`（claude）与 `CX`（codex）是**人取的**，没有统一规则——
+ * 一个取首辅音、一个取尾辅音。硬凑一条规则同时满足两者的话，
+ * 那条规则会在第三个 Runtime 上给出谁都想不到的结果。
+ */
+const RUNTIME_INITIALS: Record<string, string> = {
+  claude: "CL",
+  codex: "CX",
+};
+
+/**
+ * 头像上的两个字母。
+ *
+ * ★★ 对照表**只管设计稿定死的那两个**，其余走推导——
+ * 只有对照表的话，加一个 Runtime 时忘了补一行，那个 Runtime 的头像
+ * 会是空白，而用户看到的是一个没有身份的方块。
+ */
+function initialsOf(runtime: string): string {
+  const name = runtime.trim().toLowerCase();
+  if (name === "") {
+    return "··";
+  }
+  const known = RUNTIME_INITIALS[name];
+  if (known !== undefined) {
+    return known;
+  }
+  // 兜底：首字母 + 最后一个辅音，拼不出就用前两个字符
+  const first = name[0] ?? "";
+  const rest = name.slice(1);
+  const consonants = rest.replace(/[aeiou\d\W_]/g, "");
+  const second = consonants.slice(-1) || rest[0] || first;
+  return (first + second).toUpperCase();
 }
 
 /**

@@ -472,3 +472,58 @@ describe('需求版本标签', () => {
     expect(screen.getByText('requirement v2')).toBeInTheDocument()
   })
 })
+
+// M5 U5.3.2 · 消息带头像
+//
+// ★★ 一屏扫过去**不读文字**就分得清哪几条是同一个人说的——
+// 只有标签的话，用户要逐条读文字才认得出来。
+
+describe('头像', () => {
+  it('有角色的消息带头像，缩写由 Runtime 名推出来', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题', 'claude'),
+        ]}
+      />,
+    )
+
+    const avatar = document.querySelector('[data-runtime="claude"]')
+    expect(avatar, '没有头像——用户要逐条读文字才分得清说话的人').not.toBeNull()
+    expect(avatar?.textContent).toBe('CL')
+  })
+
+  // ★★ 缩写**由名字推导**，不硬编码对照表：加一个 Runtime 时不该还要
+  // 回来补一行——漏补的话那个 Runtime 的头像是空白，用户看到一个没有身份的方块。
+  it('没见过的 Runtime 也有两个字母', () => {
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'implementer', '实现工程师', '我开始写', 'codex')]}
+      />,
+    )
+    expect(document.querySelector('[data-runtime="codex"]')?.textContent).toBe('CX')
+
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'implementer', '实现工程师', '我开始写', 'gemini')]}
+      />,
+    )
+    const unknown = document.querySelector('[data-runtime="gemini"]')
+    expect(unknown?.textContent).toHaveLength(2)
+  })
+
+  // ★ 没有角色的事件**不画头像**——画一个的话，用户会以为有个角色在说话。
+  it('应用自己发的事件没有头像', () => {
+    render(<Timeline events={[{ ...ev('state_change'), payload: { to: 'executing' } }]} />)
+
+    expect(document.querySelector('[data-runtime]')).toBeNull()
+  })
+
+  // ★ 用户自己说的话也不画——他不是被编排的一个角色。
+  it('用户消息没有头像', () => {
+    render(<Timeline events={[ev('user_message', '先别写代码')]} />)
+
+    const mine = document.querySelector('[data-event-type="user_message"]')
+    expect(mine?.querySelector('[data-runtime]')).toBeNull()
+  })
+})
