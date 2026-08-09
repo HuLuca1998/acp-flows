@@ -554,6 +554,16 @@
 | `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
 | `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
 | `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestWriteBoundary_R1_MatchesByPathSegment` | `internal/domain/model/write_boundary_test.go` | domain | ★★ M7 U7.1.1 R1：边界按**路径段**比不是字符串前缀——`internal/acp/` 不该匹配 `internal/acpx/foo.go`，那是用户从没同意过的目录。**负例验过**：退回朴素前缀当场红 |
+| `TestWriteBoundary_R2_ForbiddenWins` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R2：禁止项压过允许项。反过来的话「允许 internal/、禁止 internal/api/gen/」会让生成物被放行——而它正是被单独拎出来禁止的那一个 |
+| `TestWriteBoundary_R3_EmptyIsUnknownNotAllowed` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R3：空边界判 `unknown` **不是** `in_boundary`。把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |
+| `TestWriteBoundary_UnlistedIsOutside` | `internal/domain/model/write_boundary_test.go` | domain | 有边界但没命中允许项 = 越界：「没说可以」就是不可以，安全默认是拒绝 |
+| `TestWriteBoundary_FoldsDotDot` | `internal/domain/model/write_boundary_test.go` | domain | ★★ `..` 要折叠——不折叠的话 `internal/acp/../../etc/passwd` 会被判成边界内 |
+| `TestWriteBoundary_NormalizesPaths` | `internal/domain/model/write_boundary_test.go` | domain | 首尾 `/` 与 `./` 不影响判定——AI 给的路径形态我们说了不算 |
+| `TestWriteBoundary_R5_DoesNotNeedTheFileToExist` | `internal/domain/model/write_boundary_test.go` | domain | R5：不看文件存不存在——AI 要**新建**文件时那个路径当然还不存在，而那正是最需要判边界的时刻 |
+| `TestUnitContract_R4_BoundaryIsFrozenToo` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R4：冻结后边界改不动，否则边界随时可以被放宽到全放行 |
+| `TestUnitContract_BoundaryReturnsCopy` | `internal/domain/model/write_boundary_test.go` | domain | `Boundary()` 返回副本——不然调用方能把边界改成全放行 |
+| `TestUnitContract_ReviseCarriesTheBoundary` | `internal/domain/model/write_boundary_test.go` | domain | ★ 修订出的新版本带着边界（副本）。不带的话 v2 一出来就是「什么都不许改」，而用户以为只是改了一条标准 |
 | `TestUnit_R1_RoleIsRequiredAndMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ M6 U6.1.1 R1（裁定三）：单元**必须**有角色且角色要在角色库里，错误里带上角色 id 与单元 id。不写的话到执行时才发现没人认领——而那时用户已经等了几分钟；更糟的是随手派一个，让实现方审查自己的产出（INV-ATT-8 禁止） |
 | `TestSubplan_R2_IsImmutable` | `internal/domain/model/subplan_test.go` | domain | R2：反射断言 Unit / Subplan 只有读方法；`DependsOn()` 返回副本 |
 | `TestSubplan_R3_DependencyMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ R3：依赖必须指向存在的单元。静静忽略的话那条依赖永远不生效——一个本该等着的单元会提前开工，表现是 AI 对着一个不存在的接口写代码 |
