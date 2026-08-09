@@ -10,9 +10,11 @@ import { PlanPanel } from './PlanPanel'
 // 实现方审查自己的产出是 INV-ATT-8 明令禁止的。
 
 const getPlan = vi.fn()
+const getPlanHistory = vi.fn()
 
 vi.mock('@/api/system', () => ({
   getPlan: (...a: unknown[]): unknown => getPlan(...a),
+  getPlanHistory: (...a: unknown[]): unknown => getPlanHistory(...a),
 }))
 
 const PLAN = {
@@ -53,6 +55,7 @@ const PLAN = {
 
 beforeEach(() => {
   getPlan.mockReset().mockResolvedValue(PLAN)
+  getPlanHistory.mockReset().mockResolvedValue([PLAN])
 })
 
 describe('计划面板', () => {
@@ -141,5 +144,37 @@ describe('计划面板', () => {
   it('没有工作时不发请求', () => {
     render(<PlanPanel workID="" />)
     expect(getPlan).not.toHaveBeenCalled()
+  })
+})
+
+// ★★ R3 · 变更历史：改过几版、每次为什么改。
+describe('变更历史', () => {
+  it('列出全部版本，当前那版标出来', async () => {
+    getPlanHistory.mockResolvedValue([
+      PLAN,
+      {
+        ...PLAN,
+        version: 4,
+        title: '取消运行中的 Agent turn（旧版）',
+        dispositions: { 'unit-011': 'still_valid' },
+      },
+    ])
+    render(<PlanPanel workID="work-01" />)
+
+    expect(await screen.findByText('变更历史')).toBeInTheDocument()
+    expect(screen.getByText('v5')).toBeInTheDocument()
+    expect(screen.getByText('v4')).toBeInTheDocument()
+    // ★★ 重规划的**处置**要看得见：漏掉的那项会悄悄失效，
+    // 而用户是在几周后才发现「那个做完的东西怎么没了」
+    expect(screen.getByText(/unit-011 · still_valid/)).toBeInTheDocument()
+  })
+
+  // ★ 只有一版时**不显示这一块**——「历史」只有一条等于没有历史，
+  // 而多出一个空块会让用户以为这里坏了。
+  it('只有一版时不显示历史', async () => {
+    render(<PlanPanel workID="work-01" />)
+    await screen.findByText('plan v5')
+
+    expect(screen.queryByText('变更历史')).not.toBeInTheDocument()
   })
 })

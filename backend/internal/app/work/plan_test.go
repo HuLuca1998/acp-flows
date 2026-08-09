@@ -253,3 +253,84 @@ func TestPlan_UnconfiguredSaysSo(t *testing.T) {
 		t.Errorf("err = %v，想要 ErrPlansUnavailable", err)
 	}
 }
+
+// ★★ 端到端：AI 的回复 → **库里真的有了一版计划**。
+//
+// 只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——
+// 而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」。
+func TestStartPlanning_AbsorbsTheReplyIntoAPlan(t *testing.T) {
+	runner := &fakeRunner{reply: goodReply}
+	svc, plans, workID := planningSetup(t, runner)
+	ctx := context.Background()
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	if err := svc.FreezeRequirement(ctx, workID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartPlanning(ctx, workID); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, "计划一直没落库——AI 说了话，而没人把它变成计划", func() bool {
+		v, err := plans.LatestPlan(ctx, workID)
+		return err == nil && v.Version() == 1
+	})
+
+	v, err := plans.LatestPlan(ctx, workID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, m := v.Counts(); n != 1 || m != 2 {
+		t.Errorf("计数 = %d · %d，想要 1 · 2", n, m)
+	}
+	if v.Subplans()[0].Units()[1].RoleID() != "unit_reviewer" {
+		t.Error("角色没落进计划")
+	}
+}
+
+// ★★ 解析不出来时**说清楚**，而不是静静地什么都不发生。
+//
+// 静默的话，用户看到「正在规划」然后永远没有下文——
+// 而真正的原因（AI 输出了一段散文）躺在没人读的地方。
+func TestStartPlanning_UnparseableReplySaysWhy(t *testing.T) {
+	runner := &fakeRunner{reply: "我觉得这个需求可以分成三部分，首先是协议层……"}
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetPlans(newMemPlans())
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "用户能取消正在运行的 turn", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+	if err := svc.FreezeRequirement(ctx, view.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartPlanning(ctx, view.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, "没发失败事件——用户对着「正在规划」永远等不到下文", func() bool {
+		for _, e := range bus.snapshot() {
+			if e.Type == "plan_version" && e.Payload["failed"] == true {
+				return true
+			}
+		}
+		return false
+	})
+
+	// ★ 判据：事件里带着**它到底说了什么**
+	for _, e := range bus.snapshot() {
+		if e.Type != "plan_version" || e.Payload["failed"] != true {
+			continue
+		}
+		reason, _ := e.Payload["reason"].(string)
+		if !strings.Contains(reason, "协议层") {
+			t.Errorf("失败事件里没有原话：%s", reason)
+		}
+		return
+	}
+}

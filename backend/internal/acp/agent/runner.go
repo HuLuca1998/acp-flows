@@ -185,6 +185,7 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 
 	r.attachSession(turn.WorkID, ls.sess)
 
+	sink := r.sinkFor(ctx, log, roleID, ls.spec.Name, turn)
 	runErr := RunOn(ctx, ls.sess, Spec{
 		Permission:   r.PermissionFor(turn),
 		Transport:    stdio{r: ls.proc.Stdout(), w: ls.proc.Stdin()},
@@ -192,9 +193,17 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		WorkID:       turn.WorkID,
 		Prompt:       turn.Prompt,
 		SystemPrompt: systemPromptOf(turn, r.SystemPrompt),
-		Sink:         r.sinkFor(ctx, log, roleID, ls.spec.Name, turn),
+		Sink:         sink,
 		Log:          log,
 	})
+
+	// ★★ **跑完把它说的话交回去**，即使这一轮出了错。
+	//
+	// 出错就不给的话，「AI 说到一半崩了」与「AI 什么都没说」在调用方那儿
+	// 长得一模一样——而前者的半截回复往往正好说明了崩在哪。
+	if turn.OnReply != nil && sink.said != nil {
+		turn.OnReply(sink.said.String())
+	}
 
 	if runErr != nil {
 		// ★★ 这一轮出错就**把会话摘掉并收拾干净**。

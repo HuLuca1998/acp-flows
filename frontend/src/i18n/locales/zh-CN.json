@@ -75,6 +75,7 @@
   "plan.contractNotFrozen": "契约未冻结",
   "plan.counts": "{{subplans}} 子计划 · {{units}} 单元",
   "plan.dependsOn": "依赖 {{list}}",
+  "plan.history": "变更历史",
   "plan.title": "计划",
   "project.already": "（已经在了）",
   "project.choose": "选择文件夹…",

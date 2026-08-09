@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getPlan } from '@/api/system'
+import { getPlan, getPlanHistory } from '@/api/system'
 import type { Plan } from '@/models/plan'
 
 import styles from './PlanPanel.module.css'
@@ -23,6 +23,8 @@ export type PlanPanelProps = {
 export function PlanPanel({ workID }: PlanPanelProps) {
   const { t } = useTranslation()
   const [plan, setPlan] = useState<Plan | null>(null)
+  // ★ 变更历史：改过几版、每次为什么改。设计稿计划面板里单独一块。
+  const [history, setHistory] = useState<Plan[]>([])
 
   const reload = useCallback(async () => {
     if (workID === '') {
@@ -31,10 +33,12 @@ export function PlanPanel({ workID }: PlanPanelProps) {
     }
     try {
       setPlan(await getPlan(workID))
+      setHistory(await getPlanHistory(workID))
     } catch {
       // ★ 读不到就**不显示这一块**，不报错：还没规划是新工作的常态，
       // 而弹一句「读取计划失败」会让用户以为出了什么事。
       setPlan(null)
+      setHistory([])
     }
   }, [workID])
 
@@ -96,6 +100,35 @@ export function PlanPanel({ workID }: PlanPanelProps) {
           </ul>
         </div>
       ))}
+
+      {/*
+        ★ 变更历史：改过几版、每次为什么改。
+        只有一版时不显示——「历史」只有一条等于没有历史，
+        而多出一个空块会让用户以为这里坏了。
+      */}
+      {history.length > 1 && (
+        <div className={styles.history}>
+          <span className={styles.historyTitle}>{t('plan.history')}</span>
+          {history.map((v) => (
+            <div key={v.version} className={styles.historyRow} data-current={v.version === plan.version}>
+              <span className={styles.version}>{`v${v.version}`}</span>
+              <span className={styles.historyText}>{v.title}</span>
+              <span className={styles.counts}>
+                {t('plan.counts', { subplans: v.subplan_count, units: v.unit_count })}
+              </span>
+              {/*
+                ★★ 重规划时**每一项已验收工作的处置**都要看得见：
+                漏掉的那项会悄悄失效，而用户是在几周后才发现
+                「那个做完的东西怎么没了」。
+              */}
+              {v.dispositions !== undefined &&
+                Object.entries(v.dispositions).map(([id, d]) => (
+                  <span key={id} className={styles.disposition}>{`${id} · ${d}`}</span>
+                ))}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

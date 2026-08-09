@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
@@ -63,6 +64,8 @@ func (r *ProcessRunner) sinkFor(
 ) busSink {
 	sink := busSink{
 		bus: r.Bus, ctx: ctx, log: log, role: roleID, runtime: runtimeName,
+		// ★ 只有这一轮想回读时才攒——不然每轮都白攒一份文本
+		said: saidFor(t),
 		// ★ 需求版本跟着这一轮走，与角色同理：界面另查一次的话，
 		// 拿到的是「现在」的版本，而用户看的是一条历史消息。
 		reqVersion: t.RequirementVersion, reqFrozen: t.RequirementFrozen,
@@ -71,4 +74,15 @@ func (r *ProcessRunner) sinkFor(
 		sink.roleName = role.DisplayName()
 	}
 	return sink
+}
+
+// saidFor 只在这一轮要回读时给一个累积器。
+//
+// ★ 不需要时返回 nil：每轮都攒一份文本是白花的内存，
+// 而一轮长对话的文本可以到几十 KB。
+func saidFor(t port.AgentTurn) *strings.Builder {
+	if t.OnReply == nil {
+		return nil
+	}
+	return &strings.Builder{}
 }

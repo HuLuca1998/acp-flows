@@ -75,6 +75,7 @@
   "plan.contractNotFrozen": "contract not frozen",
   "plan.counts": "{{subplans}} subplans · {{units}} units",
   "plan.dependsOn": "depends on {{list}}",
+  "plan.history": "Change history",
   "plan.title": "Plan",
   "project.already": "(already there)",
   "project.choose": "Choose folder…",

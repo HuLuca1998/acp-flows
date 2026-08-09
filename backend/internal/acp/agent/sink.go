@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 )
@@ -25,6 +26,11 @@ type busSink struct {
 	// 每条事件各查一次的话，一段流式文本能打出上百次查询。
 	reqVersion int
 	reqFrozen  bool
+	// said 累积这一轮 Agent 说过的文本，供 AgentTurn.OnReply 回读。
+	//
+	// ★ 指针：busSink 是值类型，按值传的话每个副本各攒各的，
+	// 最后拿到的是空的——而那会表现成「AI 明明说了话，却解析不出计划」。
+	said *strings.Builder
 }
 
 // Emit 实现 Sink。
@@ -45,6 +51,14 @@ func (s busSink) Emit(e WorkEvent) {
 	if e.RequirementVersion == 0 {
 		e.RequirementVersion, e.RequirementFrozen = s.reqVersion, s.reqFrozen
 	}
+	// ★ 只攒**文本消息**：思考摘要与工具调用不是「它说的话」，
+	// 攒进去的话，抠 JSON 时会撞上工具输出里的那些花括号。
+	if s.said != nil && e.Type == "message_chunk" {
+		if text, ok := e.Payload["text"].(string); ok {
+			s.said.WriteString(text)
+		}
+	}
+
 	if err := s.bus.PublishWorkEvent(s.ctx, e); err != nil {
 		s.log.Warn("事件发不到总线", "type", e.Type, "work_id", e.WorkID, "err", err)
 	}

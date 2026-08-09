@@ -541,6 +541,17 @@
 | `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
 | `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestParsePlanReply_R6_ExtractsTheGraph` | `internal/app/work/plan_parse_test.go` | app | ★★ M6 U6.2.1 R6：AI 回复里带 `duet-plan` 围栏的 JSON → 结构化 PlanVersion，角色与依赖都在。**版本号由我们给**——让 AI 猜的话会给出一个与库里对不上的号，而版本号是版本链的骨架 |
+| `TestParsePlanReply_R7_PlainProseSaysWhatItSaid` | `internal/app/work/plan_parse_test.go` | app | ★★ R7：一段散文 → 报错且**带上它的原话**。静默失败的话用户看到「正在规划」然后永远没有下文，而真正的原因躺在没人读的地方 |
+| `TestParsePlanReply_TakesTheLastFence` | `internal/app/work/plan_parse_test.go` | app | ★★ 取**最后一段**围栏：AI 常常先贴一段示例再给真计划，取第一段的话用户会得到一份内容是我们自己例子的计划 |
+| `TestParsePlanReply_UnknownRoleIsRejected` | `internal/app/work/plan_parse_test.go` | app | 派了不存在的角色当场报错（裁定三），错误里说清是哪个单元 |
+| `TestParsePlanReply_CycleIsRejected` | `internal/app/work/plan_parse_test.go` | app | 依赖成环当场报错 |
+| `TestParsePlanReply_BadJSONSaysSo` | `internal/app/work/plan_parse_test.go` | app | 坏 JSON 报错并带上那段内容 |
+| `TestParsePlanReply_UnclosedFence` | `internal/app/work/plan_parse_test.go` | app | 围栏没闭合（流式被截断）当成没有，不去解析半截 JSON |
+| `TestParsePlanReply_EmptyPlanIsRejected` | `internal/app/work/plan_parse_test.go` | app | 空计划被拒——会让用户以为 AI 什么都没规划出来 |
+| `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
+| `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
+| `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
 | `TestUnit_R1_RoleIsRequiredAndMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ M6 U6.1.1 R1（裁定三）：单元**必须**有角色且角色要在角色库里，错误里带上角色 id 与单元 id。不写的话到执行时才发现没人认领——而那时用户已经等了几分钟；更糟的是随手派一个，让实现方审查自己的产出（INV-ATT-8 禁止） |
 | `TestSubplan_R2_IsImmutable` | `internal/domain/model/subplan_test.go` | domain | R2：反射断言 Unit / Subplan 只有读方法；`DependsOn()` 返回副本 |
 | `TestSubplan_R3_DependencyMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ R3：依赖必须指向存在的单元。静静忽略的话那条依赖永远不生效——一个本该等着的单元会提前开工，表现是 AI 对着一个不存在的接口写代码 |

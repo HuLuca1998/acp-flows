@@ -162,6 +162,17 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 func (s *Service) runTurn(
 	ctx context.Context, workID, worktree, prompt string, state constant.WorkState,
 ) {
+	s.runTurnWith(ctx, workID, worktree, prompt, state, nil)
+}
+
+// runTurnWith 跑一轮，并在结束时把 Agent 说过的话交给 onReply。
+//
+// ★ onReply 在**后台那个 goroutine 里**被调用：调用方不许在里面做慢操作，
+// 也不许假设自己还在原来的请求上下文里。
+func (s *Service) runTurnWith(
+	ctx context.Context, workID, worktree, prompt string,
+	state constant.WorkState, onReply func(string),
+) {
 	if s.runner == nil {
 		return
 	}
@@ -184,6 +195,7 @@ func (s *Service) runTurn(
 			// 不传的话 acp 层退到实现工程师（受控写），
 			// 那意味着用户以为自己只是在聊天，而对面能改他的文件。
 			RoleID:       roleForState(state),
+			OnReply:      onReply,
 			SystemPrompt: systemPromptFor(roleForState(state)),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。

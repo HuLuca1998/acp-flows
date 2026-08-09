@@ -174,6 +174,14 @@ type AgentTurn struct {
 	// 0 表示这个工作还没有需求快照。
 	RequirementVersion int
 	RequirementFrozen  bool
+	// OnReply 在这一轮结束时收到 Agent 说过的**全部文本**（拼好的）。
+	//
+	// ★★ 有它才谈得上「把 AI 的回复变成结构化的计划」——事件流是给界面看的，
+	// 而 app 层要从同一段文本里把 JSON 抠出来。让 app 层自己去订阅事件总线
+	// 的话，它得知道「哪几条属于这一轮」，而那个边界只有 acp 层清楚。
+	//
+	// ★ 可以为 nil：大多数轮次不需要回读自己说了什么。
+	OnReply func(reply string)
 	// SystemPrompt 是拼在这条会话最前面的那段话（角色的职责/性格/边界/产出）。
 	//
 	// ★★ **不拼的话，需求分析师和实现工程师收到的是一模一样的一句需求**——

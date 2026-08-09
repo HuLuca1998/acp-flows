@@ -347,6 +347,8 @@ type fakeRunner struct {
 	delay time.Duration
 	err   error
 	done  chan struct{}
+	// reply 是这一轮「Agent 说的话」，通过 AgentTurn.OnReply 交回去。
+	reply string
 }
 
 func (r *fakeRunner) RunTurn(ctx context.Context, t port.AgentTurn) error {
@@ -366,6 +368,15 @@ func (r *fakeRunner) RunTurn(ctx context.Context, t port.AgentTurn) error {
 	r.mu.Unlock()
 	if r.done != nil {
 		close(r.done)
+	}
+	// ★ 把「这一轮说了什么」交回去——真实现在 RunTurn 末尾做同样的事。
+	// 不调的话，这个替身比真实现「更沉默」，而靠回复驱动的那条链路
+	// （AI 的计划 → 结构化 PlanVersion）在测试里永远走不到。
+	if t.OnReply != nil {
+		r.mu.Lock()
+		reply := r.reply
+		r.mu.Unlock()
+		t.OnReply(reply)
 	}
 	return r.err
 }

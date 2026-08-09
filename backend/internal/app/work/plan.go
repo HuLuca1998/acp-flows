@@ -96,8 +96,48 @@ func (s *Service) StartPlanning(ctx context.Context, workID string) error {
 	// 而工作刚刚进了 planning。
 	prompt := planPromptFor(req)
 	s.emit(ctx, workID, "user_message", map[string]any{"text": prompt})
-	s.runTurn(ctx, workID, w.WorktreePath(), prompt, w.State())
+
+	// ★★ 跑完把它说的话抠成结构化的计划。
+	//
+	// ★ 版本号由**我们**给：AI 不知道现在是第几版，让它猜的话会给出一个
+	// 与库里对不上的号，而版本号是版本链的骨架。
+	next := nextPlanVersion(ctx, s.plans, workID)
+	turnCtx := context.WithoutCancel(ctx)
+	s.runTurnWith(ctx, workID, w.WorktreePath(), prompt, w.State(), func(reply string) {
+		s.absorbPlanReply(turnCtx, workID, reply, next)
+	})
 	return nil
+}
+
+// nextPlanVersion 算这一版该是第几号。没有计划时是 1。
+func nextPlanVersion(ctx context.Context, plans port.Plans, workID string) int {
+	cur, err := plans.LatestPlan(ctx, workID)
+	if err != nil {
+		return 1
+	}
+	return cur.Version() + 1
+}
+
+// absorbPlanReply 把 AI 的回复变成一版计划。
+//
+// ★★ **解析不出来时把原话给用户看**，附上原因。静默失败的话，
+// 用户看到「正在规划」然后永远没有下文——而真正的原因
+// （它输出了一段散文、派了个不存在的角色、依赖成了环）躺在没人读的地方。
+func (s *Service) absorbPlanReply(ctx context.Context, workID, reply string, version int) {
+	v, err := ParsePlanReply(reply, version)
+	if err != nil {
+		s.emit(ctx, workID, "plan_version", map[string]any{
+			"version": version, "failed": true,
+			"reason": err.Error(),
+		})
+		return
+	}
+	if saveErr := s.SavePlanVersion(ctx, workID, v); saveErr != nil {
+		s.emit(ctx, workID, "plan_version", map[string]any{
+			"version": version, "failed": true,
+			"reason": saveErr.Error(),
+		})
+	}
 }
 
 // planPromptFor 把冻结的需求变成给计划架构师的那句话。
@@ -111,8 +151,10 @@ func planPromptFor(req *model.RequirementSnapshot) string {
 	}
 	// ★★ 明写「每个单元都要派角色」：不说的话 AI 会给出一份没人认领的计划，
 	// 而那要到执行时才发现（裁定三）。
-	out += "\n每个单元都必须写明由哪个角色做（需求分析师 / 计划架构师 / 单元设计师 / " +
-		"实现工程师 / 测试执行者 / 单元审查员 / 决策顾问 / 记忆管理员）。"
+	out += "\n每个单元都必须写明由哪个角色做。"
+	// ★★ 输出格式的要求跟在后面：不给例子的话，AI 会给一段字段名自创的
+	// JSON——而那解析不出来，用户得到的是一次白等。
+	out += planInstructions()
 	return out
 }
 
