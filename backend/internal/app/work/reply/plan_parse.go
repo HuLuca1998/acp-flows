@@ -1,4 +1,9 @@
-package work
+// Package reply 从 AI 的一轮回复里抠出结构化产物：计划、契约、记忆候选。
+//
+// ★★ 每一类用**专属围栏**（`duet-plan` / `duet-contract` / `duet-memory`），
+// 不共用通用的 ```json：一轮回复里可能同时讲到好几样东西，
+// 挑错一段的后果是把配置文件当成了计划。
+package reply
 
 import (
 	"encoding/json"
@@ -40,11 +45,11 @@ type planPayload struct {
 	} `json:"subplans"`
 }
 
-// planInstructions 是拼在规划 prompt 末尾、告诉 AI 怎么输出的那段话。
+// PlanInstructions 是拼在规划 prompt 末尾、告诉 AI 怎么输出的那段话。
 //
 // ★★ 例子比规则管用：只写「输出 JSON」的话，它会给一段带注释的、
 // 字段名自创的 JSON——而那解析不出来，用户得到的是一次白等。
-func planInstructions() string {
+func PlanInstructions() string {
 	return "\n\n拆完之后，**在回复的最后**输出一段用 ```" + planFence +
 		" 围起来的 JSON，形如：\n\n```" + planFence + `
 {
@@ -141,4 +146,12 @@ func firstChars(s string, n int) string {
 		return s
 	}
 	return string(runes[:n]) + "…"
+}
+
+// HasFence 报告回复里有没有某个围栏的**起始标记**。
+//
+// ★ 用来分开两件事：「这一轮没打算记什么」（常态，安静跳过）
+// 与「它想记但格式写坏了」（要说出来，否则那条经验消失得无声无息）。
+func HasFence(reply, fence string) bool {
+	return strings.Contains(reply, "```"+fence)
 }

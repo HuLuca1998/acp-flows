@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
 	"strings"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
@@ -158,7 +159,7 @@ func (s *Service) DesignContract(ctx context.Context, workID, unitID string) err
 	// ★ 用**单元设计师**跑，不是单元自己派的那个角色——
 	// 派给实现工程师的单元，它的契约也该由设计师来定。
 	s.runTurnAsWithReply(ctx, workID, w.WorktreePath(), prompt, "unit_designer",
-		func(reply string) { s.absorbContractReply(turnCtx, workID, unitID, reply, next) })
+		func(agentSay string) { s.absorbContractReply(turnCtx, workID, unitID, agentSay, next) })
 	return nil
 }
 
@@ -180,7 +181,7 @@ func contractPromptFor(u model.Unit, version int) string {
 	}
 	b.WriteString("\n契约要回答两件事：**凭什么说做完了**（可验证的验收标准），" +
 		"**允许改哪些文件**（写入边界）。")
-	b.WriteString(contractInstructions())
+	b.WriteString(reply.ContractInstructions())
 	return b.String()
 }
 
@@ -188,8 +189,8 @@ func contractPromptFor(u model.Unit, version int) string {
 //
 // ★ 产出的是**草稿不是冻结的**：冻结是用户的动作（与需求快照同理）。
 // 自动冻结的话，用户还没看过这份契约，AI 就已经照着它开始改文件了。
-func (s *Service) absorbContractReply(ctx context.Context, workID, unitID, reply string, version int) {
-	c, err := ParseContractReply(reply, unitID, version)
+func (s *Service) absorbContractReply(ctx context.Context, workID, unitID, agentSay string, version int) {
+	c, err := reply.ParseContractReply(agentSay, unitID, version)
 	if err != nil {
 		s.emit(ctx, workID, "unit_contract", map[string]any{
 			"unit": unitID, "version": version, "failed": true, "reason": err.Error(),

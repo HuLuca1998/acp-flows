@@ -1,11 +1,11 @@
-package work_test
+package reply_test
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
@@ -33,7 +33,7 @@ const goodReply = "我把它拆成一个子计划、两个单元。\n\n" +
 
 // ★★ R6 · 带围栏的回复解析得出子计划与单元，**角色也在**。
 func TestParsePlanReply_R6_ExtractsTheGraph(t *testing.T) {
-	v, err := work.ParsePlanReply(goodReply, 1)
+	v, err := reply.ParsePlanReply(goodReply, 1)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
@@ -58,8 +58,8 @@ func TestParsePlanReply_R6_ExtractsTheGraph(t *testing.T) {
 func TestParsePlanReply_R7_PlainProseSaysWhatItSaid(t *testing.T) {
 	const prose = "我觉得这个需求可以分成三部分来做，首先是协议层，然后是……"
 
-	_, err := work.ParsePlanReply(prose, 1)
-	if !errors.Is(err, work.ErrNoPlanInReply) {
+	_, err := reply.ParsePlanReply(prose, 1)
+	if !errors.Is(err, reply.ErrNoPlanInReply) {
 		t.Fatalf("散文却解析成功了：%v", err)
 	}
 	// ★ 判据：错误里能看到**它到底说了什么**
@@ -70,10 +70,10 @@ func TestParsePlanReply_R7_PlainProseSaysWhatItSaid(t *testing.T) {
 
 // 围栏里是坏 JSON → 报错并带上那段内容。
 func TestParsePlanReply_BadJSONSaysSo(t *testing.T) {
-	reply := "```duet-plan\n{这不是 JSON}\n```"
+	agentSay := "```duet-plan\n{这不是 JSON}\n```"
 
-	_, err := work.ParsePlanReply(reply, 1)
-	if !errors.Is(err, work.ErrNoPlanInReply) {
+	_, err := reply.ParsePlanReply(agentSay, 1)
+	if !errors.Is(err, reply.ErrNoPlanInReply) {
 		t.Fatalf("坏 JSON 却过了：%v", err)
 	}
 	if !strings.Contains(err.Error(), "这不是 JSON") {
@@ -85,14 +85,14 @@ func TestParsePlanReply_BadJSONSaysSo(t *testing.T) {
 //
 // 放行的话，那个单元到执行时才发现没人认领，而用户已经等了几分钟。
 func TestParsePlanReply_UnknownRoleIsRejected(t *testing.T) {
-	reply := "```duet-plan\n" + `{
+	agentSay := "```duet-plan\n" + `{
   "title": "t",
   "subplans": [{"id": "subplan-01", "title": "s", "units": [
     {"id": "unit-012", "title": "u", "role_id": "senior_vibe_coder", "depends_on": []}
   ]}]
 }` + "\n```"
 
-	_, err := work.ParsePlanReply(reply, 1)
+	_, err := reply.ParsePlanReply(agentSay, 1)
 	if !errors.Is(err, model.ErrUnknownRole) {
 		t.Fatalf("不存在的角色却过了：%v", err)
 	}
@@ -105,7 +105,7 @@ func TestParsePlanReply_UnknownRoleIsRejected(t *testing.T) {
 
 // ★★ 依赖成环 → 当场报错，且把环列出来。
 func TestParsePlanReply_CycleIsRejected(t *testing.T) {
-	reply := "```duet-plan\n" + `{
+	agentSay := "```duet-plan\n" + `{
   "title": "t",
   "subplans": [{"id": "subplan-01", "title": "s", "units": [
     {"id": "unit-a", "title": "a", "role_id": "implementer", "depends_on": ["unit-b"]},
@@ -113,7 +113,7 @@ func TestParsePlanReply_CycleIsRejected(t *testing.T) {
   ]}]
 }` + "\n```"
 
-	_, err := work.ParsePlanReply(reply, 1)
+	_, err := reply.ParsePlanReply(agentSay, 1)
 	if !errors.Is(err, model.ErrDependencyCycle) {
 		t.Fatalf("成环却过了：%v", err)
 	}
@@ -124,12 +124,12 @@ func TestParsePlanReply_CycleIsRejected(t *testing.T) {
 // 取第一段的话，示例会被当成真计划——而用户会得到一份写着
 // 「取消运行中的 Agent turn」但内容是我们自己例子的计划。
 func TestParsePlanReply_TakesTheLastFence(t *testing.T) {
-	reply := "先给你看个格式：\n```duet-plan\n" + `{"title":"示例","subplans":[
+	agentSay := "先给你看个格式：\n```duet-plan\n" + `{"title":"示例","subplans":[
 {"id":"subplan-99","title":"示例子计划","units":[
 {"id":"unit-999","title":"示例单元","role_id":"implementer","depends_on":[]}]}]}` +
 		"\n```\n\n下面是真的：\n\n" + goodReply
 
-	v, err := work.ParsePlanReply(reply, 1)
+	v, err := reply.ParsePlanReply(agentSay, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,26 +141,26 @@ func TestParsePlanReply_TakesTheLastFence(t *testing.T) {
 
 // 围栏没闭合（流式输出被截断）→ 当成没有，不去解析半截 JSON。
 func TestParsePlanReply_UnclosedFence(t *testing.T) {
-	reply := "```duet-plan\n{\"title\":\"半截"
+	agentSay := "```duet-plan\n{\"title\":\"半截"
 
-	_, err := work.ParsePlanReply(reply, 1)
-	if !errors.Is(err, work.ErrNoPlanInReply) {
+	_, err := reply.ParsePlanReply(agentSay, 1)
+	if !errors.Is(err, reply.ErrNoPlanInReply) {
 		t.Errorf("半截围栏却过了：%v", err)
 	}
 }
 
 // 一个子计划都没有 → 报错。空计划会让用户以为 AI 什么都没规划出来。
 func TestParsePlanReply_EmptyPlanIsRejected(t *testing.T) {
-	reply := "```duet-plan\n" + `{"title":"t","subplans":[]}` + "\n```"
+	agentSay := "```duet-plan\n" + `{"title":"t","subplans":[]}` + "\n```"
 
-	if _, err := work.ParsePlanReply(reply, 1); !errors.Is(err, work.ErrNoPlanInReply) {
+	if _, err := reply.ParsePlanReply(agentSay, 1); !errors.Is(err, reply.ErrNoPlanInReply) {
 		t.Errorf("空计划却过了：%v", err)
 	}
 }
 
 // ★ 错误里的原话按**字符**截断，不按字节——按字节截会把中文切成乱码。
 func TestParsePlanReply_TruncatesByRunes(t *testing.T) {
-	_, err := work.ParsePlanReply(strings.Repeat("需求分析中", 200), 1)
+	_, err := reply.ParsePlanReply(strings.Repeat("需求分析中", 200), 1)
 	if err == nil {
 		t.Fatal("该报错")
 	}

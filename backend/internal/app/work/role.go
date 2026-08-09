@@ -1,6 +1,7 @@
 package work
 
 import (
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
@@ -40,5 +41,10 @@ func systemPromptFor(roleID string) string {
 	if err != nil {
 		return ""
 	}
-	return role.SystemPrompt()
+	// ★★ 每个角色的提示词末尾都带上「怎么提记忆」。
+	//
+	// 不带的话 AI 永远不会输出 `duet-memory` 围栏，而解析那一整套代码
+	// 就是死的——单测全绿，真实路径上一条候选都不会出现。
+	// 提取器与「让它提」必须成对上线。
+	return role.SystemPrompt() + reply.MemoryInstructions()
 }

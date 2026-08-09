@@ -1,4 +1,4 @@
-package work
+package reply
 
 import (
 	"encoding/json"
@@ -29,11 +29,11 @@ type contractPayload struct {
 	} `json:"boundary"`
 }
 
-// contractInstructions 告诉单元设计师怎么输出。
+// ContractInstructions 告诉单元设计师怎么输出。
 //
 // ★★ 例子比规则管用：只写「输出 JSON」的话它会给一段字段名自创的 JSON，
 // 而那解析不出来，用户得到的是一次白等。
-func contractInstructions() string {
+func ContractInstructions() string {
 	return "\n\n想清楚之后，**在回复的最后**输出一段用 ```" + contractFence +
 		" 围起来的 JSON，形如：\n\n```" + contractFence + `
 {

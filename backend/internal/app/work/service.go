@@ -65,6 +65,10 @@ type Service struct {
 	// decisions 存决策。为 nil 时提问会明确报错——
 	// **不是**「AI 自己选一个往下走」。
 	decisions port.Decisions
+	// memories 存记忆索引；memoryBodies 存正文（INV-MEM-8）。
+	// 都可以为 nil，那时候选照解析但不落库。
+	memories     port.MemoryRepo
+	memoryBodies MemoryBodies
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
@@ -215,7 +219,10 @@ func (s *Service) runTurnAsWithReply(
 			WorkID: workID, Cwd: worktree, Prompt: prompt,
 			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
 			RequirementVersion: version, RequirementFrozen: frozen,
-			OnReply: onReply,
+			// ★★ 每一轮都过一遍记忆提取。不套的话，`reply.ParseMemoryReply`
+			// 是一段永远不会被调用的代码——测试全绿，而真实路径上
+			// 一条候选都不会出现。这个项目已经八次栽在这上面。
+			OnReply: s.withMemoryCapture(turnCtx, workID, onReply),
 		})
 		if err == nil || s.isCancelling(workID) {
 			return
@@ -255,8 +262,10 @@ func (s *Service) runTurnWith(
 			// 需求分析师——只读，它读得到代码与记忆但一个字节都写不了。
 			// 不传的话 acp 层退到实现工程师（受控写），
 			// 那意味着用户以为自己只是在聊天，而对面能改他的文件。
-			RoleID:       roleForState(state),
-			OnReply:      onReply,
+			RoleID: roleForState(state),
+			// ★★ 同上：对话轮也可能冒出经验，而它恰恰是最常冒的那一类
+			// （用户刚纠正了它一个误解）。
+			OnReply:      s.withMemoryCapture(turnCtx, workID, onReply),
 			SystemPrompt: systemPromptFor(roleForState(state)),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。

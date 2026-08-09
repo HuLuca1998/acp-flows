@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
@@ -103,8 +104,8 @@ func (s *Service) StartPlanning(ctx context.Context, workID string) error {
 	// 与库里对不上的号，而版本号是版本链的骨架。
 	next := nextPlanVersion(ctx, s.plans, workID)
 	turnCtx := context.WithoutCancel(ctx)
-	s.runTurnWith(ctx, workID, w.WorktreePath(), prompt, w.State(), func(reply string) {
-		s.absorbPlanReply(turnCtx, workID, reply, next)
+	s.runTurnWith(ctx, workID, w.WorktreePath(), prompt, w.State(), func(agentSay string) {
+		s.absorbPlanReply(turnCtx, workID, agentSay, next)
 	})
 	return nil
 }
@@ -123,8 +124,8 @@ func nextPlanVersion(ctx context.Context, plans port.Plans, workID string) int {
 // ★★ **解析不出来时把原话给用户看**，附上原因。静默失败的话，
 // 用户看到「正在规划」然后永远没有下文——而真正的原因
 // （它输出了一段散文、派了个不存在的角色、依赖成了环）躺在没人读的地方。
-func (s *Service) absorbPlanReply(ctx context.Context, workID, reply string, version int) {
-	v, err := ParsePlanReply(reply, version)
+func (s *Service) absorbPlanReply(ctx context.Context, workID, agentSay string, version int) {
+	v, err := reply.ParsePlanReply(agentSay, version)
 	if err != nil {
 		s.emit(ctx, workID, "plan_version", map[string]any{
 			"version": version, "failed": true,
@@ -154,7 +155,7 @@ func planPromptFor(req *model.RequirementSnapshot) string {
 	out += "\n每个单元都必须写明由哪个角色做。"
 	// ★★ 输出格式的要求跟在后面：不给例子的话，AI 会给一段字段名自创的
 	// JSON——而那解析不出来，用户得到的是一次白等。
-	out += planInstructions()
+	out += reply.PlanInstructions()
 	return out
 }
 

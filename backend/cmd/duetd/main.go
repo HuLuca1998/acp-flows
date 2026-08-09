@@ -233,6 +233,9 @@ func run() error {
 	workSvc.SetCommitter(committer{})
 	// ★ 决策：没有它提问会明确报错，而不是「AI 自己选一个往下走」。
 	workSvc.SetDecisions(db.Decisions())
+	// ★★ 记忆：没有它候选照解析但不落库，用户重开应用就没了。
+	// 正文走 md 文件（INV-MEM-8），索引走 DB——两边分工，不是两份拷贝。
+	workSvc.SetMemories(db.Memories(), newMemoryBodies(paths.DataDir()))
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

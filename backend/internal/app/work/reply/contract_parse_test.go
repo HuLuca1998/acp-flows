@@ -1,11 +1,11 @@
-package work_test
+package reply_test
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
 )
 
 // M7 完成标志 1 · 单元设计师产出契约
@@ -28,7 +28,7 @@ const goodContractReply = "这个单元要动取消链路，边界收在 acp 与
 
 // ★★ 带围栏的回复解析出验收标准与边界，且**边界真的判得出来**。
 func TestParseContractReply_ExtractsCriteriaAndBoundary(t *testing.T) {
-	c, err := work.ParseContractReply(goodContractReply, "unit-013", 1)
+	c, err := reply.ParseContractReply(goodContractReply, "unit-013", 1)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
@@ -55,17 +55,17 @@ func TestParseContractReply_ExtractsCriteriaAndBoundary(t *testing.T) {
 //
 // 空契约冻结之后，「做完了」这件事没有任何判据——AI 说做完了就是做完了。
 func TestParseContractReply_EmptyCriteriaIsRejected(t *testing.T) {
-	reply := "```duet-contract\n" + `{"criteria":[],"boundary":{"allowed":["/"]}}` + "\n```"
+	agentSay := "```duet-contract\n" + `{"criteria":[],"boundary":{"allowed":["/"]}}` + "\n```"
 
-	if _, err := work.ParseContractReply(reply, "unit-013", 1); !errors.Is(err, work.ErrNoContractInReply) {
+	if _, err := reply.ParseContractReply(agentSay, "unit-013", 1); !errors.Is(err, reply.ErrNoContractInReply) {
 		t.Errorf("空契约却过了：%v——「做完了」会变成 AI 说了算", err)
 	}
 }
 
 // ★ 一段散文 → 报错并带上原话。
 func TestParseContractReply_ProseSaysWhatItSaid(t *testing.T) {
-	_, err := work.ParseContractReply("我觉得这个单元主要是改取消链路……", "unit-013", 1)
-	if !errors.Is(err, work.ErrNoContractInReply) {
+	_, err := reply.ParseContractReply("我觉得这个单元主要是改取消链路……", "unit-013", 1)
+	if !errors.Is(err, reply.ErrNoContractInReply) {
 		t.Fatalf("散文却解析成功了：%v", err)
 	}
 	if !strings.Contains(err.Error(), "取消链路") {
@@ -78,10 +78,10 @@ func TestParseContractReply_ProseSaysWhatItSaid(t *testing.T) {
 // 共用一个标记的话，抠出来的那段可能是另一样东西——
 // 而那会变成一份验收标准是子计划标题的契约。
 func TestParseContractReply_DoesNotPickUpAPlanFence(t *testing.T) {
-	reply := "先看计划：\n```duet-plan\n" +
+	agentSay := "先看计划：\n```duet-plan\n" +
 		`{"title":"t","subplans":[{"id":"s","title":"s","units":[]}]}` + "\n```"
 
-	if _, err := work.ParseContractReply(reply, "unit-013", 1); !errors.Is(err, work.ErrNoContractInReply) {
+	if _, err := reply.ParseContractReply(agentSay, "unit-013", 1); !errors.Is(err, reply.ErrNoContractInReply) {
 		t.Errorf("把计划当成契约解析了：%v", err)
 	}
 }

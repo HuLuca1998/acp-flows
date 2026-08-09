@@ -381,6 +381,12 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestService_MemoryCandidate_IsAlwaysCandidateNeverActive` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R1 R2：AI 在载荷里**明写 `status: active`** 也只能建出 candidate——那是这一整步的底线（它自己写的话，一条它误解的「经验」会一直影响后面每一轮，而用户从没同意过）。判据落在**库里那条记录**上，顺带断言正文真落了盘（索引有而 md 不在的话，用户点开看到「文件不存在」） |
+| `TestService_MemoryCandidate_EventCarriesID` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1 R5：候选事件带 `memory_id` 与 `status`——不带 id 的话用户在时间线上看到候选却点不动 |
+| `TestService_MemoryCandidate_BrokenFenceIsReported` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R3：围栏写坏了要**发事件说原因**，不静默——咽下去的话 AI 想记的那条经验消失了而没有任何人知道 |
+| `TestService_MemoryCandidate_SilentWhenNoFence` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1：没写围栏是**常态**，一条事件都不该发——绝大多数轮次本来就没经验可记，每轮发一条的话时间线会被废话淹掉 |
+| `TestService_MemoryCandidate_NoDuplicateForSameTitle` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1 R4：同一条经验讲两遍只建一条（第二轮走 `Say` 这条真实路径）——AI 在一个单元里跑好几轮常会把上一轮那条再讲一遍 |
+| `TestAgentTurn_SystemPromptTellsAgentHowToProposeMemory` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 **接线守卫**：断的是真的传给 Agent 的 `AgentTurn.SystemPrompt`，要求它含 `duet-memory` 与「没有就不要输出」。不带的话 AI 永远不输出围栏，解析那一整套就是死代码。**验过负例**：拆掉 `role.go` 里那一行拼接，这条立刻红 |
 | `TestStore_Read_ReflectsUserEdits` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R2：用户拿编辑器改过 md 之后，读出来是**新内容**——缓存的话他改完打开 Duet 看到的还是旧的，会以为自己改错了地方 |
 | `TestStore_Read_MissingFileIsAnErrorWithPath` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1 R3：文件不见了报 `ErrBodyMissing` **且带路径**，不当成空正文——空正文看起来像「这条记忆没内容」，而真相是「文件丢了」 |
 | `TestStore_Write_RefusesToEscapeRoot` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R4：`../` 的 id 被 `ErrBadID` 挡住，记忆库目录外没被写出文件。断到具体错误上，防的是有人把那道检查放宽之后测试还绿着（挡它的**只有这一道**） |
