@@ -554,6 +554,13 @@
 | `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
 | `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
 | `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestContractRepo_R1_RoundTrip` | `internal/store/contract_repo_test.go` | store | ★★ M7 U7.1.2 R1：边界与验收标准逐字过库、顺序也在。★ 标准正文里有逗号——用逗号当分隔符会把一条拆成两条；★★ 边界少一条就等于**放宽了一次** |
+| `TestContractRepo_R2_RefusesToRewriteFrozen` | `internal/store/contract_repo_test.go` | store | ★★ R2：改写已冻结的契约被拒，库里那条一个字没变——否则边界随时可以被放宽到全放行 |
+| `TestContractRepo_DraftIsUpdatedInPlace` | `internal/store/contract_repo_test.go` | store | 未冻结的是草稿原地覆盖（单元设计师还在往里加标准），不升版本号 |
+| `TestContractRepo_DraftRewriteClearsRemovedItems` | `internal/store/contract_repo_test.go` | store | ★★ 整版重写要**清干净旧条目**：留着的话删掉的那条标准会复活，边界也会比用户以为的更宽 |
+| `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
+| `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
+| `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
 | `TestWriteBoundary_R1_MatchesByPathSegment` | `internal/domain/model/write_boundary_test.go` | domain | ★★ M7 U7.1.1 R1：边界按**路径段**比不是字符串前缀——`internal/acp/` 不该匹配 `internal/acpx/foo.go`，那是用户从没同意过的目录。**负例验过**：退回朴素前缀当场红 |
 | `TestWriteBoundary_R2_ForbiddenWins` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R2：禁止项压过允许项。反过来的话「允许 internal/、禁止 internal/api/gen/」会让生成物被放行——而它正是被单独拎出来禁止的那一个 |
 | `TestWriteBoundary_R3_EmptyIsUnknownNotAllowed` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R3：空边界判 `unknown` **不是** `in_boundary`。把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |

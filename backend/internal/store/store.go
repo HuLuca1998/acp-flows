@@ -100,6 +100,9 @@ func (s *Store) Requirements() *RequirementRepo { return &RequirementRepo{db: s.
 // Plans 返回计划仓储。★ 没有 Update/Delete：计划改了就存新版本。
 func (s *Store) Plans() *PlanRepo { return &PlanRepo{db: s.db, clk: s.clk} }
 
+// Contracts 返回契约仓储。★ 没有 Update/Delete：冻结后改不动。
+func (s *Store) Contracts() *ContractRepo { return &ContractRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 

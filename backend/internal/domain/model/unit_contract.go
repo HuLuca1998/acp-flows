@@ -46,6 +46,24 @@ func NewUnitContract(unitID string, version int) *UnitContract {
 	return &UnitContract{unitID: unitID, version: version}
 }
 
+// RestoreUnitContract 从持久化状态重建，供 store 层用。
+//
+// ★ 与 NewUnitContract 分开：后者造的是一份空白契约要一条条加标准，
+// 前者是把存过的读回来——校验规则变严时不该让老数据读不出来。
+func RestoreUnitContract(
+	unitID string, version int, criteria []Criterion, boundary WriteBoundary, frozen bool,
+) *UnitContract {
+	return &UnitContract{
+		unitID: unitID, version: version,
+		criteria: append([]Criterion(nil), criteria...),
+		boundary: WriteBoundary{
+			Allowed:   append([]string(nil), boundary.Allowed...),
+			Forbidden: append([]string(nil), boundary.Forbidden...),
+		},
+		frozen: frozen,
+	}
+}
+
 // UnitID 返回单元标识。
 func (c *UnitContract) UnitID() string { return c.unitID }
 
