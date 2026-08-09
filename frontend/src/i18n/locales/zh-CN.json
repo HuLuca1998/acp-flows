@@ -69,6 +69,8 @@
   "permission.action.other": "{{runtime}} 请求执行操作",
   "permission.action.read": "{{runtime}} 请求读取",
   "permission.action.search": "{{runtime}} 请求搜索",
+  "permission.boundaryUnknown": "这个单元还没有契约，边界说不清",
+  "permission.inBoundary": "在写入边界内",
   "permission.noOptions": "它没有给出可选项，这一轮无法处理",
   "permission.outOfBounds": "写入边界外",
   "permission.submitFailed": "没能提交你的选择，再试一次",

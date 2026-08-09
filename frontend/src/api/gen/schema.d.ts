@@ -682,12 +682,18 @@ export interface components {
             /** @description 涉及的文件路径。Agent 不一定给得出（比如执行命令）。 */
             path?: string;
             /**
-             * @description 是否越出了这个单元声明的写入边界。
+             * @description 这次写入在不在当前单元契约的写入边界内。
              *
-             *     ★ **没有依据时不要填 true。**「写入边界外」是一句很重的话，
-             *     乱说的话用户会对所有提示脱敏，真正越界那次他也不会看。
+             *     ★★ **三态而不是 bool**：bool 表达不了「不知道」，而契约还没冻结时
+             *     那条请求会长得和「边界内」一模一样——那正是用户最需要看清楚
+             *     AI 要动什么的时刻。
+             *
+             *     ★ 没有依据时是 `unknown`，**不要说成越界**：「写入边界外」
+             *     是一句很重的话，乱说的话用户会对所有提示脱敏，
+             *     真正越界那次他也不会看。
+             * @enum {string}
              */
-            out_of_bounds?: boolean;
+            boundary?: "in_boundary" | "out_of_boundary" | "unknown";
             options: components["schemas"]["PermissionOption"][];
         };
         Problem: {

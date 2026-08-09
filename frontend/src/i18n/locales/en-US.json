@@ -69,6 +69,8 @@
   "permission.action.other": "{{runtime}} wants to perform an action",
   "permission.action.read": "{{runtime}} wants to read",
   "permission.action.search": "{{runtime}} wants to search",
+  "permission.boundaryUnknown": "no contract yet — boundary unknown",
+  "permission.inBoundary": "within the write boundary",
   "permission.noOptions": "No options offered — this turn cannot be handled",
   "permission.outOfBounds": "outside write boundary",
   "permission.submitFailed": "Couldn't submit your choice — try again",

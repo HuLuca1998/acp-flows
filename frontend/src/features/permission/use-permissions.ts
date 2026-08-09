@@ -123,9 +123,11 @@ function toRequest(payload: unknown): PermissionRequest | null {
   if (path !== '') {
     req.path = path
   }
-  if (p.out_of_bounds === true) {
-    req.outOfBounds = true
-  }
+  // ★ 认不出的取值当成 `unknown`，**不当成边界内**：
+  // 后端将来加一个取值时，我们宁可说「不知道」也不能说「没问题」。
+  const verdict = str(p.boundary)
+  req.boundary =
+    verdict === 'in_boundary' || verdict === 'out_of_boundary' ? verdict : 'unknown'
   return req
 }
 
