@@ -178,6 +178,13 @@ func (s *Service) runTurn(
 // **单元自己派的那个**（裁定三）——一个单元可能派给审查员，
 // 而工作状态是 executing。
 func (s *Service) runTurnAs(ctx context.Context, workID, worktree, prompt, roleID string) {
+	s.runTurnAsWithReply(ctx, workID, worktree, prompt, roleID, nil)
+}
+
+// runTurnAsWithReply 跑一轮，角色由调用方指定，并在结束时交回它说的话。
+func (s *Service) runTurnAsWithReply(
+	ctx context.Context, workID, worktree, prompt, roleID string, onReply func(string),
+) {
 	if s.runner == nil {
 		return
 	}
@@ -191,6 +198,7 @@ func (s *Service) runTurnAs(ctx context.Context, workID, worktree, prompt, roleI
 			WorkID: workID, Cwd: worktree, Prompt: prompt,
 			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
 			RequirementVersion: version, RequirementFrozen: frozen,
+			OnReply: onReply,
 		})
 		if err == nil || s.isCancelling(workID) {
 			return

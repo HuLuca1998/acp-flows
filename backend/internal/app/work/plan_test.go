@@ -448,11 +448,11 @@ func (m *memContracts) SaveContract(_ context.Context, c *model.UnitContract) er
 			if existing.IsFrozen() {
 				return model.ErrContractFrozen
 			}
-			list[i] = c
+			list[i] = copyContract(c)
 			return nil
 		}
 	}
-	m.items[c.UnitID()] = append(list, c)
+	m.items[c.UnitID()] = append(list, copyContract(c))
 	return nil
 }
 
@@ -471,7 +471,16 @@ func (m *memContracts) LatestContract(
 			best = c
 		}
 	}
-	return best, nil
+	// ★★ **交出去的不能是库里那个指针**——真 store 每次都从行重建。
+	// 交指针的话这个替身比真实现「更共享」：`FreezeContract` 拿到它
+	// 调 `Freeze()`，库里那份就已经冻上了，于是存回去撞「已冻结不能改」。
+	// 这是同一个坑的第四次（worktree → 需求快照 → 当前单元 → 契约）。
+	return copyContract(best), nil
+}
+
+func copyContract(c *model.UnitContract) *model.UnitContract {
+	return model.RestoreUnitContract(
+		c.UnitID(), c.Version(), c.Criteria(), c.Boundary(), c.IsFrozen())
 }
 
 func (m *memContracts) ContractVersions(
@@ -479,7 +488,11 @@ func (m *memContracts) ContractVersions(
 ) ([]*model.UnitContract, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return append([]*model.UnitContract(nil), m.items[unitID]...), nil
+	out := make([]*model.UnitContract, 0, len(m.items[unitID]))
+	for _, c := range m.items[unitID] {
+		out = append(out, copyContract(c))
+	}
+	return out, nil
 }
 
 var _ port.Contracts = (*memContracts)(nil)

@@ -554,6 +554,12 @@
 | `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
 | `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
 | `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestParseContractReply_ExtractsCriteriaAndBoundary` | `internal/app/work/contract_parse_test.go` | app | ★★ M7 完成标志 1：单元设计师回复里的 `duet-contract` 围栏 → 验收标准与边界。★ 判据落在**判定行为**上（`Judge` 真的分得出内外），不是「切片长度是 2」；★★ 产出的是**草稿不是冻结的**——自动冻结的话用户还没看过它，AI 就能照着它改文件了 |
+| `TestParseContractReply_EmptyCriteriaIsRejected` | `internal/app/work/contract_parse_test.go` | app | ★★ 一条验收标准都没有 → 拒绝。空契约冻结之后「做完了」没有任何判据——AI 说做完了就是做完了 |
+| `TestParseContractReply_DoesNotPickUpAPlanFence` | `internal/app/work/contract_parse_test.go` | app | ★★ 契约与计划的围栏**分开**：一轮回复里可能同时讲到两者，共用标记的话会解析出一份验收标准是子计划标题的契约 |
+| `TestParseContractReply_ProseSaysWhatItSaid` | `internal/app/work/contract_parse_test.go` | app | 散文 → 报错并带上原话 |
+| `TestDesignContract_AbsorbsTheReply` | `internal/app/work/unit_test.go` | app | ★★ **端到端**：设计师的回复 → 库里有契约草稿，边界真的判得出来。★★ 这一轮由**单元设计师**跑而不是单元自己派的角色——自己给自己定边界等于没有边界 |
+| `TestFreezeContract_ThenTheUnitCanStart` | `internal/app/work/unit_test.go` | app | ★★ M7 主线的最后一环：草稿时开不了工，冻结后能，且执行轮用的是**单元自己派的角色**（审查员）而契约轮用的是设计师 |
 | `TestStartUnit_R1_RefusesWhileContractIsDraft` | `internal/app/work/unit_test.go` | app | ★★ M7 U7.3.1 R1：契约没冻结时拒绝开工，**且一轮都不跑**。没冻结就开工的话 AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——产出对不上任何一版契约 |
 | `TestStartUnit_R2_RunsAsTheUnitsOwnRole` | `internal/app/work/unit_test.go` | app | ★★ R2（裁定三）：这一轮用**单元自己派的那个角色**（测试里是审查员），不是按工作状态选。按状态选的话会错派成实现工程师——而实现方审查自己的产出是 INV-ATT-8 禁止的 |
 | `TestStartUnit_R5_PromptCarriesTheContract` | `internal/app/work/unit_test.go` | app | ★★ R5：prompt 里带验收标准原文、允许与禁止的边界、依赖。不贴边界的话 AI 不知道哪些不该碰——而越界会在权限卡片上被标出来，那时用户看到「它想动不该动的东西」，实际上是我们从没告诉过它 |

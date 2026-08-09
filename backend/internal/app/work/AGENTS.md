@@ -65,9 +65,18 @@ model.CanCancel(state) → 不行就直接拒，**不碰 Agent**
 **worktree 用真 `gitx` 实现，不塞假的**：本包最要紧的一条是「不往用户项目里写」，
 而假实现什么都不写——那条断言会永远绿。
 
-内存仓储的 `FindWork` 要**重建新对象**，不能交出指针。真 store 每次都经
-`mapper.WorkToModel` 重建，交指针的话这个替身比真实现「更共享」，
-测出来的竞态在生产里根本不存在。
+### ★★ 内存仓储必须与真 store **同规则**——这个坑踩了四次
+
+| 踩的那次 | 替身少做的那一步 | 表现 |
+|---|---|---|
+| `memWorks.FindWork` 交指针 | 真 store 经 `mapper` 重建 | 假竞态：生产里不存在 |
+| `memWorks.FindWork` 丢 worktree | 真 mapper 还原它 | `Say` 被「工作区没准备好」拒了，而真实路径上它切好了 |
+| `memWorks.FindWork` 丢 `currentUnitID` | 同上 | 边界判定永远说「不知道」，而契约就在库里 |
+| `memRequirements` / `memContracts` 交指针 | 真 store 每次 `hydrate` | `Freeze()` 直接改到库里那份，存回去撞「已冻结不能改」 |
+
+**规律**：替身只要比真实现**少做一步**，测试就会在一条真实路径产生不了的
+状态上红（或绿）。写替身时逐条对着真实现的 `hydrate` / `mapper` 看一遍，
+**返回值一律重建，不交内部指针**。
 
 写 `*_test.go` 前先调 `go-unit-testing` skill。
 每加一条断言，问一遍「把实现改坏，它会不会红」——**造负例，别猜**。

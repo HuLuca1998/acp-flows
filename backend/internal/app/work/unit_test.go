@@ -237,3 +237,71 @@ func TestStartUnit_TerminalWorkRefuses(t *testing.T) {
 			"那会让边界判定拿到一份过期的契约", err)
 	}
 }
+
+// ★★ 端到端：单元设计师的回复 → **库里真的有了一份契约草稿**。
+func TestDesignContract_AbsorbsTheReply(t *testing.T) {
+	runner := &fakeRunner{reply: goodContractReply}
+	svc, contracts, workID := unitSetup(t, runner)
+	ctx := context.Background()
+	waitFor(t, "前两轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+
+	if err := svc.DesignContract(ctx, workID, "unit-013"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "契约一直没落库——AI 说了话，而没人把它变成契约", func() bool {
+		c, err := contracts.LatestContract(ctx, "unit-013")
+		return err == nil && len(c.Criteria()) == 2
+	})
+
+	c, err := contracts.LatestContract(ctx, "unit-013")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Judge("internal/acp/x.go") != model.BoundaryInside {
+		t.Error("边界没落库")
+	}
+	// ★★ 是**草稿**：冻结是用户的动作
+	if c.IsFrozen() {
+		t.Error("契约自动冻结了——用户还没看过它，AI 就能照着它改文件了")
+	}
+
+	// ★★ 这一轮由**单元设计师**跑，不是单元自己派的那个角色：
+	// 派给实现工程师的单元，它的契约也该由设计师来定
+	if got := runner.snapshot()[2].RoleID; got != "unit_designer" {
+		t.Errorf("角色 = %q，想要 unit_designer——自己给自己定边界等于没有边界", got)
+	}
+}
+
+// 冻结之后就能开工了——这是 M7 主线的最后一环。
+func TestFreezeContract_ThenTheUnitCanStart(t *testing.T) {
+	runner := &fakeRunner{reply: goodContractReply}
+	svc, contracts, workID := unitSetup(t, runner)
+	ctx := context.Background()
+	waitFor(t, "前两轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+
+	if err := svc.DesignContract(ctx, workID, "unit-013"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "契约没落库", func() bool {
+		c, err := contracts.LatestContract(ctx, "unit-013")
+		return err == nil && len(c.Criteria()) == 2
+	})
+
+	// 没冻结时开不了工
+	if err := svc.StartUnit(ctx, workID, "unit-013"); !errors.Is(err, work.ErrContractNotFrozen) {
+		t.Fatalf("草稿契约却开工了：%v", err)
+	}
+
+	if err := svc.FreezeContract(ctx, workID, "unit-013"); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartUnit(ctx, workID, "unit-013"); err != nil {
+		t.Fatalf("冻结之后还是开不了工：%v", err)
+	}
+	waitFor(t, "执行轮没跑起来", func() bool { return len(runner.snapshot()) == 4 })
+
+	// ★ 执行轮用单元自己派的角色（审查员），而契约轮用设计师——两者不同
+	if got := runner.snapshot()[3].RoleID; got != "unit_reviewer" {
+		t.Errorf("执行轮的角色 = %q，想要 unit_reviewer", got)
+	}
+}
