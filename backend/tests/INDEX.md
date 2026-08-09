@@ -517,3 +517,13 @@
 | `TestPrepareWork_EmptyBranchesIsArray` | `internal/api/work_prepare_test.go` | api | 空分支列表序列化成 `[]` 不是 null |
 | `TestProcessRunner_KillAlsoDropsTheSession` | `internal/acp/agent/runner_test.go` | acp | M5 U5.1.1：★★ `KillAgent` 之后**池子里那条会话也要摘掉**。只杀进程不摘会话的话，下一轮接到一条进程已死的会话上——表现是「prompt 石沉大海」，用户看着转圈的界面而我们以为一切正常。两条判据：池子空了 + 下一轮跑得通 |
 | `TestCancel_ReleasesTheLiveSession` | `internal/app/work/service_test.go` | app | M5 U5.1.1：★★ 暂停之后**常驻会话要放掉**（Q42）。常驻是为了让 AI 记得上文，而 paused 的工作不需要——留着的话它一直占着 Agent 进程，而用户以为它已经停了 |
+| `TestRequirement_R1_FrozenIsImmutable` | `internal/domain/model/requirement_test.go` | domain | M5 U5.2.1 R1（INV-REQ-2）：★★ 反射断言方法集里**只有读方法与三个受控迁移**——加一个 setter 毫不费力且加完测试照绿，直到有人想查「上周那版需求说的是什么」。★ 对**指针类型**取方法集（PlanVersion 那条负例的教训）；冻结后连待确认清单都动不了 |
+| `TestRequirement_R2_ReviseKeepsTheOldVersion` | `internal/domain/model/requirement_test.go` | domain | R2：修订出 v2 而 **v1 一个字没变**；新版本**不是冻结的**——一出来就冻的话用户没机会再看一眼 |
+| `TestRequirement_R3_VersionChainIsStrict` | `internal/domain/model/requirement_test.go` | domain | R3：版本只增不跳号、不回退、第一版必须是 v1——跳号的话中间那版去哪了没人说得清 |
+| `TestRequirement_R4_UnfrozenCannotStartPlanning` | `internal/domain/model/requirement_test.go` | domain | R4（INV-REQ-1）：未冻结不能进计划——需求还在变时做出来的计划，做完也对不上 |
+| `TestRequirement_INVREQ1_OpenFactsBlockFreeze` | `internal/domain/model/requirement_test.go` | domain | ★★ 有待确认事实时拒绝冻结，且**错误里说清还剩什么**。带着没问清的问题往下走，AI 会自己替用户做决定，而那些决定会一路固化进计划与契约 |
+| `TestRequirement_FreezeIsIdempotent` | `internal/domain/model/requirement_test.go` | domain | 重复冻结不报错——用户手快点两下是常态 |
+| `TestNewRequirement_RejectsEmpty` | `internal/domain/model/requirement_test.go` | domain | 一条条目都没有时拒绝创建：空需求会走到「需求 0 · 已映射 0」，看起来正常而实际什么都没定 |
+| `TestNewRequirement_DropsBlankItems` | `internal/domain/model/requirement_test.go` | domain | ★ 空白条目丢掉——留着的话「需求 6 · 已映射 6」会变成假的，那个 6 里有一条没内容 |
+| `TestRequirement_ResolveUnknownFactErrs` | `internal/domain/model/requirement_test.go` | domain | 划掉不存在的待确认事实要报错，否则用户以为自己确认过了 |
+| `TestRequirement_ReturnsCopies` | `internal/domain/model/requirement_test.go` | domain | `Items()` / `OpenFacts()` 返回副本 |
