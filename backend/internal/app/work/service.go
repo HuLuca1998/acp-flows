@@ -180,7 +180,8 @@ func (s *Service) runTurn(
 			// 需求分析师——只读，它读得到代码与记忆但一个字节都写不了。
 			// 不传的话 acp 层退到实现工程师（受控写），
 			// 那意味着用户以为自己只是在聊天，而对面能改他的文件。
-			RoleID: roleForState(state),
+			RoleID:       roleForState(state),
+			SystemPrompt: systemPromptFor(roleForState(state)),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。
 			Cwd:                worktree,

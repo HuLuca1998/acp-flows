@@ -163,6 +163,12 @@ type AgentTurn struct {
 	// 0 表示这个工作还没有需求快照。
 	RequirementVersion int
 	RequirementFrozen  bool
+	// SystemPrompt 是拼在这条会话最前面的那段话（角色的职责/性格/边界/产出）。
+	//
+	// ★★ **不拼的话，需求分析师和实现工程师收到的是一模一样的一句需求**——
+	// 角色库里那八张卡片就只是界面上的装饰，而用户以为自己在跟一个
+	// 「追问式、不放过『大概』」的角色说话。
+	SystemPrompt string
 }
 
 // AgentRunner 拉起一个 Agent 跑一轮对话，把它说的话发到事件总线。

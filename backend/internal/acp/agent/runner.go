@@ -173,7 +173,7 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		Cwd:          turn.Cwd,
 		WorkID:       turn.WorkID,
 		Prompt:       turn.Prompt,
-		SystemPrompt: r.SystemPrompt,
+		SystemPrompt: systemPromptOf(turn, r.SystemPrompt),
 		Sink:         r.sinkFor(ctx, log, roleID, ls.spec.Name, turn),
 		Log:          log,
 	})

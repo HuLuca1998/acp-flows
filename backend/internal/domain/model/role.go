@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var (
@@ -192,6 +193,36 @@ func (r Role) Output() string { return r.output }
 
 // Prompt 返回角色提示词。
 func (r Role) Prompt() string { return r.prompt }
+
+// SystemPrompt 返回要拼在会话最前面的那段话。
+//
+// ★★ **这是「它追问而不是直接开写」的唯一落点**（M5 完成标志第 1 条）。
+// 不拼的话，需求分析师和实现工程师收到的是一模一样的一句需求——
+// 角色库里那八张卡片就只是界面上的装饰。
+//
+// ★ 用户改过提示词就用他的（角色页可编辑）；没改过就由**四行卡片**
+// 拼出来：职责 / 性格 / 边界 / 产出——那正是设计稿上给用户看的四行。
+// 两处同一份内容，用户看到什么，AI 收到的就是什么。
+func (r Role) SystemPrompt() string {
+	if strings.TrimSpace(r.prompt) != "" {
+		return r.prompt
+	}
+
+	var b strings.Builder
+	b.WriteString("你现在的角色是「" + r.displayName + "」。\n")
+	for _, line := range [...][2]string{
+		{"职责", r.duty},
+		{"性格", r.personality},
+		{"边界", r.boundary},
+		{"产出", r.output},
+	} {
+		if line[1] == "" {
+			continue
+		}
+		b.WriteString("- " + line[0] + "：" + line[1] + "\n")
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
 
 // SessionMode 返回语义档位。
 func (r Role) SessionMode() SessionMode { return r.sessionMode }

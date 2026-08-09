@@ -49,3 +49,15 @@ func (s busSink) Emit(e WorkEvent) {
 		s.log.Warn("事件发不到总线", "type", e.Type, "work_id", e.WorkID, "err", err)
 	}
 }
+
+// systemPromptOf 挑这一轮该用的开场白。
+//
+// ★ 每轮自带的优先于 runner 上那份全局的：一个 runner 服务所有角色，
+// 而**开场白是按角色变的**——用全局那份的话，需求分析师和实现工程师
+// 收到一模一样的一段话，角色库里那八张卡片就只是界面上的装饰。
+func systemPromptOf(t port.AgentTurn, fallback string) string {
+	if t.SystemPrompt != "" {
+		return t.SystemPrompt
+	}
+	return fallback
+}

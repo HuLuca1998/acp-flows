@@ -1,6 +1,9 @@
 package work
 
-import "github.com/HuLuca1998/acp-flows/backend/internal/constant"
+import (
+	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
+)
 
 // roleForState 说这个状态下该由**哪个角色**跟用户说话。
 //
@@ -26,4 +29,16 @@ func roleForState(state constant.WorkState) string {
 	default:
 		return ""
 	}
+}
+
+// systemPromptFor 取一个角色要拼在会话最前面的那段话。
+//
+// ★ 角色认不出来时返回空串，**不编一段**：编出来的提示词与角色页上
+// 那张卡片对不上，用户会以为 AI 收到的是他看到的那四行。
+func systemPromptFor(roleID string) string {
+	role, err := model.RoleByID(roleID)
+	if err != nil {
+		return ""
+	}
+	return role.SystemPrompt()
 }
