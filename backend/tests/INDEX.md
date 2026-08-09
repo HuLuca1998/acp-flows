@@ -381,6 +381,12 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestStore_Read_ReflectsUserEdits` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R2：用户拿编辑器改过 md 之后，读出来是**新内容**——缓存的话他改完打开 Duet 看到的还是旧的，会以为自己改错了地方 |
+| `TestStore_Read_MissingFileIsAnErrorWithPath` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1 R3：文件不见了报 `ErrBodyMissing` **且带路径**，不当成空正文——空正文看起来像「这条记忆没内容」，而真相是「文件丢了」 |
+| `TestStore_Write_RefusesToEscapeRoot` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R4：`../` 的 id 被 `ErrBadID` 挡住，记忆库目录外没被写出文件。断到具体错误上，防的是有人把那道检查放宽之后测试还绿着（挡它的**只有这一道**） |
+| `TestStore_Read_MalformedFrontmatterKeepsText` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R5：frontmatter 少了收尾时 `Malformed` 置位、`Text` 给整个原文——一条 frontmatter 少个引号就吞掉用户写的三百字，是最糟的处理方式 |
+| `TestStore_Read_SplitsTitleAndText` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1：正常一条里 frontmatter 与正文各归各位，`title:` 不漏进正文 |
+| `TestStore_Write_KeepsRawByteForByte` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1：写入逐字节保留用户原文，不「顺手规范一下」 |
 | `TestScan_R1_ParsesFrontmatter` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R1：真目录真文件扫出 name / version / description / compatibility（值里带 `>=` 和空格，不能在第一个冒号之后再切）；★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单 |
 | `TestScan_R2_MissingDescriptionExplained` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R2：缺 description 的条目状态是 draft、原因点名 description，且名字仍认得出来（用户才知道去改哪一个） |
 | `TestScan_R3_OneBrokenDoesNotHideOthers` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R3：★★ 一条 frontmatter 坏的不让整个库列不出来——整批失败的话用户连修它的入口都找不到 |
