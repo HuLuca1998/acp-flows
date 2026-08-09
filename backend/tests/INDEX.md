@@ -599,6 +599,14 @@
 | `TestAcceptanceOf_MarksCriteriaWithoutEvidence` | `internal/app/work/evidence_test.go` | app | ★★ 没证据的标准**留在表里且为空**，不是「通过」——把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。★ 顺序照契约不照 map（用户是照着契约那张表一条条核对的） |
 | `TestProbeWorktree_CountsUntrackedFiles` | `internal/gitx/status_test.go` | git | ★★ **未跟踪的新文件也算改动**（M8 采集时发现的）：`git diff` 不认识它们，而 AI 干活时新建文件是常态。不算的话，新写了三个文件的单元显示「改了 0 个文件」，用户会以为它什么都没做 |
 | `TestProbeWorktree_SkipsIgnoredFiles` | `internal/gitx/status_test.go` | git | ★ 被 `.gitignore` 忽略的不算——带上的话 `node_modules` 会把证据淹掉 |
+| `TestDecision_R1_LevelIsClosed` | `internal/domain/model/decision_test.go` | domain | M9 U9.1.1 R1：等级封闭 D0–D3，且 **D2/D3 必须问用户**（改变外部行为、回滚已验收的东西）。全问用户会把他烦死，全不问他会在几十个文件之后才发现 |
+| `TestDecision_R2_NeedsAtLeastTwoOptions` | `internal/domain/model/decision_test.go` | domain | ★★ R2：一个选项的「决策」不是在问，是在**通知**——而通知不该占用用户「停下来做个决定」的注意力 |
+| `TestDecision_R4_EveryOptionNeedsImpact` | `internal/domain/model/decision_test.go` | domain | ★★ R4：每个选项必须写明**影响**。没有的话用户在盲选——他看到三个名字，而不知道选哪个会发生什么。错误里说清是哪个选项 |
+| `TestDecision_R3_RecommendationMustExist` | `internal/domain/model/decision_test.go` | domain | R3：「推荐」指向不存在的选项时被拒（界面上那个标记会落在谁身上说不清）；★ 空推荐允许——AI 也可以拿不准 |
+| `TestDecision_R5_AnswersOnlyOnce` | `internal/domain/model/decision_test.go` | domain | ★★ R5：只能答一次，且**第二次不改掉答案**。答过还能改的话，「他当时选了什么」就没有答案——而后面几十个文件都是照着那个选择做的 |
+| `TestDecision_RejectsUnknownOption` | `internal/domain/model/decision_test.go` | domain | ★ 选不存在的选项报错不静默收下——收下的话「他选了什么」会变成一个谁都不认识的字符串 |
+| `TestDecision_R5_IsImmutable` | `internal/domain/model/decision_test.go` | domain | 反射断言只有读方法 + 一个受控迁移（`Answer`）；`Options()` 返回副本 |
+| `TestDecision_R6_UnansweredStaysQueryable` | `internal/domain/model/decision_test.go` | domain | R6：「稍后决定」不丢内容——用户回头点开时看到的不该是半张卡片 |
 | `TestEvidence_R1_KindIsClosed` | `internal/domain/model/evidence_test.go` | domain | M8 U8.1.1 R1：证据四类封闭（diff / test / command / review），第五类被拒 |
 | `TestEvidence_R3_SourceIsRequired` | `internal/domain/model/evidence_test.go` | domain | ★★ R3：来源**必填**。留空的话一条 AI 转述会和一份应用采集的 diff 长得一样——而用户判断「该不该信」全靠这一个字段 |
 | `TestEvidence_R4_AgentReportsAreMarked` | `internal/domain/model/evidence_test.go` | domain | ★★ R4：AI 转述的与应用采集的分得开。让 AI 报告自己干了什么，等于让被考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次 |

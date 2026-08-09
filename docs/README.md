@@ -120,7 +120,8 @@
 | [`M5`](plan/milestones/M5-clarify-and-freeze.md) | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | 主体完成 |
 | [`M6`](plan/milestones/M6-plan-and-units.md) | 它给出计划，每条都派好了人（子计划 DAG · **单元分配角色**） | 主体完成 |
 | [`M7`](plan/milestones/M7-contract-and-execution.md) | 它按契约干活（契约冻结 · **写入边界** · 注入 · 权限） | 主体完成 |
-| [`M8`](plan/milestones/M8-evidence-and-acceptance.md) | 它说做完了，我能验（**证据由应用采集** · 验收 · 检查点） | **现在做** |
+| [`M8`](plan/milestones/M8-evidence-and-acceptance.md) | 它说做完了，我能验（**证据由应用采集** · 验收 · 检查点） | 已完成 |
+| [`M9`](plan/milestones/M9-decisions.md) | 拿不准的它来问我（D1–D3 决策 · **决定权在用户手里**） | **现在做** |
 | `M6`–`M12` | 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
 
 **重排前的里程碑**（旧 `U2.*`–`U5.*` 编号，只作历史查阅，不要照着干活）：
