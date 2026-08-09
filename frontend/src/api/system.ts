@@ -1,4 +1,5 @@
 import type { Memory, MemoryStatus } from '@/models/memory'
+import type { Plan } from '@/models/plan'
 import type { ProjectPreview } from '@/models/preview'
 import type { Project } from '@/models/project'
 import type { Requirement } from '@/models/requirement'
@@ -114,6 +115,25 @@ export async function answerPermission(
       typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
     )
   }
+}
+
+/**
+ * 读一个工作当前的计划（子计划 DAG + 单元）。
+ *
+ * ★ 还没规划时后端回 404 —— 那是新工作的常态，调用方据此不显示计划面板。
+ */
+export async function getPlan(workID: string): Promise<Plan> {
+  return unwrap(await api.GET('/works/{id}/plan', { params: { path: { id: workID } } }))
+}
+
+/**
+ * 计划的变更历史，**从新到旧**——设计稿计划面板的「变更历史」。
+ */
+export async function getPlanHistory(workID: string): Promise<Plan[]> {
+  const body = unwrap(
+    await api.GET('/works/{id}/plan/history', { params: { path: { id: workID } } }),
+  )
+  return body.versions
 }
 
 /**

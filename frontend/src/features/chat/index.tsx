@@ -7,6 +7,7 @@ import type { Work } from '@/models/work'
 
 import { PermissionDock } from '../permission/PermissionDock'
 import { usePermissions } from '../permission/use-permissions'
+import { PlanPanel } from '../plan/PlanPanel'
 import { Timeline } from '../timeline/Timeline'
 import { useEventStream } from '../timeline/use-event-stream'
 import { RequirementBar } from '../work/RequirementBar'
@@ -189,6 +190,9 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
           {/* ★ 需求快照条排在时间线上方，和状态一起——用户要一眼看到
               「现在是第几版、冻没冻」，而不是往下滚才发现。 */}
           <RequirementBar workID={current.id ?? ''} />
+          {/* ★ 计划面板：拆成了什么、每条谁做、走到哪了。
+              还没规划时它自己不显示——新工作的常态。 */}
+          <PlanPanel workID={current.id ?? ''} />
         </>
       )}
       <PermissionDock asks={asks} onDecide={decide} />

@@ -107,11 +107,14 @@ func TestTurnGate_R2_QueuedTurnGetsItsChance(t *testing.T) {
 		close(got)
 	}()
 
-	// 前一轮还占着，它就该在等
+	// 前一轮还占着，它就该在等。
+	//
+	// ★ 窗口给到 100ms 而不是 30ms：`-race` 下调度慢好几倍，
+	// 而一个偶尔红的测试比没有测试更糟——人会开始忽略它。
 	select {
 	case <-got:
 		t.Fatal("前一轮还没结束，第二轮就进去了")
-	case <-time.After(30 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 	}
 
 	first()
@@ -145,7 +148,7 @@ func TestTurnGate_R4_CancelledWhileWaitingGivesUp(t *testing.T) {
 		errCh <- err2
 	}()
 
-	time.Sleep(20 * time.Millisecond) // 让它先排上
+	waitUntil(t, "它还没排上队", func() bool { return g.queuedOn(sessKey) == 1 })
 	cancel()
 
 	select {
@@ -260,7 +263,7 @@ func TestTurnGate_ReleasesEmptyLanes(t *testing.T) {
 
 func waitUntil(t *testing.T, why string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		if cond() {
 			return
