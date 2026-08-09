@@ -235,7 +235,7 @@
 | `TestProcessRunner_NoRuntimeReady` | `internal/acp/agent/runner_test.go` | acp | ★ 一个 Runtime 都没就绪时错误里带**补救办法**（`npm i -g ...`）——这句话会出现在时间线的失败事件里，是用户唯一能看到的线索 |
 | `TestProcessRunner_ReportsAgentStderr` | `internal/acp/agent/runner_test.go` | acp | ★ Agent 起来又立刻退出时把它的 stderr 带回来（「not authenticated」）——不带的话真正的原因躺在一个没人读的管道里 |
 | `TestProcessRunner_PublishesToBus` | `internal/acp/agent/runner_test.go` | acp | 事件发到**总线**（那是它去到界面的唯一通路）；对手方是 `t.TempDir()` 里按 ACP 规范说话的 shell 脚本，不是 Fake——要验的正是进程怎么拉起来 |
-| `TestProcessRunner_LeavesNoOrphan` | `internal/acp/agent/runner_test.go` | acp | ★★ 一轮跑完 Agent 进程**不能还活着**（假 Agent 里放 `sleep 300`，跑完 `ps` 查 pid）——留着的话用户每提一个需求就多一个常驻进程，关掉应用后它们还在 |
+| `TestProcessRunner_LeavesNoOrphan` | `internal/acp/agent/runner_test.go` | acp | M5 U5.1.1（**判据随 Q42 改过**）：★★ 同一个工作连跑三轮**只起一个进程**——每轮一个新进程的话，用户「补充一句」时 AI 不记得上一句。跑完进程**还活着**（那正是「常驻」），而 `ReleaseWork` 之后**必须收干净**：收不干净的话，每开一个工作就多一个常驻进程，关掉应用之后它们还在 |
 | `TestProcessRunner_BusFailureDoesNotFailTurn` | `internal/acp/agent/runner_test.go` | acp | 总线发不出去不让整轮失败——AI 那边的活已经干了，报「失败」而磁盘上躺着改好的文件比不通知更糟 |
 | `TestStart_RunsTurnInWorktree` | `internal/app/work/service_test.go` | app | ★★ M2 U2.4.1：工作建好后**真的把需求送给 AI**，且 cwd 是工作自己的 worktree 而非用户项目目录——后者等于让 AI 直接在他的分支上改文件 |
 | `TestStart_TurnSurvivesRequestCancel` | `internal/app/work/service_test.go` | app | ★★ 这一轮脱开请求的 ctx（`WithoutCancel`）——挂在上面的话 HTTP 一返回 AI 就被砍掉，用户看到时间线停在半截且没有报错 |
@@ -515,3 +515,5 @@
 | `TestPrepareWork_RejectsBadInput` | `internal/api/work_prepare_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
 | `TestPrepareWork_UnconfiguredSaysSo` | `internal/api/work_prepare_test.go` | api | 没装配回 503 |
 | `TestPrepareWork_EmptyBranchesIsArray` | `internal/api/work_prepare_test.go` | api | 空分支列表序列化成 `[]` 不是 null |
+| `TestProcessRunner_KillAlsoDropsTheSession` | `internal/acp/agent/runner_test.go` | acp | M5 U5.1.1：★★ `KillAgent` 之后**池子里那条会话也要摘掉**。只杀进程不摘会话的话，下一轮接到一条进程已死的会话上——表现是「prompt 石沉大海」，用户看着转圈的界面而我们以为一切正常。两条判据：池子空了 + 下一轮跑得通 |
+| `TestCancel_ReleasesTheLiveSession` | `internal/app/work/service_test.go` | app | M5 U5.1.1：★★ 暂停之后**常驻会话要放掉**（Q42）。常驻是为了让 AI 记得上文，而 paused 的工作不需要——留着的话它一直占着 Agent 进程，而用户以为它已经停了 |

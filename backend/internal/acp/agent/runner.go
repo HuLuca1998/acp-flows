@@ -47,6 +47,11 @@ type ProcessRunner struct {
 	// Log 留空时用 slog.Default()。
 	Log *slog.Logger
 
+	// pool 是按「工作 + 角色」维持的常驻会话池（Q42）。
+	// 惰性初始化，见 sessions()。
+	pool     *sessionPool
+	poolOnce sync.Once
+
 	// live 记着每个工作正在跑的那一轮，供取消用。
 	//
 	// ★ 跑完必须摘掉：留着的话，取消一个早就结束的工作会去动一条
@@ -121,65 +126,50 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		log = slog.Default()
 	}
 
-	spec, err := r.pick(ctx)
-	if err != nil {
-		return err
+	roleID := turn.RoleID
+	if roleID == "" {
+		roleID = DefaultRoleID
 	}
+	key := sessionKey{workID: turn.WorkID, roleID: roleID}
 
-	proc, err := runtime.Start(ctx, runtime.StartSpec{
-		// 两个适配器都是专职的 ACP 服务端，不吃额外参数
-		Bin: spec.Bin,
-		// ★ Agent 就在这个工作自己的 worktree 里干活。
-		Dir: turn.Cwd,
-		// acp-field-notes §5 坑 1：带着 CLAUDECODE 这些标记，
-		// claude-agent-acp 会误判自己跑在另一个 agent 内部而拒绝服务。
-		EnvRemove: spec.EnvRemove,
-	})
-	if err != nil {
-		return fmt.Errorf("拉起 %s: %w", spec.Name, err)
-	}
-
-	// ★ 无论这一轮怎么收场，进程都要收掉。
-	defer func() {
-		stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), stopTimeout)
-		defer cancel()
-		if err := proc.Stop(stopCtx); err != nil {
-			log.Warn("收拾 Agent 进程失败", "runtime", spec.Name, "err", err)
+	// ★★ **先看池子里有没有现成的**（Q42）。
+	//
+	// 每轮拉一个新进程的后果是实打实的：用户「补充一句」时 AI
+	// **不记得上一句**——上下文每轮清零，而 `session.Resume` 白做了。
+	ls := r.sessions().get(key)
+	if ls == nil {
+		spec, err := r.pick(ctx)
+		if err != nil {
+			return err
 		}
-	}()
+		// ★★ **进程一起来就记下**，别等握手完。
+		//
+		// 一个连 initialize 都不回的 Agent 会让 session.Open 一直挂着，
+		// 而那时 KillAgent 找不到它——用户点了停，界面转圈，进程一直跑着。
+		opened, err := openSession(ctx, spec, turn.Cwd, roleID, r.PermissionFor(turn),
+			func(proc *runtime.Process) { r.track(turn.WorkID, &liveTurn{proc: proc}) })
+		if err != nil {
+			// ★ 握手失败时把那条「正在跑」的记录摘掉——
+			// 留着的话，下一次 KillAgent 会去动一个已经收拾过的进程。
+			r.untrack(turn.WorkID)
+			return err
+		}
+		ls = opened
+		r.sessions().put(key, ls)
+	}
 
-	// ★ **先记下进程再握手。** 反过来的话，一个连 initialize 都不回的
-	// Agent 会让 session.Open 挂住，而那时 KillAgent 找不到它——
-	// 用户点了停，界面转圈，那个进程一直跑着。
-	lt := &liveTurn{proc: proc}
+	// 复用池子里的会话时也要记：取消要找得到它的进程。
+	lt := &liveTurn{proc: ls.proc}
 	r.track(turn.WorkID, lt)
-	// 跑完就摘。留着的话，取消一个早就结束的工作会去动一条已经关掉的会话。
+	// 跑完摘掉「正在跑的那一轮」，但**会话留在池子里**——
+	// 那正是「同一条会话」的意思。
 	defer r.untrack(turn.WorkID)
 
-	// ★★ **收权在开会话时一次做完。**
-	//
-	// 算不出档名就**根本不开会话**——不是「先开了再说，收不上再算」。
-	// 中间那个窗口里 codex 跑在 workspace-write 沙箱，写操作连审批都不触发。
-	modeID, modeErr := modeIDFor(turn.RoleID, spec.Name)
-	if modeErr != nil {
-		return r.wrapAgentError(spec, proc, modeErr)
-	}
+	r.attachSession(turn.WorkID, ls.sess)
 
-	s, openErr := session.Open(ctx, session.Options{
-		Transport:      stdio{r: proc.Stdout(), w: proc.Stdin()},
-		Cwd:            turn.Cwd,
-		Permission:     r.PermissionFor(turn),
-		RequiredModeID: modeID,
-	})
-	if openErr != nil {
-		return r.wrapAgentError(spec, proc, fmt.Errorf("agent: open session: %w", openErr))
-	}
-	r.attachSession(turn.WorkID, s)
-	defer func() { _ = s.Close() }()
-
-	runErr := RunOn(ctx, s, Spec{
+	runErr := RunOn(ctx, ls.sess, Spec{
 		Permission:   r.PermissionFor(turn),
-		Transport:    stdio{r: proc.Stdout(), w: proc.Stdin()},
+		Transport:    stdio{r: ls.proc.Stdout(), w: ls.proc.Stdin()},
 		Cwd:          turn.Cwd,
 		WorkID:       turn.WorkID,
 		Prompt:       turn.Prompt,
@@ -187,7 +177,44 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		Sink:         busSink{bus: r.Bus, ctx: ctx, log: log},
 		Log:          log,
 	})
-	return r.wrapAgentError(spec, proc, runErr)
+
+	if runErr != nil {
+		// ★★ 这一轮出错就**把会话摘掉并收拾干净**。
+		//
+		// 留着的话，下一轮会接到一条状态不明的会话上——
+		// 而「不明」的表现是 AI 答非所问，双方都不知道发生了什么。
+		// 宁可下一轮重开（用户会看到它忘了上文），也不要一条坏会话。
+		closeOne(ctx, log, r.sessions().drop(key))
+	}
+
+	return r.wrapAgentError(ls.spec, ls.proc, runErr)
+}
+
+// ReleaseWork 收掉一个工作的**全部**会话。
+//
+// ★ 工作结束或暂停时调用：留着的话，一个 paused 的工作会一直占着
+// 两三个 Agent 进程，而用户以为它已经停了。
+func (r *ProcessRunner) ReleaseWork(ctx context.Context, workID string) {
+	log := r.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	closeAll(ctx, log, r.sessions().dropWork(workID))
+}
+
+// SessionsOf 返回一个工作现有的常驻会话数。诊断与测试用。
+func (r *ProcessRunner) SessionsOf(workID string) int {
+	return r.sessions().sessionsOf(workID)
+}
+
+// sessions 惰性初始化会话池。
+//
+// ★ 惰性而不是在构造函数里建：`ProcessRunner` 现在是用结构体字面量
+// 直接造的（`&ProcessRunner{Bus: ...}`），加一个必须调的构造函数
+// 会让所有现存调用方一起改，而漏掉一个就是 nil map panic。
+func (r *ProcessRunner) sessions() *sessionPool {
+	r.poolOnce.Do(func() { r.pool = newSessionPool() })
+	return r.pool
 }
 
 // wrapAgentError 把 Agent 的 stderr 带进错误。
@@ -230,17 +257,25 @@ func (r *ProcessRunner) CancelTurn(ctx context.Context, workID string) (bool, er
 //
 // ★ 这是「界面说已取消、后台还在烧钱改文件」的唯一防线。
 func (r *ProcessRunner) KillAgent(workID string) {
+	log := r.Log
+	if log == nil {
+		log = slog.Default()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
+	defer cancel()
+
+	// ★★ **先把这个工作的会话从池子里摘掉。**
+	//
+	// 只杀进程不摘会话的话，下一轮会接到一条**进程已经死了**的会话上——
+	// 而那时的表现是「发出去的 prompt 石沉大海」，用户看着一个转圈的界面，
+	// 而我们这边以为一切正常。
+	closeAll(ctx, log, r.sessions().dropWork(workID))
+
 	lt := r.lookup(workID)
 	if lt == nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), stopTimeout)
-	defer cancel()
 	if err := lt.proc.Stop(ctx); err != nil {
-		log := r.Log
-		if log == nil {
-			log = slog.Default()
-		}
 		log.Warn("强制结束 Agent 进程失败", "work_id", workID, "err", err)
 	}
 }

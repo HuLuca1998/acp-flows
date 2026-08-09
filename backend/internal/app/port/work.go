@@ -148,4 +148,10 @@ type AgentCanceller interface {
 	CancelTurn(ctx context.Context, workID string) (mustKill bool, err error)
 	// KillAgent 杀掉这个工作的 Agent 进程（连同它的整个进程组）。
 	KillAgent(workID string)
+	// ReleaseWork 放掉这个工作的**常驻会话**。
+	//
+	// ★★ 工作停下来时必须调（Q42）：常驻会话是为了让 AI 记得上文，
+	// 而一个 paused 的工作不需要那个——留着的话它会一直占着
+	// 两三个 Agent 进程，用户以为它已经停了。
+	ReleaseWork(ctx context.Context, workID string)
 }

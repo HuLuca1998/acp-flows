@@ -488,6 +488,7 @@ func TestStart_NilRunnerDoesNotPanic(t *testing.T) {
 
 // cancelRecorder 记下被要求取消的工作，并可模拟「停不下来」。
 type cancelRecorder struct {
+	released []string
 	mu       sync.Mutex
 	calls    []string
 	err      error
@@ -695,5 +696,36 @@ func TestCancel_UserCancelIsNotAFailure(t *testing.T) {
 	}
 	if final != constant.WorkStatePaused {
 		t.Errorf("最终状态 = %q, 想要 paused（序列 %v）", final, states)
+	}
+}
+
+// ReleaseWork 记录调用——「停下来之后会话有没有放掉」正是要断言的。
+func (c *cancelRecorder) ReleaseWork(_ context.Context, workID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.released = append(c.released, workID)
+}
+
+// ★★ 暂停之后**常驻会话要放掉**（Q42）。
+//
+// 常驻会话是为了让 AI 记得上文，而一个 paused 的工作不需要那个——
+// 留着的话它会一直占着两三个 Agent 进程，而用户以为它已经停了。
+func TestCancel_ReleasesTheLiveSession(t *testing.T) {
+	repo, bus := &memWorks{}, &recordingBus{}
+	seedWork(t, repo, "work-01", constant.WorkStateExecuting)
+	canceller := &cancelRecorder{}
+	svc := serviceWithCancel(t, repo, bus, canceller)
+
+	if err := svc.Cancel(context.Background(), "work-01"); err != nil {
+		t.Fatalf("取消: %v", err)
+	}
+
+	canceller.mu.Lock()
+	released := append([]string(nil), canceller.released...)
+	canceller.mu.Unlock()
+
+	if len(released) != 1 || released[0] != "work-01" {
+		t.Errorf("暂停之后没放掉会话：released=%v——"+
+			"那个工作会一直占着 Agent 进程，而用户以为它已经停了", released)
 	}
 }
