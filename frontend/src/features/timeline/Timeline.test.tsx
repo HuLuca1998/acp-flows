@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { Timeline } from './Timeline'
@@ -66,6 +66,7 @@ describe('时间线', () => {
   // 合并的话用户会以为 AI 只动了一个文件。
   it('工具调用不合并，两次就是两条', () => {
     render(<Timeline events={[ev('tool_call'), ev('tool_call')]} />)
+    openTools()
 
     expect(document.querySelectorAll('[data-event-type="tool_call"]')).toHaveLength(2)
   })
@@ -133,6 +134,9 @@ describe('时间线', () => {
       <Timeline events={[ev('message_chunk', 'x'), ev('tool_call'), ev('state_change')]} />,
     )
 
+    // ★ 卡片形态**默认收起**（照设计稿的抽屉），展开才看得到
+    openTools()
+
     expect(document.querySelector('[data-shape="bubble"]')).not.toBeNull()
     expect(document.querySelector('[data-shape="card"]')).not.toBeNull()
     expect(document.querySelector('[data-shape="line"]')).not.toBeNull()
@@ -153,14 +157,59 @@ function toolEv(payload: Record<string, unknown>): TimelineEvent {
   }
 }
 
+/**
+ * 展开「它顺手做了 N 件事」的抽屉。
+ *
+ * ★★ 工具调用**默认收起**（照设计稿）：用户要看的是「它说了什么」，
+ * 而不是它跑过的每一条 grep——真机上一轮几十条，摊开的话那句话被淹掉。
+ * 所以断言工具调用内容的测试都得先点开。
+ */
+function renderAndOpen(ui: React.ReactElement): void {
+  render(ui)
+  openTools()
+}
+
+function openTools(): void {
+  const toggle = document.querySelector('[aria-expanded="false"]')
+  if (toggle instanceof HTMLElement) {
+    // ★ 用 fireEvent 而不是 `el.click()`：后者不走 React 的事件系统，
+    // 状态更新不包在 act 里——点了等于没点，而测试会红在一个
+    // 看起来毫不相关的地方（「找不到那段文字」）。
+    fireEvent.click(toggle)
+  }
+}
+
 describe('工具调用', () => {
+  // ★★ 抽屉默认收起，且**说清里面有几件事**。
+  //
+  // 不说数量的话，用户不知道值不值得点开——而那正是他要判断的。
+  it('工具调用默认收起，标签里带着数量', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read README.md' }),
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't2', title: 'Read AGENTS.md' }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText(/顺手做了 2 件事/)).toBeInTheDocument()
+    expect(
+      screen.queryByText('Read README.md'),
+      '工具调用摊开着——一轮几十条的话，AI 说的那句话会被淹掉',
+    ).not.toBeInTheDocument()
+
+    openTools()
+    expect(screen.getByText('Read README.md')).toBeInTheDocument()
+  })
+
   // ★★ 一次工具调用是**一张卡片**，不是四张。
   //
   // ACP 会为同一次调用连发 tool_call + 若干 tool_call_update（状态变化），
   // 它们共用一个 toolCallId。不归并的话，用户看到四条一模一样的「工具调用」，
   // 以为 AI 动了四个文件——真机上撞到的第一个问题。
   it('同一个 toolCallId 归并成一张卡片', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
@@ -180,7 +229,7 @@ describe('工具调用', () => {
 
   // 不同的调用不能并到一起——并了的话用户以为 AI 只动了一个文件。
   it('不同的 toolCallId 各占一张卡片', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read a.md' }),
@@ -199,14 +248,14 @@ describe('工具调用', () => {
   // 只显示「工具调用」四个字的话，信息量是零——设计稿里每条事件行都是
   // 「图标 + 类型 + 等宽标识 + 一句人话」，光有类型标签比设计稿差。
   it('显示 Agent 给的标题', () => {
-    render(<Timeline events={[toolEv({ toolCallId: 't1', title: 'Edit src/main.go' })]} />)
+    renderAndOpen(<Timeline events={[toolEv({ toolCallId: 't1', title: 'Edit src/main.go' })]} />)
 
     expect(screen.getByText('Edit src/main.go')).toBeInTheDocument()
   })
 
   // 没有 title 时退到文件路径——总比只显示「工具调用」强。
   it('没有标题时退到文件路径', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[toolEv({ toolCallId: 't1', rawInput: { file_path: '/repo/README.md' } })]}
       />,
@@ -217,7 +266,7 @@ describe('工具调用', () => {
 
   // ★ 最终状态要盖住中间态：一次调用完成之后，卡片上不该还写着「进行中」。
   it('状态取最后一次更新', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read a.md', status: 'in_progress' }),
@@ -236,7 +285,7 @@ describe('工具调用', () => {
   // tool_call_update 只带 kind，结果卡片上显示的是「tool_call_update」——
   // 用户看不出 AI 读的是哪个文件，等于白归并了。
   it('状态更新不会把标题顶掉', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
@@ -257,7 +306,7 @@ describe('工具调用', () => {
   // 具体的「Read README.md」——两者都在 title 上。只让「更好的档」覆盖的话，
   // 卡片会停在「Read File」，用户仍然看不出读的是哪个文件。
   it('后来的同档标题会覆盖先前的', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read File', kind: 'read' }),
@@ -275,7 +324,7 @@ describe('工具调用', () => {
 
   // 反过来：真带了更好的标题时要更新。
   it('后来带了标题时会补上', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', kind: 'read' }),
@@ -289,7 +338,7 @@ describe('工具调用', () => {
 
   // 载荷里什么都没有时不能白屏，也不能显示一个空卡片。
   it('载荷是空的也不崩', () => {
-    render(<Timeline events={[toolEv({})]} />)
+    renderAndOpen(<Timeline events={[toolEv({})]} />)
 
     expect(screen.getByText(/工具调用/)).toBeInTheDocument()
   })
@@ -360,7 +409,7 @@ describe('角色标签', () => {
 
     expect(screen.queryByText(/系统/)).not.toBeInTheDocument()
     // 消息本身照常显示
-    expect(document.querySelector('[data-event-type="state_change"]')).not.toBeNull()
+    expect(document.querySelector('[data-turn-type="state_change"]')).not.toBeNull()
   })
 
   // ★ 认不出的角色**照常显示消息**，只是标签退化成后端给的原文。
@@ -394,8 +443,8 @@ describe('用户自己说的话', () => {
       />,
     )
 
-    const mine = document.querySelector('[data-event-type="user_message"]')
-    const theirs = document.querySelector('[data-event-type="message_chunk"]')
+    const mine = document.querySelector('[data-turn-type="user_message"]')
+    const theirs = document.querySelector('[data-turn-type="message_chunk"]')
     expect(mine?.getAttribute('data-align')).toBe('end')
     expect(
       theirs?.getAttribute('data-align'),
@@ -415,7 +464,7 @@ describe('用户自己说的话', () => {
   it('不带角色标签', () => {
     render(<Timeline events={[ev('user_message', '我说的话')]} />)
 
-    const mine = document.querySelector('[data-event-type="user_message"]')
+    const mine = document.querySelector('[data-turn-type="user_message"]')
     expect(mine?.querySelector('[data-role]')).toBeNull()
   })
 })
@@ -523,7 +572,7 @@ describe('头像', () => {
   it('用户消息没有头像', () => {
     render(<Timeline events={[ev('user_message', '先别写代码')]} />)
 
-    const mine = document.querySelector('[data-event-type="user_message"]')
+    const mine = document.querySelector('[data-turn-type="user_message"]')
     expect(mine?.querySelector('[data-runtime]')).toBeNull()
   })
 })

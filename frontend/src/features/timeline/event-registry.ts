@@ -88,7 +88,12 @@ const RENDERERS = {
     // 这里只是历史记录——不显示路径的话，它就是一条空行。
     detailFrom: ['path', 'tool_call_id'],
   },
-  turn_end: { labelKey: 'timeline.event.turnEnd', shape: 'line' },
+  turn_end: {
+    labelKey: 'timeline.event.turnEnd',
+    shape: 'line',
+    // 同理：`end_turn` 与 `cancelled` 对用户是两件很不同的事
+    detailFrom: ['reason'],
+  },
 
   // ── 来自应用控制层（这些永远可点开到对应的结构化产物）──
   //
@@ -103,12 +108,18 @@ const RENDERERS = {
   },
   plan_version: { labelKey: 'timeline.event.planVersion', shape: 'card' },
   unit_contract: { labelKey: 'timeline.event.unitContract', shape: 'card' },
-  state_change: { labelKey: 'timeline.event.stateChange', shape: 'line' },
+  state_change: {
+    labelKey: 'timeline.event.stateChange',
+    shape: 'line',
+    // ★ 不配 detailFrom 的话，界面上是一行光秃秃的「状态变动」——
+    // 用户看不出**变成了什么**，那一行就成了纯噪音。
+    detailFrom: ['to', 'reason'],
+  },
   injection: { labelKey: 'timeline.event.injection', shape: 'line' },
   memory_candidate: { labelKey: 'timeline.event.memoryCandidate', shape: 'card' },
   decision: { labelKey: 'timeline.event.decision', shape: 'card' },
   evidence: { labelKey: 'timeline.event.evidence', shape: 'card' },
-  checkpoint: { labelKey: 'timeline.event.checkpoint', shape: 'line' },
+  checkpoint: { labelKey: 'timeline.event.checkpoint', shape: 'line', detailFrom: ['reason'] },
 } as const satisfies Record<string, EventRenderer>
 
 /** 已登记的事件类型。由注册表推导，不另外维护一份列表。 */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { listProjects, listWorks, sayInWork, startWork } from '@/api/system'
@@ -78,9 +78,25 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
   }, [current, onWorkChange])
 
   const { events } = useEventStream(current?.id ?? null)
+  // ★★ 新消息来了自动滚到底——聊天软件不这么做的话，用户得手动追着看，
+  // 而 AI 说话是一个字一个字来的，他会一直在往下拖。
+  const streamRef = useRef<HTMLDivElement>(null)
   // 待裁决的权限请求。★ 它排在时间线**上方**——AI 挂着等的时候，
   // 用户要一眼看到「有件事在等我」，而不是往下滚才发现。
   const { asks, decide } = usePermissions(current?.id ?? null, events)
+
+  useEffect(() => {
+    const el = streamRef.current
+    if (el === null) {
+      return
+    }
+    // ★ 只在**用户本来就在底部**时才跟着滚：他往上翻看历史时，
+    // 新消息把他拽回底部是最烦人的一种行为。
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+    if (nearBottom) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [events])
 
   useEffect(() => {
     void (async () => {
@@ -176,8 +192,12 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
 
   return (
     <div className={styles.page}>
-      {renderComposer()}
-      {errorCode !== null && <p className={styles.error}>{t(problemKey(errorCode))}</p>}
+      {/*
+        ★★ 消息在上、输入框在下——**聊天软件的基本形态**。
+        输入框在顶部的话，用户读到最新一条要往下滚，回复又要往上翻，
+        每说一句都在页面里来回跳。
+      */}
+      <div className={styles.stream} ref={streamRef}>
       {/* ★ 状态与「停下」排在时间线上方——用户要一眼看到「它在干什么、
           我能不能停」，而不是往下滚才发现。 */}
       {current !== null && (
@@ -195,8 +215,13 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
           <PlanPanel workID={current.id ?? ''} />
         </>
       )}
-      <PermissionDock asks={asks} onDecide={decide} />
-      <Timeline events={events} />
+        <PermissionDock asks={asks} onDecide={decide} />
+        <Timeline events={events} />
+      </div>
+
+      {/* 输入区在**底部**，照设计稿。 */}
+      {renderComposer()}
+      {errorCode !== null && <p className={styles.error}>{t(problemKey(errorCode))}</p>}
     </div>
   )
 
