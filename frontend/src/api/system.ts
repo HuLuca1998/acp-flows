@@ -145,6 +145,20 @@ export async function collectEvidence(workID: string, unitID: string): Promise<A
 }
 
 /**
+ * 验收通过：提交改动并落检查点。
+ *
+ * ★★ **由用户点，不由 AI 判断。** 返回那次提交的短 sha。
+ */
+export async function acceptUnit(workID: string, unitID: string): Promise<string> {
+  const body = unwrap(
+    await api.POST('/works/{id}/units/{unitId}/accept', {
+      params: { path: { id: workID, unitId: unitID } },
+    }),
+  )
+  return body.commit
+}
+
+/**
  * 读一个单元的契约。
  *
  * ★ 还没有契约时后端回 404 —— 单元设计师还没跑，那是常态。

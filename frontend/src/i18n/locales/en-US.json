@@ -1,7 +1,13 @@
 {
+  "acceptance.accept": "Accept",
+  "acceptance.accepted": "accepted · {{commit}}",
   "acceptance.collect": "Collect diff evidence",
   "acceptance.collecting": "Collecting…",
   "acceptance.counts": "{{evidence}} evidence / {{covered}} of {{total}} criteria covered",
+  "acceptance.error.commitUnavailable": "Commit capability is not configured.",
+  "acceptance.error.failed": "Could not complete the acceptance. Try again shortly.",
+  "acceptance.error.nothingAccepted": "No criterion has evidence yet — collect some first.",
+  "acceptance.error.nothingToCommit": "Nothing to commit — check that this unit actually did something.",
   "acceptance.fromAgent": "reported by the AI, unverified",
   "acceptance.noEvidence": "○ no evidence",
   "chat.error.project_path_not_absolute": "The project path is incomplete. Please add the project again.",

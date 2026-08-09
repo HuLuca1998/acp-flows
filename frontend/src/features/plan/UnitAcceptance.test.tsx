@@ -11,10 +11,12 @@ import { UnitAcceptance } from './UnitAcceptance'
 
 const getAcceptance = vi.fn()
 const collectEvidence = vi.fn()
+const acceptUnit = vi.fn()
 
 vi.mock('@/api/system', () => ({
   getAcceptance: (...a: unknown[]): unknown => getAcceptance(...a),
   collectEvidence: (...a: unknown[]): unknown => collectEvidence(...a),
+  acceptUnit: (...a: unknown[]): unknown => acceptUnit(...a),
 }))
 
 const DATA = {
@@ -39,6 +41,7 @@ const DATA = {
 beforeEach(() => {
   getAcceptance.mockReset().mockResolvedValue(DATA)
   collectEvidence.mockReset()
+  acceptUnit.mockReset()
 })
 
 describe('验收对照', () => {
@@ -117,5 +120,51 @@ describe('验收对照', () => {
       expect(getAcceptance).toHaveBeenCalled()
     })
     expect(container).toBeEmptyDOMElement()
+  })
+})
+
+// ★★ M8 U8.2.2 · 「通过」由**用户点**。
+describe('验收通过', () => {
+  it('一条证据都没有时按钮点不了', async () => {
+    getAcceptance.mockResolvedValue({
+      ...DATA,
+      criteria: [{ id: 'ac-1', text: '取消必须幂等', evidence_ids: [] }],
+      evidence: [],
+    })
+    render(<UnitAcceptance workID="work-01" unitID="unit-013" />)
+
+    const btn = await screen.findByRole('button', { name: /验收通过/ })
+    expect(
+      btn,
+      '零证据却能点通过——那时「验收」这个动作没有内容，用户以为自己核对过什么',
+    ).toBeDisabled()
+  })
+
+  it('点通过之后显示 commit，且按钮消失', async () => {
+    const user = userEvent.setup()
+    acceptUnit.mockResolvedValue('abc1234')
+    render(<UnitAcceptance workID="work-01" unitID="unit-013" />)
+
+    await user.click(await screen.findByRole('button', { name: /验收通过/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/abc1234/)).toBeInTheDocument()
+    })
+    // ★ 点第二次会撞上「没有改动」而报错，而那个错看起来像出了问题
+    expect(screen.queryByRole('button', { name: /验收通过/ })).not.toBeInTheDocument()
+  })
+
+  // ★★ 拒绝的理由要**说清**：「没有证据」与「没有改动」是两回事，
+  // 而用户下一步该做什么完全不同。
+  it('没有改动时说清是没东西可提交', async () => {
+    const user = userEvent.setup()
+    acceptUnit.mockRejectedValue(new Error('nothing_to_commit'))
+    render(<UnitAcceptance workID="work-01" unitID="unit-013" />)
+
+    await user.click(await screen.findByRole('button', { name: /验收通过/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/没东西可提交/)).toBeInTheDocument()
+    })
   })
 })

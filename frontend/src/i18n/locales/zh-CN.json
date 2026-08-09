@@ -1,7 +1,13 @@
 {
+  "acceptance.accept": "验收通过",
+  "acceptance.accepted": "已通过 · {{commit}}",
   "acceptance.collect": "采集 diff 证据",
   "acceptance.collecting": "正在采集…",
   "acceptance.counts": "验收证据 {{evidence}} 条 / 已覆盖 {{covered}} 条标准（共 {{total}} 条）",
+  "acceptance.error.commitUnavailable": "提交能力没装配。到设置页看看后台服务还在不在。",
+  "acceptance.error.failed": "没能完成验收。稍后再试一次。",
+  "acceptance.error.nothingAccepted": "一条验收标准都还没有证据，先采一条再通过。",
+  "acceptance.error.nothingToCommit": "工作区没有改动，没东西可提交——先确认这个单元真的做了事。",
   "acceptance.fromAgent": "AI 转述，未经核实",
   "acceptance.noEvidence": "○ 无证据",
   "chat.error.project_path_not_absolute": "项目路径不完整，请重新添加这个项目。",

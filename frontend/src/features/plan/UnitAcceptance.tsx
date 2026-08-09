@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { collectEvidence, getAcceptance } from '@/api/system'
+import { acceptUnit, collectEvidence, getAcceptance } from '@/api/system'
 import type { Acceptance } from '@/models/acceptance'
 
 import styles from './UnitAcceptance.module.css'
@@ -25,6 +25,9 @@ export function UnitAcceptance({ workID, unitID }: UnitAcceptanceProps) {
   const { t } = useTranslation()
   const [data, setData] = useState<Acceptance | null>(null)
   const [pending, setPending] = useState(false)
+  // 验收通过之后拿到的 commit——用户要看得到「它落到哪儿了」
+  const [commit, setCommit] = useState('')
+  const [errorCode, setErrorCode] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     try {
@@ -50,6 +53,20 @@ export function UnitAcceptance({ workID, unitID }: UnitAcceptanceProps) {
     }
   }, [workID, unitID, reload])
 
+  const accept = useCallback(async () => {
+    setPending(true)
+    setErrorCode(null)
+    try {
+      setCommit(await acceptUnit(workID, unitID))
+    } catch (err) {
+      // ★ 拒绝的理由要说清：「没有证据」与「没有改动」是两回事，
+      // 而用户下一步该做什么完全不同
+      setErrorCode(err instanceof Error ? err.message : 'accept_failed')
+    } finally {
+      setPending(false)
+    }
+  }, [workID, unitID])
+
   if (data === null) {
     return null
   }
@@ -67,9 +84,31 @@ export function UnitAcceptance({ workID, unitID }: UnitAcceptanceProps) {
             total: data.criteria.length,
           })}
         </span>
-        <button type="button" className={styles.collect} disabled={pending} onClick={() => void collect()}>
+        <button
+          type="button"
+          className={styles.collect}
+          disabled={pending}
+          onClick={() => void collect()}
+        >
           {t(pending ? 'acceptance.collecting' : 'acceptance.collect')}
         </button>
+        {/*
+          ★★ 「通过」**由用户点**。已经通过的显示 commit 而不是再给一个
+          能点第二次的按钮——点第二次会撞上「没有改动」而报错，
+          而那个错看起来像出了问题。
+        */}
+        {commit === '' ? (
+          <button
+            type="button"
+            className={styles.accept}
+            disabled={pending || covered === 0}
+            onClick={() => void accept()}
+          >
+            {t('acceptance.accept')}
+          </button>
+        ) : (
+          <span className={styles.accepted}>{t('acceptance.accepted', { commit })}</span>
+        )}
       </div>
 
       <ul className={styles.criteria}>
@@ -83,6 +122,10 @@ export function UnitAcceptance({ workID, unitID }: UnitAcceptanceProps) {
           </li>
         ))}
       </ul>
+
+      {errorCode !== null && (
+        <span className={styles.error}>{t(acceptProblemKey(errorCode))}</span>
+      )}
 
       {data.evidence.map((e) => (
         <div key={e.id} className={styles.evidence} data-kind={e.kind}>
@@ -98,4 +141,15 @@ export function UnitAcceptance({ workID, unitID }: UnitAcceptanceProps) {
       ))}
     </div>
   )
+}
+
+/** 错误码 → 词条 key 的**显式映射**（不许模板拼接，check-i18n 会拦）。 */
+const ACCEPT_ERROR_KEY: Record<string, string> = {
+  nothing_accepted: 'acceptance.error.nothingAccepted',
+  nothing_to_commit: 'acceptance.error.nothingToCommit',
+  commit_unavailable: 'acceptance.error.commitUnavailable',
+}
+
+function acceptProblemKey(code: string): string {
+  return ACCEPT_ERROR_KEY[code] ?? 'acceptance.error.failed'
 }
