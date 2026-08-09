@@ -1,4 +1,9 @@
 {
+  "acceptance.collect": "Collect diff evidence",
+  "acceptance.collecting": "Collecting…",
+  "acceptance.counts": "{{evidence}} evidence / {{covered}} of {{total}} criteria covered",
+  "acceptance.fromAgent": "reported by the AI, unverified",
+  "acceptance.noEvidence": "○ no evidence",
   "chat.error.project_path_not_absolute": "The project path is incomplete. Please add the project again.",
   "chat.error.unknown": "Couldn't start this work. Try again, or check Settings to see if the background service is running.",
   "chat.error.work_message_required": "Type something first.",

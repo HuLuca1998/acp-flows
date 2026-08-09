@@ -40,6 +40,12 @@ type workService interface {
 	FreezeContract(ctx context.Context, workID, unitID string) error
 	// StartUnit 让一个单元开工。契约没冻结时拒绝。
 	StartUnit(ctx context.Context, workID, unitID string) error
+	// AcceptanceOf 把契约的标准与采到的证据对上。
+	AcceptanceOf(ctx context.Context, workID, unitID string) (work.AcceptanceView, error)
+	// CollectDiffEvidence 采集 diff 证据。**应用自己去读 git，不问 AI。**
+	CollectDiffEvidence(
+		ctx context.Context, workID, unitID string, criteria []string,
+	) (model.Evidence, error)
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。

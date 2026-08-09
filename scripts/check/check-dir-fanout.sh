@@ -73,6 +73,20 @@ EXEMPT = {
     #
     # **什么时候该重新考虑**：出现一族**互不引用**的类型（比如将来的
     # 报表统计值对象），或总数超过 25。
+    # ★ 前端模型：一个文件 = openapi 的一个 schema 族，内容是三五行的
+    # 重导出（`export type Work = components['schemas']['Work']`）。
+    # 「新类型放哪」有唯一答案——新建一个与 schema 同名的文件。
+    #
+    # **合并成一个 `models/index.ts` 可能更好**（16 个三行文件 → 一个 60 行
+    # 文件），但那会让 `from '@/models/work'` 变成 `from '@/models'`，
+    # 而「这个类型属于哪个资源」就从 import 语句里消失了。
+    # 改动面也是全仓库的 import。
+    #
+    # **什么时候该重新考虑**：超过 22 个，或出现一个文件装多个 schema 的情况
+    # （那说明「一个文件一个 schema」这条规矩已经名存实亡）。
+    "frontend/src/models": "一个文件 = openapi 的一个 schema 族（三五行重导出），"
+                           "「新类型放哪」有唯一答案；合并会让「属于哪个资源」从 import 里消失。"
+                           "超过 22 个时重新考虑",
     "backend/internal/domain/model": "一个文件 = 一个聚合或值对象，「新聚合放哪」有唯一答案；"
                                      "它们互相引用（Unit→RoleByID、Coverage→Criterion），"
                                      "分包会立刻循环依赖。出现互不引用的一族、或超过 25 个时重新考虑",

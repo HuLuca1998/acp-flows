@@ -12,6 +12,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 )
 
@@ -51,6 +52,14 @@ func (s *prepStub) ContractOf(context.Context, string) (work.ContractView, error
 func (s *prepStub) DesignContract(context.Context, string, string) error { return nil }
 func (s *prepStub) FreezeContract(context.Context, string, string) error { return nil }
 func (s *prepStub) StartUnit(context.Context, string, string) error      { return nil }
+func (s *prepStub) AcceptanceOf(context.Context, string, string) (work.AcceptanceView, error) {
+	return work.AcceptanceView{}, nil
+}
+func (s *prepStub) CollectDiffEvidence(
+	context.Context, string, string, []string,
+) (model.Evidence, error) {
+	return model.Evidence{}, nil
+}
 func (s *prepStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return s.status, s.err
 }

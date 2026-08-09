@@ -458,6 +458,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/units/{unitId}/acceptance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个单元的验收：标准与证据对照
+         * @description ★★ 每条验收标准旁边是**它有没有证据**（设计稿的 `✓ ev-441` / `○ 无证据`）。
+         *
+         *     没证据**不等于通过**——把它当成通过的话，一个什么都没做的单元
+         *     也能「全部通过」。
+         */
+        get: operations["getUnitAcceptance"];
+        put?: never;
+        /**
+         * 采集这个单元的 diff 证据
+         * @description ★★ **应用自己去读 git，不问 AI**。让 AI 报告自己改了什么，等于让被
+         *     考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次，
+         *     用户就再也不知道该信哪一条。
+         */
+        post: operations["collectUnitEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/units/{unitId}/start": {
         parameters: {
             query?: never;
@@ -958,6 +987,48 @@ export interface components {
             allowed: string[];
             /** @description 明确禁止的前缀，**压过 allowed** */
             forbidden: string[];
+        };
+        Acceptance: {
+            /** @example unit-012 */
+            unit_id: string;
+            /** @description 契约里的验收标准，**顺序照契约**——用户是照着那张表一条条核对的。 */
+            criteria: {
+                /** @example ac-1 */
+                id: string;
+                text: string;
+                /**
+                 * @description 支持这条标准的证据。**空表示「无证据」，不表示通过**——
+                 *     把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。
+                 */
+                evidence_ids: string[];
+            }[];
+            evidence: components["schemas"]["Evidence"][];
+        };
+        Evidence: {
+            /** @example ev-441 */
+            id: string;
+            unit_id: string;
+            /**
+             * @description 四类封闭，与设计稿的「Git diff · 测试输出 · 命令记录 · 审查意见」一致
+             * @enum {string}
+             */
+            kind: "diff" | "test" | "command" | "review";
+            /**
+             * @description 是谁采集的。★★ `app` 是应用直接读出来的，`agent` 是 AI 转述的。
+             *
+             *     分不出来源的话，一条转述会和一份真 diff 长得一样——
+             *     而用户判断「该不该信」全靠这一个字段。
+             * @enum {string}
+             */
+            source: "app" | "agent";
+            /** @example 3 个文件 +64 −12 */
+            summary: string;
+            /** @description 原始输出。★ **原样**，不截断不美化——截断过的输出在排查时等于没有。 */
+            body?: string;
+            /** @description 是不是应用直接采集的。界面据此把 AI 转述的标出来。 */
+            trustworthy: boolean;
+            /** @description 这条证据支持哪几条验收标准 */
+            criteria: string[];
         };
         FileChange: {
             path: string;
@@ -1926,6 +1997,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Contract"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getUnitAcceptance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Acceptance"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    collectUnitEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 采集完了 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Acceptance"];
                 };
             };
             default: components["responses"]["Problem"];

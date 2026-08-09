@@ -59,6 +59,14 @@ func (s *sayStub) ContractOf(context.Context, string) (work.ContractView, error)
 func (s *sayStub) DesignContract(context.Context, string, string) error { return nil }
 func (s *sayStub) FreezeContract(context.Context, string, string) error { return nil }
 func (s *sayStub) StartUnit(context.Context, string, string) error      { return nil }
+func (s *sayStub) AcceptanceOf(context.Context, string, string) (work.AcceptanceView, error) {
+	return work.AcceptanceView{}, nil
+}
+func (s *sayStub) CollectDiffEvidence(
+	context.Context, string, string, []string,
+) (model.Evidence, error) {
+	return model.Evidence{}, nil
+}
 func (s *sayStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return port.RepoStatus{}, nil
 }

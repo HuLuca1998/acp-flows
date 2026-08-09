@@ -62,6 +62,14 @@ func (s *stubWorkSvc) ContractOf(context.Context, string) (work.ContractView, er
 func (s *stubWorkSvc) DesignContract(context.Context, string, string) error { return nil }
 func (s *stubWorkSvc) FreezeContract(context.Context, string, string) error { return nil }
 func (s *stubWorkSvc) StartUnit(context.Context, string, string) error      { return nil }
+func (s *stubWorkSvc) AcceptanceOf(context.Context, string, string) (work.AcceptanceView, error) {
+	return work.AcceptanceView{}, nil
+}
+func (s *stubWorkSvc) CollectDiffEvidence(
+	context.Context, string, string, []string,
+) (model.Evidence, error) {
+	return model.Evidence{}, nil
+}
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -212,6 +220,14 @@ func (c *cancelStub) ContractOf(context.Context, string) (work.ContractView, err
 func (c *cancelStub) DesignContract(context.Context, string, string) error { return nil }
 func (c *cancelStub) FreezeContract(context.Context, string, string) error { return nil }
 func (c *cancelStub) StartUnit(context.Context, string, string) error      { return nil }
+func (c *cancelStub) AcceptanceOf(context.Context, string, string) (work.AcceptanceView, error) {
+	return work.AcceptanceView{}, nil
+}
+func (c *cancelStub) CollectDiffEvidence(
+	context.Context, string, string, []string,
+) (model.Evidence, error) {
+	return model.Evidence{}, nil
+}
 
 func (c *cancelStub) count() int {
 	c.mu.Lock()

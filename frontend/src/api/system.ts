@@ -1,3 +1,4 @@
+import type { Acceptance } from '@/models/acceptance'
 import type { Contract } from '@/models/contract'
 import type { Memory, MemoryStatus } from '@/models/memory'
 import type { Plan } from '@/models/plan'
@@ -116,6 +117,31 @@ export async function answerPermission(
       typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
     )
   }
+}
+
+/**
+ * 读一个单元的验收：标准与证据对照。
+ */
+export async function getAcceptance(workID: string, unitID: string): Promise<Acceptance> {
+  return unwrap(
+    await api.GET('/works/{id}/units/{unitId}/acceptance', {
+      params: { path: { id: workID, unitId: unitID } },
+    }),
+  )
+}
+
+/**
+ * 采集这个单元的 diff 证据。
+ *
+ * ★★ **应用自己去读 git，不问 AI**：让 AI 报告自己改了什么，等于让被
+ * 考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次。
+ */
+export async function collectEvidence(workID: string, unitID: string): Promise<Acceptance> {
+  return unwrap(
+    await api.POST('/works/{id}/units/{unitId}/acceptance', {
+      params: { path: { id: workID, unitId: unitID } },
+    }),
+  )
 }
 
 /**

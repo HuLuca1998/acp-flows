@@ -1,4 +1,9 @@
 {
+  "acceptance.collect": "采集 diff 证据",
+  "acceptance.collecting": "正在采集…",
+  "acceptance.counts": "验收证据 {{evidence}} 条 / 已覆盖 {{covered}} 条标准（共 {{total}} 条）",
+  "acceptance.fromAgent": "AI 转述，未经核实",
+  "acceptance.noEvidence": "○ 无证据",
   "chat.error.project_path_not_absolute": "项目路径不完整，请重新添加这个项目。",
   "chat.error.unknown": "没能开始这个工作。稍后再试一次，或者到设置页看看后台服务还在不在。",
   "chat.error.work_message_required": "先说点什么再发送。",

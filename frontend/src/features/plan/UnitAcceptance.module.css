@@ -1,0 +1,90 @@
+/* 验收：标准与证据对照。颜色一律 var()，禁止写死 hex。 */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-top: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--s-raised);
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.counts {
+  color: var(--color-neutral-500);
+  font-size: 11px;
+}
+
+.collect {
+  padding: 1px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-500);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterion {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 11.5px;
+}
+
+/* ★★ 有证据与没证据**看得出不同**——没证据不是通过。 */
+.mark {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.criterion[data-covered='true'] .mark {
+  color: var(--color-pass);
+}
+
+.text {
+  min-width: 0;
+  color: var(--color-neutral-400);
+}
+
+.evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 10.5px;
+}
+
+.evID,
+.kind {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+}
+
+.summary {
+  color: var(--color-neutral-400);
+}
+
+/* ★★ AI 转述的标出来——分不出来源的话，一条转述会和真 diff 长得一样。 */
+.hearsay {
+  color: var(--color-fail);
+}

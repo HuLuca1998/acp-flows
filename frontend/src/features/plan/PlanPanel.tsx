@@ -5,6 +5,7 @@ import { getPlan, getPlanHistory } from '@/api/system'
 import type { Plan } from '@/models/plan'
 
 import styles from './PlanPanel.module.css'
+import { UnitAcceptance } from './UnitAcceptance'
 import { UnitContract } from './UnitContract'
 
 
@@ -100,6 +101,8 @@ export function PlanPanel({ workID }: PlanPanelProps) {
                 {/* ★ 契约按需展开：十几个单元全展开的话，
                     真正要看的那一个会淹在里面 */}
                 <UnitContract workID={workID} unitID={u.id} />
+                {/* ★ 验收对照：每条标准有没有证据。还没有契约时它自己不显示 */}
+                <UnitAcceptance workID={workID} unitID={u.id} />
               </li>
             ))}
           </ul>
