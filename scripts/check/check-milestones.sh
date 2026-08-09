@@ -38,8 +38,14 @@ if not files:
 
 for path in files:
     text = path.read_text(encoding="utf-8")
-    milestone = path.name[:2]              # M0 / M1 ...
-    digit = milestone[1]
+    # ★ 里程碑号可能是两位（M10）。按 [:2] 截的话 M10 会被当成 M1，
+    # 于是 U10.1.1 被判成「编号与里程碑不符」——一条不存在的缺陷。
+    m = re.match(r"M(\d+)", path.name)
+    if m is None:
+        problems.append(f"{path}: 文件名不是 M<数字>- 开头，取不出里程碑号")
+        continue
+    digit = m.group(1)
+    milestone = f"M{digit}"
 
     # ⑤ 里程碑级必备章节
     for sec in MILESTONE_SECTIONS:
