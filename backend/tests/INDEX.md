@@ -487,3 +487,31 @@
 | `TestPreviewProject_RejectsBadInput` | `internal/api/project_preview_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
 | `TestPreviewProject_UnconfiguredSaysSo` | `internal/api/project_preview_test.go` | api | 没装配回 503 |
 | `TestPreviewProject_EmptyCollectionsAreArrays` | `internal/api/project_preview_test.go` | api | 空集合序列化成 `[]` 不是 null |
+| `TestProbeStatus_R1_SeparatesTrackedFromUntracked` | `internal/gitx/status_test.go` | gitx | M4 U4.1.1 R1：★★ 已跟踪与未跟踪**分开数**——合成一条的话「新建了几个还没 add 的文件」和「改了正在跟踪的代码」长得一模一样，而对用户是两件不同的事 |
+| `TestProbeStatus_R2_ListsBranchesAndMarksCurrent` | `internal/gitx/status_test.go` | gitx | R2：列本地分支、标出当前分支、给出 HEAD（worktree 要它当基线） |
+| `TestProbeStatus_R3_WritesNothing` | `internal/gitx/status_test.go` | gitx | R3：探测前后仓库全目录内容指纹不变（含 `.git` 里的索引） |
+| `TestProbeStatus_R4_RefusesDuringMerge` | `internal/gitx/status_test.go` | gitx | R4：★★ 造一个**真的 merge 冲突**中途态 → 报 `ErrMidOperation`。那时切 worktree 会把用户正在解的冲突丢在那儿 |
+| `TestProbeStatus_R5_EmptyRepoIsReported` | `internal/gitx/status_test.go` | gitx | R5：空仓库报 `ErrNoCommits`，★ **不能报成「没有分支」**——那会让用户去建分支，而他真正要做的是先提交一次 |
+| `TestProbeStatus_CountsFilesInUntrackedDirs` | `internal/gitx/status_test.go` | gitx | ★ `--porcelain` 默认把未跟踪目录折成一行，用户会看到「1 处改动」而实际有三个文件 |
+| `TestProbeStatus_StagedCountsAsTracked` | `internal/gitx/status_test.go` | gitx | 已暂存的改动同样是「未提交」 |
+| `TestProbeStatus_NonRepoErrs` | `internal/gitx/status_test.go` | gitx | 非 git 目录如实报错 |
+| `TestAddWorktree_R2_RefusesToStealAnExistingBranch` | `internal/gitx/worktree_test.go` | gitx | M4 U4.1.2 R2：★★ 分支已存在时**报错不覆盖**。原来用 `-B` 会把用户手建的同名分支**强制复位到 HEAD**——他的提交没了而分支还在，不会立刻发现。判据是「他那条分支一个 commit 都没少」 |
+| `TestAddWorktree_R5_RecordsBaseCommit` | `internal/gitx/worktree_test.go` | gitx | R5：记下基线 commit——「领先几个」与验收 diff 都要它当起点 |
+| `TestAddWorktree_ForksFromChosenBase` | `internal/gitx/worktree_test.go` | gitx | ★ 从**用户选的基线**开分支：他可能想从 `develop` 开工，而当前分支上正躺着他没提交完的东西 |
+| `TestAddWorktree_RefusesUnknownBase` | `internal/gitx/worktree_test.go` | gitx | 基线解析不出就不建，且**错误信息说得出是基线的问题**——光靠 git 报错的话用户不知道那是「你选的基线」还是「Duet 内部出错」 |
+| `TestProbeWorktree_ReportsPerFileLineCounts` | `internal/gitx/status_test.go` | gitx | M4 U4.2.2：未提交改动**逐个文件带增删行数**（设计稿的 `+64 −12`）——只说「改了 3 个文件」判断不出改动有多大 |
+| `TestProbeWorktree_OnlyCountsCommitsAfterBase` | `internal/gitx/status_test.go` | gitx | ★★ 只报基线之后的 commit：基线之前是用户自己的历史，混进来他会以为 Duet 改了他早先的提交。最近的排最前 |
+| `TestProbeWorktree_HandlesSubjectsWithSeparators` | `internal/gitx/status_test.go` | gitx | ★ commit 标题里有 `|` 和 `:` 很正常，用 `\x1f` 当分隔符才不会被切坏 |
+| `TestProbeWorktree_NoBaseMeansNoAheadCount` | `internal/gitx/status_test.go` | gitx | ★★ 没有基线时**不编一个 0 出来**：报「领先 0 个」而实际我们不知道，用户会以为 AI 什么都没干 |
+| `TestProbeWorktree_WritesNothing` | `internal/gitx/status_test.go` | gitx | 探测不改工作区 |
+| `TestProbeWorktree_CleanTreeIsFine` | `internal/gitx/status_test.go` | gitx | 干净的工作区不报错 |
+| `TestProbeWorktree_NonRepoErrs` | `internal/gitx/status_test.go` | gitx | 非仓库如实报错 |
+| `TestPrepareWork_SeparatesTrackedFromUntracked` | `internal/api/work_prepare_test.go` | api | M4 U4.1.1：端点把两个数分开报，并给出分支列表与 HEAD |
+| `TestPrepareWork_DoesNotStartAnything` | `internal/api/work_prepare_test.go` | api | ★★ 探测**不开工**：判据是 Start 一次都没被调用 |
+| `TestPrepareWork_MidOperationIsReported` | `internal/api/work_prepare_test.go` | api | ★★ rebase/merge 中途 → **单独的错误码** `work_repo_mid_operation` + 409。落进笼统的 `work_operation_failed` 的话，用户不知道自己该做什么 |
+| `TestPrepareWork_EmptyRepoIsReported` | `internal/api/work_prepare_test.go` | api | 空仓库 → `work_repo_no_commits`，界面据它说「先提交一次」 |
+| `TestStartWork_PassesBaseRefThrough` | `internal/api/work_prepare_test.go` | api | ★ 基线传得下去：传不下去的话用户选了 `develop` 而工作还是从当前分支开的 |
+| `TestStartWork_EmptyBaseRefIsFine` | `internal/api/work_prepare_test.go` | api | 不传基线时是空串，后端据此用当前 HEAD |
+| `TestPrepareWork_RejectsBadInput` | `internal/api/work_prepare_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
+| `TestPrepareWork_UnconfiguredSaysSo` | `internal/api/work_prepare_test.go` | api | 没装配回 503 |
+| `TestPrepareWork_EmptyBranchesIsArray` | `internal/api/work_prepare_test.go` | api | 空分支列表序列化成 `[]` 不是 null |

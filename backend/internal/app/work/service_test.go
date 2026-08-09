@@ -111,11 +111,15 @@ func (b *recordingBus) types() []string {
 // realWorktrees 用真 gitx——本单元的第一条禁令就是「不往用户项目里写」。
 type realWorktrees struct{ root string }
 
-func (w realWorktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
+func (w realWorktrees) CreateWorktree(ctx context.Context, repo, workID, baseRef string) (port.Worktree, error) {
 	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
-		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
+		Repo: repo, Root: w.root, WorkID: workID,
+		Branch: "duet/" + workID, BaseRef: baseRef,
 	})
-	return wt.Path, err
+	if err != nil {
+		return port.Worktree{}, err
+	}
+	return port.Worktree{Path: wt.Path, Branch: wt.Branch, BaseCommit: wt.BaseCommit}, nil
 }
 
 func (w realWorktrees) RemoveWorktree(ctx context.Context, repo, path string) error {
@@ -146,7 +150,7 @@ func TestStart_WritesNothingIntoUserProject(t *testing.T) {
 	before := testutil.SnapshotDir(t, project)
 
 	svc := newService(t, &memWorks{}, &recordingBus{})
-	_, err := svc.Start(context.Background(), project, "帮我加个功能")
+	_, err := svc.Start(context.Background(), project, "帮我加个功能", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
@@ -160,11 +164,11 @@ func TestStart_EachWorkGetsItsOwnWorktree(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 	ctx := context.Background()
 
-	a, err := svc.Start(ctx, project, "第一件事")
+	a, err := svc.Start(ctx, project, "第一件事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := svc.Start(ctx, project, "第二件事")
+	b, err := svc.Start(ctx, project, "第二件事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +196,7 @@ func TestStart_TransitionsThroughInitializing(t *testing.T) {
 	bus := &recordingBus{}
 	svc := newService(t, &memWorks{}, bus)
 
-	w, err := svc.Start(context.Background(), project, "做点事")
+	w, err := svc.Start(context.Background(), project, "做点事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +222,7 @@ func TestStart_WorktreeFailureIsTerminal(t *testing.T) {
 	repo := &memWorks{}
 	svc := newService(t, repo, &recordingBus{})
 
-	_, err := svc.Start(context.Background(), notARepo, "做点事")
+	_, err := svc.Start(context.Background(), notARepo, "做点事", "")
 	if err == nil {
 		t.Fatal("非 git 目录却建成功了")
 	}
@@ -253,7 +257,7 @@ func TestStart_WorktreeFailureIsTerminal(t *testing.T) {
 func TestStart_RejectsRelativePath(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 
-	if _, err := svc.Start(context.Background(), "work/app", "做点事"); err == nil {
+	if _, err := svc.Start(context.Background(), "work/app", "做点事", ""); err == nil {
 		t.Error("相对路径却建成功了")
 	}
 }
@@ -264,7 +268,7 @@ func TestStart_RejectsEmptyPrompt(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 
 	for _, blank := range []string{"", "   ", "\t\n"} {
-		if _, err := svc.Start(context.Background(), project, blank); err == nil {
+		if _, err := svc.Start(context.Background(), project, blank, ""); err == nil {
 			t.Errorf("空需求 %q 却建成功了", blank)
 		}
 	}
@@ -277,7 +281,7 @@ func TestList_ReturnsAll(t *testing.T) {
 	ctx := context.Background()
 
 	for range 3 {
-		if _, err := svc.Start(ctx, project, "做点事"); err != nil {
+		if _, err := svc.Start(ctx, project, "做点事", ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -362,7 +366,7 @@ func TestStart_RunsTurnInWorktree(t *testing.T) {
 	runner := &fakeRunner{done: make(chan struct{})}
 
 	view, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(context.Background(), project, "帮我加个功能")
+		Start(context.Background(), project, "帮我加个功能", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
@@ -398,7 +402,7 @@ func TestStart_TurnSurvivesRequestCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	if _, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(ctx, project, "帮我加个功能"); err != nil {
+		Start(ctx, project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	// 模拟 HTTP 处理函数返回：请求的 ctx 立刻被取消
@@ -428,7 +432,7 @@ func TestStart_ReportsTurnFailure(t *testing.T) {
 	runner := &fakeRunner{err: errors.New("claude: 未登录"), done: make(chan struct{})}
 
 	if _, err := newServiceWithRunner(t, &memWorks{}, bus, runner).
-		Start(context.Background(), project, "帮我加个功能"); err != nil {
+		Start(context.Background(), project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	<-runner.done
@@ -459,7 +463,7 @@ func TestStart_NoTurnWhenWorktreeFails(t *testing.T) {
 	runner := &fakeRunner{}
 
 	if _, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(context.Background(), notARepo, "帮我加个功能"); err == nil {
+		Start(context.Background(), notARepo, "帮我加个功能", ""); err == nil {
 		t.Fatal("不是 git 仓库却建成功了")
 	}
 
@@ -474,7 +478,7 @@ func TestStart_NilRunnerDoesNotPanic(t *testing.T) {
 	project := testutil.NewGitRepo(t)
 	if _, err := work.New(&memWorks{}, realWorktrees{root: t.TempDir()},
 		&recordingBus{}, &seqIDs{}, nil).
-		Start(context.Background(), project, "帮我加个功能"); err != nil {
+		Start(context.Background(), project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	time.Sleep(50 * time.Millisecond)
@@ -669,7 +673,7 @@ func TestCancel_UserCancelIsNotAFailure(t *testing.T) {
 	svc := work.New(repo, realWorktrees{root: t.TempDir()}, bus, &seqIDs{}, runner)
 	svc.SetCanceller(&cancelRecorder{})
 
-	view, err := svc.Start(context.Background(), project, "写点长的")
+	view, err := svc.Start(context.Background(), project, "写点长的", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}

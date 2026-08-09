@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
@@ -27,7 +28,7 @@ type stubWorkSvc struct {
 	startErr error
 }
 
-func (s *stubWorkSvc) Start(_ context.Context, project, prompt string) (work.View, error) {
+func (s *stubWorkSvc) Start(_ context.Context, project, prompt, _ string) (work.View, error) {
 	if s.startErr != nil {
 		return work.View{}, s.startErr
 	}
@@ -170,7 +171,7 @@ func (c *cancelStub) Cancel(_ context.Context, workID string) error {
 	return c.err
 }
 
-func (c *cancelStub) Start(context.Context, string, string) (work.View, error) {
+func (c *cancelStub) Start(context.Context, string, string, string) (work.View, error) {
 	return work.View{}, nil
 }
 func (c *cancelStub) List(context.Context) ([]work.View, error) { return nil, nil }
@@ -254,4 +255,22 @@ func TestCancelWork_RequiresToken(t *testing.T) {
 	if svc.count() != 0 {
 		t.Errorf("没带 token 却转调了 %d 次——回环上任何进程都能停掉用户的工作", svc.count())
 	}
+}
+
+// Prepare 让替身满足接口。★ 返回一个**看得出是替身**的状态，
+// 不是零值——零值会让「没查过」和「仓库很干净」长得一样。
+func (s *stubWorkSvc) Prepare(context.Context, string) (port.RepoStatus, error) {
+	return port.RepoStatus{CurrentBranch: "main", Branches: []string{"main"}, HeadCommit: "abc1234"}, nil
+}
+
+func (c *cancelStub) Prepare(context.Context, string) (port.RepoStatus, error) {
+	return port.RepoStatus{}, nil
+}
+
+func (s *stubWorkSvc) WorktreeOf(context.Context, string) (port.WorktreeState, error) {
+	return port.WorktreeState{Branch: "duet/work-01"}, nil
+}
+
+func (c *cancelStub) WorktreeOf(context.Context, string) (port.WorktreeState, error) {
+	return port.WorktreeState{}, nil
 }

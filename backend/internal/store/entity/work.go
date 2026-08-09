@@ -19,6 +19,12 @@ type Work struct {
 	Worktree  string    `gorm:"column:worktree;size:1024;not null"`
 	CreatedAt time.Time `gorm:"column:created_at;not null"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null"`
+	// BaseCommit 是这个工作的基线。
+	//
+	// ★★ 右栏的「领先几个 commit」与验收 diff 都拿它当起点。
+	// 不记的话，「AI 到底干了什么」只能靠猜，而猜出来的答案
+	// 会随着仓库变化而漂移。
+	BaseCommit string `gorm:"column:base_commit;size:64;not null;default:''"`
 }
 
 // TableName 显式指定表名，不依赖 GORM 的自动推导——

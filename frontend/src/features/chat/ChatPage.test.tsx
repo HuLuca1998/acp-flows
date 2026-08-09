@@ -94,7 +94,7 @@ describe('对话页', () => {
     await user.click(screen.getByRole('button', { name: /开始/ }))
 
     await waitFor(() => {
-      expect(startWork).toHaveBeenCalledWith('/Users/me/work/my-app', '帮我加个功能')
+      expect(startWork).toHaveBeenCalledWith('/Users/me/work/my-app', '帮我加个功能', '')
     })
   })
 
@@ -176,7 +176,7 @@ describe('响应左栏的动作', () => {
     await user.click(screen.getByRole('button', { name: /开始/ }))
 
     await waitFor(() => {
-      expect(startWork).toHaveBeenCalledWith('/work/b', '做点事')
+      expect(startWork).toHaveBeenCalledWith('/work/b', '做点事', '')
     })
   })
 

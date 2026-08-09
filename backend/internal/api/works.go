@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
@@ -14,10 +15,15 @@ import (
 
 // workService 是本层需要的工作用例。接口定义在使用方。
 type workService interface {
-	Start(ctx context.Context, project, prompt string) (work.View, error)
+	// Start 开一个工作。baseRef 留空时用仓库当前 HEAD。
+	Start(ctx context.Context, project, prompt, baseRef string) (work.View, error)
 	List(ctx context.Context) ([]work.View, error)
 	// Cancel 停掉一个工作正在跑的那一轮。
 	Cancel(ctx context.Context, workID string) error
+	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
+	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
+	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。
+	WorktreeOf(ctx context.Context, workID string) (port.WorktreeState, error)
 }
 
 // workBody 对应 openapi 的 Work。
@@ -38,6 +44,68 @@ type worksBody struct {
 type startWorkRequest struct {
 	Project string `json:"project"`
 	Prompt  string `json:"prompt"`
+	// BaseRef 是用户选的基线，留空时用仓库当前 HEAD。
+	BaseRef string `json:"base_ref"`
+}
+
+// prepareWorkRequest 是 POST /v1/works/prepare 的请求体。
+type prepareWorkRequest struct {
+	Project string `json:"project"`
+}
+
+// workPrepBody 对应 openapi 的 WorkPreparation。
+type workPrepBody struct {
+	CurrentBranch string   `json:"current_branch"`
+	Branches      []string `json:"branches"`
+	HeadCommit    string   `json:"head_commit"`
+	// ★ 已跟踪与未跟踪**分开**：合成一条的话，「新建了几个还没 add 的文件」
+	// 和「改了正在跟踪的代码」会长得一模一样，而对用户是两件不同的事。
+	TrackedDirty int `json:"tracked_dirty"`
+	Untracked    int `json:"untracked"`
+}
+
+// handlePrepareWork 处理 POST /v1/works/prepare。
+//
+// ★★ **只看不动**：用户还没决定开不开工。
+func handlePrepareWork(svc workService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if svc == nil {
+			writeProblem(w, http.StatusServiceUnavailable,
+				"work_service_unavailable", "Work service is not configured")
+			return
+		}
+
+		var req prepareWorkRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeProblem(w, http.StatusBadRequest, "invalid_request_body", "malformed JSON")
+			return
+		}
+		if strings.TrimSpace(req.Project) == "" {
+			writeProblem(w, http.StatusBadRequest, "work_project_required", "project is required")
+			return
+		}
+
+		st, err := svc.Prepare(r.Context(), req.Project)
+		if err != nil {
+			// ★ rebase / merge 中途、空仓库、非仓库——都在这里如实报出去。
+			// 含糊成一句「准备失败」的话，用户不知道自己该做什么。
+			writeWorkProblem(w, "prepare work", err)
+			return
+		}
+
+		branches := st.Branches
+		if branches == nil {
+			// 空集合序列化成 `[]` 不是 null——前端会崩在 `.map` 上
+			branches = []string{}
+		}
+		writeJSON(w, http.StatusOK, workPrepBody{
+			CurrentBranch: st.CurrentBranch,
+			Branches:      branches,
+			HeadCommit:    st.HeadCommit,
+			TrackedDirty:  st.TrackedDirty,
+			Untracked:     st.Untracked,
+		})
+	}
 }
 
 // workProblems 把领域错误映射成机器可读的错误码。
@@ -50,6 +118,12 @@ var workProblems = []struct {
 	status int
 }{
 	{gitx.ErrNotARepo, "work_project_not_a_repo", http.StatusBadRequest},
+	// ★★ 这两条要**单独的错误码**，不能落进笼统的 work_operation_failed：
+	// 用户看到「准备失败」不知道自己该做什么，而他真正要做的是
+	// 「先把那次 merge 收尾」或「先提交一次」。
+	{gitx.ErrMidOperation, "work_repo_mid_operation", http.StatusConflict},
+	{gitx.ErrNoCommits, "work_repo_no_commits", http.StatusBadRequest},
+	{work.ErrNoStatusProbe, "work_status_probe_unavailable", http.StatusServiceUnavailable},
 	{gitx.ErrNotADirectory, "work_project_not_found", http.StatusBadRequest},
 	{model.ErrProjectPathNotAbsolute, "project_path_not_absolute", http.StatusBadRequest},
 	{model.ErrNotFound, "work_not_found", http.StatusNotFound},
@@ -114,7 +188,7 @@ func handleStartWork(svc workService) http.HandlerFunc {
 			return
 		}
 
-		v, err := svc.Start(r.Context(), req.Project, req.Prompt)
+		v, err := svc.Start(r.Context(), req.Project, req.Prompt, req.BaseRef)
 		if err != nil {
 			writeWorkProblem(w, "start work", err)
 			return
@@ -169,5 +243,68 @@ func writeCancelProblem(w http.ResponseWriter, err error) {
 		writeProblem(w, http.StatusServiceUnavailable, code, "cancel is not available")
 	default:
 		writeProblem(w, http.StatusInternalServerError, code, "could not cancel this work")
+	}
+}
+
+// fileChangeBody 对应 openapi 的 FileChange。
+type fileChangeBody struct {
+	Path    string `json:"path"`
+	Added   int    `json:"added"`
+	Removed int    `json:"removed"`
+}
+
+// commitInfoBody 对应 openapi 的 CommitInfo。
+type commitInfoBody struct {
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
+	When    string `json:"when"`
+}
+
+// worktreeStateBody 对应 openapi 的 WorktreeState。
+type worktreeStateBody struct {
+	Branch     string           `json:"branch"`
+	BaseCommit string           `json:"base_commit,omitempty"`
+	Ahead      int              `json:"ahead"`
+	Changes    []fileChangeBody `json:"changes"`
+	Commits    []commitInfoBody `json:"commits"`
+}
+
+// handleGetWorkWorktree 处理 GET /v1/works/{id}/worktree。**只读。**
+func handleGetWorkWorktree(svc workService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if svc == nil {
+			writeProblem(w, http.StatusServiceUnavailable,
+				"work_service_unavailable", "Work service is not configured")
+			return
+		}
+		id := r.PathValue("id")
+		if id == "" {
+			writeProblem(w, http.StatusBadRequest, "work_id_required", "work id is required")
+			return
+		}
+
+		st, err := svc.WorktreeOf(r.Context(), id)
+		if err != nil {
+			writeWorkProblem(w, "read worktree", err)
+			return
+		}
+
+		body := worktreeStateBody{
+			Branch: st.Branch, BaseCommit: st.BaseCommit, Ahead: st.Ahead,
+			// ★ 空集合序列化成 `[]` 不是 null——前端会崩在 `.map` 上
+			Changes: make([]fileChangeBody, 0, len(st.Changes)),
+			Commits: make([]commitInfoBody, 0, len(st.Commits)),
+		}
+		for _, c := range st.Changes {
+			body.Changes = append(body.Changes, fileChangeBody{
+				Path: c.Path, Added: c.Added, Removed: c.Removed,
+			})
+		}
+		for _, c := range st.Commits {
+			body.Commits = append(body.Commits, commitInfoBody{
+				SHA: c.SHA, Subject: c.Subject, When: c.When,
+			})
+		}
+		writeJSON(w, http.StatusOK, body)
 	}
 }

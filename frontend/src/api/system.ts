@@ -6,6 +6,8 @@ import type { Runtime } from '@/models/runtime'
 import type { Skill } from '@/models/skill'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import type { Work } from '@/models/work'
+import type { WorkPreparation } from '@/models/workprep'
+import type { WorktreeState } from '@/models/worktree'
 
 import { api, unwrap, type Problem } from './client'
 
@@ -77,8 +79,15 @@ export async function listWorks(): Promise<Work[]> {
  *
  * ★ 会切一个独立 worktree，**建在用户项目之外**（`~/.acpflows/worktrees`）。
  */
-export async function startWork(project: string, prompt: string): Promise<Work> {
-  return unwrap(await api.POST('/works', { body: { project, prompt } }))
+export async function startWork(
+  project: string,
+  prompt: string,
+  baseRef = '',
+): Promise<Work> {
+  // ★ baseRef 留空时后端用仓库当前 HEAD。
+  // 用户在弹层里选了 `develop` 却没传下去的话，工作还是从当前分支开的——
+  // 而当前分支上可能正躺着他没提交完的东西。
+  return unwrap(await api.POST('/works', { body: { project, prompt, base_ref: baseRef } }))
 }
 
 /**
@@ -191,3 +200,22 @@ export async function previewProject(path: string): Promise<ProjectPreview> {
   return unwrap(await api.POST('/projects/preview', { body: { path } }))
 }
 
+/**
+ * 开工前的仓库状态：**只看不动**。
+ *
+ * ★ 未提交改动分「已跟踪 / 未跟踪」两个数——合成一条的话，
+ * 「新建了几个还没 add 的文件」和「改了正在跟踪的代码」会长得一模一样。
+ */
+export async function prepareWork(project: string): Promise<WorkPreparation> {
+  return unwrap(await api.POST('/works/prepare', { body: { project } }))
+}
+
+/**
+ * 一个工作的 git 现场，右栏「工作区」照它渲染。**只读。**
+ *
+ * ★ `base_commit` 为空表示不知道基线——那时 `ahead` 与 `commits` 不可信，
+ * 界面不该显示它们。显示「领先 0 个」会让用户以为 AI 什么都没干。
+ */
+export async function getWorkWorktree(id: string): Promise<WorktreeState> {
+  return unwrap(await api.GET('/works/{id}/worktree', { params: { path: { id } } }))
+}

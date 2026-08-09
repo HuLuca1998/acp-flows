@@ -26,12 +26,21 @@ type View struct {
 	Project  string
 	Worktree string
 	Prompt   string
+	// Branch 与 BaseCommit 是这个工作的 git 现场。
+	//
+	// ★ 右栏「领先几个 commit」与验收时的 diff 都要 BaseCommit 当起点，
+	// 不记的话「这个工作到底改了什么」没有答案。
+	Branch     string
+	BaseCommit string
 }
 
 // Service 是工作用例。
 type Service struct {
 	repo      port.WorkRepo
 	worktrees port.Worktrees
+	// status 探测开工前的仓库状态。为 nil 时 Prepare 报错——
+	// **不返回一个空状态**：那会让弹层显示「仓库很干净」而实际没查过。
+	status    port.RepoStatusProbe
 	bus       port.WorkEventBus
 	ids       port.IDGen
 	runner    port.AgentRunner
@@ -62,7 +71,10 @@ func New(
 //
 // ★ 失败的工作**也要落库**。不落的话，用户点了「开始」之后什么都没发生，
 // 他不知道是没点上还是失败了。
-func (s *Service) Start(ctx context.Context, project, prompt string) (View, error) {
+// Start 开一个工作。
+//
+// ★ baseRef 是用户选的基线（分支名或 commit），留空时用仓库当前 HEAD。
+func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (View, error) {
 	if !filepath.IsAbs(project) {
 		return View{}, fmt.Errorf("%w: %q", model.ErrProjectPathNotAbsolute, project)
 	}
@@ -78,7 +90,7 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 	}
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
 
-	worktree, err := s.worktrees.CreateWorktree(ctx, project, id)
+	wt, err := s.worktrees.CreateWorktree(ctx, project, id, baseRef)
 	if err != nil {
 		// 切失败进终态。**不可恢复**：worktree 没切成就没有可执行的现场
 		// （ADR 0006 Q1），假装能重试只会让用户反复点一个注定失败的按钮。
@@ -90,6 +102,13 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 		}
 		return View{}, fmt.Errorf("为工作 %s 切工作区: %w", id, err)
 	}
+
+	// ★★ **切好之后立刻记下现场**，且在状态迁移之前。
+	//
+	// 记晚了的话，中间任何一次失败都会留下一个「有 worktree 但不知道
+	// 基线在哪」的工作——那时右栏算不出「AI 干了什么」，
+	// 而用户看到的是一个空面板。
+	w.SetWorktree(wt.Path, wt.Branch, wt.BaseCommit)
 
 	if err := w.Transition(constant.WorkStateClarifying); err != nil {
 		return View{}, fmt.Errorf("工作 %s 状态迁移: %w", id, err)
@@ -105,10 +124,11 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 	// 而在用户那儿的表现是返回的状态时对时不对。
 	view := View{
 		ID: id, State: w.State(),
-		Project: project, Worktree: worktree, Prompt: prompt,
+		Project: project, Worktree: wt.Path, Prompt: prompt,
+		Branch: wt.Branch, BaseCommit: wt.BaseCommit,
 	}
 
-	s.runTurn(ctx, id, worktree, prompt)
+	s.runTurn(ctx, id, wt.Path, prompt)
 
 	return view, nil
 }

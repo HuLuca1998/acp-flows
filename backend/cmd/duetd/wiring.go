@@ -88,11 +88,34 @@ func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]
 // 不让 app 层自己去拼路径（拼错了就写进用户仓库了）。
 type worktrees struct{ root string }
 
-func (w worktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
+func (w worktrees) CreateWorktree(
+	ctx context.Context, repo, workID, baseRef string,
+) (port.Worktree, error) {
 	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
-		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
+		Repo: repo, Root: w.root, WorkID: workID,
+		Branch: "duet/" + workID, BaseRef: baseRef,
 	})
-	return wt.Path, err
+	if err != nil {
+		return port.Worktree{}, err
+	}
+	return port.Worktree{Path: wt.Path, Branch: wt.Branch, BaseCommit: wt.BaseCommit}, nil
+}
+
+// repoStatus 实现 port.RepoStatusProbe。
+type repoStatus struct{}
+
+func (repoStatus) ProbeRepoStatus(ctx context.Context, path string) (port.RepoStatus, error) {
+	st, err := gitx.ProbeStatus(ctx, path)
+	if err != nil {
+		return port.RepoStatus{}, err
+	}
+	return port.RepoStatus{
+		CurrentBranch: st.CurrentBranch,
+		Branches:      st.Branches,
+		HeadCommit:    st.HeadCommit,
+		TrackedDirty:  st.TrackedDirty,
+		Untracked:     st.Untracked,
+	}, nil
 }
 
 // WorktreePath 实现 port.WorktreeLocator：算出某个工作的工作区在哪。
@@ -150,3 +173,28 @@ func toBrokerOptions(in []protocol.PermissionOption) []permission.Option {
 // 界面上宁可说「AI」，也不要写死 claude 或 codex（上层不许出现品牌名，
 // 见 check-naming 第 10 节）。真正的名字等 U4.x 的多 Runtime 并行再接。
 func runtimeNameOf(_ session.PermissionAsk) string { return "AI" }
+
+func (repoStatus) ProbeWorktreeState(
+	ctx context.Context, path, base string,
+) (port.WorktreeState, error) {
+	st, err := gitx.ProbeWorktree(ctx, path, base)
+	if err != nil {
+		return port.WorktreeState{}, err
+	}
+	out := port.WorktreeState{
+		Branch: st.Branch, BaseCommit: st.BaseCommit, Ahead: st.Ahead,
+		Changes: make([]port.FileChange, 0, len(st.Changes)),
+		Commits: make([]port.CommitInfo, 0, len(st.Commits)),
+	}
+	for _, c := range st.Changes {
+		out.Changes = append(out.Changes, port.FileChange{
+			Path: c.Path, Added: c.Added, Removed: c.Removed,
+		})
+	}
+	for _, c := range st.Commits {
+		out.Commits = append(out.Commits, port.CommitInfo{
+			SHA: c.SHA, Subject: c.Subject, When: c.When,
+		})
+	}
+	return out, nil
+}

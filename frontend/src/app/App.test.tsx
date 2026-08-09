@@ -67,7 +67,7 @@ describe('应用骨架', () => {
     // 对话页已经做实（U2.4.1），不再是骨架占位。
     // 没有项目时它引导用户先去加一个——这就是「默认进了对话主区」的证据。
     expect(screen.getByText(/先添加一个项目/)).toBeInTheDocument()
-    expect(screen.getByRole('complementary', { name: '上下文面板' })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: '工作区' })).toBeInTheDocument()
   })
 
   it('五个导航页都能打开，没有一个白屏', async () => {
@@ -87,7 +87,7 @@ describe('应用骨架', () => {
 
     const nav = screen.getByRole('navigation', { name: '主导航' })
     await user.click(within(nav).getByRole('button', { name: '报表' }))
-    expect(screen.queryByRole('complementary', { name: '上下文面板' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: '工作区' })).not.toBeInTheDocument()
   })
 
   it('当前页在左栏高亮，且高亮项唯一', async () => {

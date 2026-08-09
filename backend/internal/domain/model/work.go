@@ -90,6 +90,32 @@ var workTransitions = map[constant.WorkState][]constant.WorkState{
 type Work struct {
 	id    string
 	state constant.WorkState
+
+	// worktreePath 与 baseCommit 是这个工作的 git 现场。
+	//
+	// ★★ **基线必须记下来**：右栏的「领先几个 commit」与验收时的 diff
+	// 都拿它当起点。不记的话，「AI 到底干了什么」只能靠猜——
+	// 而猜出来的答案会随着仓库变化而漂移。
+	worktreePath string
+	baseCommit   string
+	branch       string
+}
+
+// WorktreePath 返回工作区路径；还没切时为空。
+func (w *Work) WorktreePath() string { return w.worktreePath }
+
+// BaseCommit 返回这个工作的基线 commit；还没切时为空。
+func (w *Work) BaseCommit() string { return w.baseCommit }
+
+// Branch 返回工作所在的分支；还没切时为空。
+func (w *Work) Branch() string { return w.branch }
+
+// SetWorktree 记下切好的工作区。
+//
+// ★ 只在 worktree **真的建好之后**调用——记一个还没建出来的路径的话，
+// 恢复时会指向一个不存在的目录。
+func (w *Work) SetWorktree(path, branch, baseCommit string) {
+	w.worktreePath, w.branch, w.baseCommit = path, branch, baseCommit
 }
 
 // NewWorkAt 用给定状态构造一个 Work。

@@ -284,12 +284,76 @@ paths:
                 prompt:
                   type: string
                   description: 用户的需求原话
+                base_ref:
+                  type: string
+                  description: |
+                    从哪儿开分支：分支名或 commit。留空时用仓库当前 HEAD。
+
+                    ★ 让用户选基线的理由：他可能想从 `develop` 开工，
+                    而当前分支上正躺着他没提交完的东西。
+                  examples: [develop, 7c1de98]
       responses:
         '201':
           description: 已创建
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Work' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/prepare:
+    post:
+      tags: [work]
+      operationId: prepareWork
+      summary: 开工前的仓库状态——**只看不动**
+      description: |
+        ★★ **一个字节都不写。** 返回的是设计稿「新建工作」弹层要显示的东西：
+        仓库脏不脏、有哪些分支可以当基线、当前 HEAD 是什么。
+
+        ★ 未提交改动**分已跟踪与未跟踪两个数**：合成一条的话，
+        「我只是新建了几个还没 add 的文件」和「我改了正在跟踪的代码」
+        会长得一模一样，而对用户是两件完全不同的事。
+
+        ★ 仓库处在 rebase / merge 中途时**报错拒绝开工**——
+        那时切 worktree 会把用户正在解的冲突丢在那儿。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project]
+              properties:
+                project: { type: string, description: 项目的本地绝对路径 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkPreparation' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/worktree:
+    get:
+      tags: [work]
+      operationId: getWorkWorktree
+      summary: 一个工作的 git 现场——右栏「工作区」照它渲染
+      description: |
+        ★★ **只读。** 返回分支、领先几个 commit、未提交改动（逐个文件带增删）、
+        以及**本次工作产生的** commit。
+
+        ★ 基线之前的 commit 不算：那些是用户自己的历史，
+        混进来会让他以为 Duet 改了他早先的提交。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorktreeState' }
         default: { $ref: '#/components/responses/Problem' }
 
   # ── Runtime ─────────────────────────────────────────────────
@@ -771,6 +835,70 @@ components:
           description: 用户的需求原话
 
     # ── Runtime ───────────────────────────────────────────────
+    WorktreeState:
+      type: object
+      required: [branch, ahead, changes, commits]
+      properties:
+        branch: { type: string, examples: ['duet/work-08'] }
+        base_commit:
+          type: string
+          description: |
+            这个工作的起点。★ 空串表示**不知道基线**——
+            那时 `ahead` 与 `commits` 都不可信，界面不该显示它们。
+          examples: ['7c1de90']
+        ahead:
+          type: integer
+          description: 相对基线领先几个 commit
+        changes:
+          type: array
+          description: |
+            未提交的改动，**逐个文件带增删行数**。
+            只说「改了 3 个文件」的话，用户判断不出这次改动有多大。
+          items: { $ref: '#/components/schemas/FileChange' }
+        commits:
+          type: array
+          description: 本次工作产生的 commit，最近的排最前
+          items: { $ref: '#/components/schemas/CommitInfo' }
+
+    FileChange:
+      type: object
+      required: [path, added, removed]
+      properties:
+        path: { type: string }
+        added: { type: integer }
+        removed: { type: integer }
+
+    CommitInfo:
+      type: object
+      required: [sha, subject, when]
+      properties:
+        sha: { type: string, examples: ['a1c9f30'] }
+        subject: { type: string }
+        when:
+          type: string
+          description: |
+            相对时间原文（`2 minutes ago`）。★ 由 git 算而不是我们算：
+            它处理了时区，我们自己算会在跨时区时差一天。
+
+    WorkPreparation:
+      type: object
+      required: [current_branch, branches, head_commit, tracked_dirty, untracked]
+      properties:
+        current_branch: { type: string, examples: [main] }
+        branches:
+          type: array
+          items: { type: string }
+          description: 本地分支，可以当基线
+        head_commit: { type: string, examples: ['7c1de98'] }
+        tracked_dirty:
+          type: integer
+          description: |
+            **已跟踪文件**里被改动的数量（含已暂存）。
+            ★ 与未跟踪分开数——对用户是两件不同的事。
+        untracked:
+          type: integer
+          description: 未跟踪文件的数量（逐个文件数，不是逐个目录）
+
     ProjectPreview:
       type: object
       required: [path, is_git_repo, actions, skills]

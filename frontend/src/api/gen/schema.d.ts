@@ -210,6 +210,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 开工前的仓库状态——**只看不动**
+         * @description ★★ **一个字节都不写。** 返回的是设计稿「新建工作」弹层要显示的东西：
+         *     仓库脏不脏、有哪些分支可以当基线、当前 HEAD 是什么。
+         *
+         *     ★ 未提交改动**分已跟踪与未跟踪两个数**：合成一条的话，
+         *     「我只是新建了几个还没 add 的文件」和「我改了正在跟踪的代码」
+         *     会长得一模一样，而对用户是两件完全不同的事。
+         *
+         *     ★ 仓库处在 rebase / merge 中途时**报错拒绝开工**——
+         *     那时切 worktree 会把用户正在解的冲突丢在那儿。
+         */
+        post: operations["prepareWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/worktree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个工作的 git 现场——右栏「工作区」照它渲染
+         * @description ★★ **只读。** 返回分支、领先几个 commit、未提交改动（逐个文件带增删）、
+         *     以及**本次工作产生的** commit。
+         *
+         *     ★ 基线之前的 commit 不算：那些是用户自己的历史，
+         *     混进来会让他以为 Duet 改了他早先的提交。
+         */
+        get: operations["getWorkWorktree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/cancel": {
         parameters: {
             query?: never;
@@ -565,6 +617,55 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+        };
+        WorktreeState: {
+            /** @example duet/work-08 */
+            branch: string;
+            /**
+             * @description 这个工作的起点。★ 空串表示**不知道基线**——
+             *     那时 `ahead` 与 `commits` 都不可信，界面不该显示它们。
+             * @example 7c1de90
+             */
+            base_commit?: string;
+            /** @description 相对基线领先几个 commit */
+            ahead: number;
+            /**
+             * @description 未提交的改动，**逐个文件带增删行数**。
+             *     只说「改了 3 个文件」的话，用户判断不出这次改动有多大。
+             */
+            changes: components["schemas"]["FileChange"][];
+            /** @description 本次工作产生的 commit，最近的排最前 */
+            commits: components["schemas"]["CommitInfo"][];
+        };
+        FileChange: {
+            path: string;
+            added: number;
+            removed: number;
+        };
+        CommitInfo: {
+            /** @example a1c9f30 */
+            sha: string;
+            subject: string;
+            /**
+             * @description 相对时间原文（`2 minutes ago`）。★ 由 git 算而不是我们算：
+             *     它处理了时区，我们自己算会在跨时区时差一天。
+             */
+            when: string;
+        };
+        WorkPreparation: {
+            /** @example main */
+            current_branch: string;
+            /** @description 本地分支，可以当基线 */
+            branches: string[];
+            /** @example 7c1de98 */
+            head_commit: string;
+            /**
+             * @description **已跟踪文件**里被改动的数量（含已暂存）。
+             *     ★ 与未跟踪分开数——对用户是两件不同的事。
+             */
+            tracked_dirty: number;
+            /** @description 未跟踪文件的数量（逐个文件数，不是逐个目录） */
+            untracked: number;
         };
         ProjectPreview: {
             path: string;
@@ -1154,6 +1255,15 @@ export interface operations {
                     project: string;
                     /** @description 用户的需求原话 */
                     prompt: string;
+                    /**
+                     * @description 从哪儿开分支：分支名或 commit。留空时用仓库当前 HEAD。
+                     *
+                     *     ★ 让用户选基线的理由：他可能想从 `develop` 开工，
+                     *     而当前分支上正躺着他没提交完的东西。
+                     * @example develop
+                     * @example 7c1de98
+                     */
+                    base_ref?: string;
                 };
             };
         };
@@ -1165,6 +1275,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Work"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    prepareWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 项目的本地绝对路径 */
+                    project: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkPreparation"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkWorktree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorktreeState"];
                 };
             };
             default: components["responses"]["Problem"];

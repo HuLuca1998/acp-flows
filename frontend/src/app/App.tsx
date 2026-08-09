@@ -5,6 +5,7 @@ import { listProjects } from '@/api/system'
 import { ChatPage, type ChatIntent } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
+import { NewWorkDialog } from '@/features/work/NewWorkDialog'
 import type { Project } from '@/models/project'
 import { Button } from '@/ui/Button'
 import { Resizer } from '@/ui/Resizer'
@@ -49,6 +50,13 @@ export function App() {
   // ★ 用一个带序号的对象而不是裸字符串：同一个项目连点两次「新建对话」，
   // 裸字符串不变，对话页不会有反应——而用户明明点了两下。
   const [intent, setIntent] = useState<ChatIntent | null>(null)
+  // ★ 点了「新建对话」但还没选基线的项目路径。
+  //
+  // 中间隔一个弹层是有意的：开工要切 worktree，而用户在点之前
+  // 有权知道「从哪条分支切、我的工作区会不会被动」。
+  const [pendingProject, setPendingProject] = useState<string | null>(null)
+  // ★ 当前打开的工作 id，右栏「工作区」靠它知道该读哪个工作的 git 现场。
+  const [currentWorkID, setCurrentWorkID] = useState('')
   const [intentSeq, setIntentSeq] = useState(0)
 
   const openIntent = (next: ChatIntent) => {
@@ -142,7 +150,7 @@ export function App() {
           onNavigate={setPageId}
           collapsed={!railOpen}
           width={railWidth}
-          onNewWork={(projectPath) => openIntent({ kind: 'new', projectPath })}
+          onNewWork={(projectPath) => setPendingProject(projectPath)}
           onOpenWork={(workID) => openIntent({ kind: 'open', workID })}
         />
         {railOpen && (
@@ -158,7 +166,7 @@ export function App() {
 
         <main className={styles.main}>
           {navPage === null ? (
-            <ChatPage intent={intent} intentSeq={intentSeq} />
+            <ChatPage intent={intent} intentSeq={intentSeq} onWorkChange={setCurrentWorkID} />
           ) : (
             <navPage.Component />
           )}
@@ -174,7 +182,7 @@ export function App() {
             label={t('nav.resizeContext')}
           />
         )}
-        {showContext && <ContextPanel width={contextWidth} />}
+        {showContext && <ContextPanel width={contextWidth} workID={currentWorkID} />}
       </div>
 
       {planOpen && (
@@ -186,6 +194,23 @@ export function App() {
           <p className={styles.planHint}>{t('page.plan.hint')}</p>
         </div>
       )}
+
+      {/*
+        ★★ 「新建对话」与「真的开工」之间隔着这个弹层。
+        开工要切 worktree——用户在点之前有权知道从哪条分支切、
+        以及**他的工作区不会被动**。
+      */}
+      <NewWorkDialog
+        open={pendingProject !== null}
+        projectPath={pendingProject ?? ''}
+        onClose={() => setPendingProject(null)}
+        onConfirm={(baseRef) => {
+          if (pendingProject !== null) {
+            openIntent({ kind: 'new', projectPath: pendingProject, baseRef })
+          }
+          setPendingProject(null)
+        }}
+      />
     </div>
   )
 }

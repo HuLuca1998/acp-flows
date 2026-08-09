@@ -23,10 +23,27 @@ import styles from './ChatPage.module.css'
  * 左栏点过来的意图：在某个项目下开新对话，或打开一条已有的工作。
  */
 export type ChatIntent =
-  | { kind: 'new'; projectPath: string }
+  | {
+      kind: 'new'
+      projectPath: string
+      /**
+       * 用户在「新建工作」弹层里选的基线（分支名或 commit）。
+       *
+       * ★ 空串表示用仓库当前 HEAD。传不下去的话，他选了 `develop`
+       * 而工作还是从当前分支开的——而当前分支上可能正躺着他没提交完的东西。
+       */
+      baseRef?: string
+    }
   | { kind: 'open'; workID: string }
 
 export type ChatPageProps = {
+  /**
+   * 当前工作变化时通知外面。
+   *
+   * ★ 右栏「工作区」要靠它知道该读哪个工作的 git 现场——
+   * 让右栏自己去查「哪个工作是当前的」的话，两处会各有一份答案。
+   */
+  onWorkChange?: (workID: string) => void
   /** 左栏点过来的动作；为 null 表示用户直接进的对话页。 */
   intent: ChatIntent | null
   /**
@@ -39,16 +56,24 @@ export type ChatPageProps = {
   intentSeq: number
 }
 
-export function ChatPage({ intent, intentSeq }: ChatPageProps) {
+export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
   const { t } = useTranslation()
 
   const [projects, setProjects] = useState<Project[]>([])
   // 左栏指定的项目路径。为空时回落到第一个项目（用户直接进对话页的情形）。
   const [pickedProject, setPickedProject] = useState<string | null>(null)
+  // ★ 用户在「新建工作」弹层里选的基线，跟着这一轮走到 startWork。
+  const [baseRef, setBaseRef] = useState('')
   const [current, setCurrent] = useState<Work | null>(null)
   const [prompt, setPrompt] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+
+  // ★ 把当前工作报给外面（右栏要用）。放在 effect 里而不是每次 setCurrent
+  // 时手动调——手动调的话，漏掉任何一条赋值路径都会让右栏停在旧工作上。
+  useEffect(() => {
+    onWorkChange?.(current?.id ?? '')
+  }, [current, onWorkChange])
 
   const { events } = useEventStream(current?.id ?? null)
   // 待裁决的权限请求。★ 它排在时间线**上方**——AI 挂着等的时候，
@@ -77,6 +102,7 @@ export function ChatPage({ intent, intentSeq }: ChatPageProps) {
     }
     if (intent.kind === 'new') {
       setPickedProject(intent.projectPath)
+      setBaseRef(intent.baseRef ?? '')
       setCurrent(null) // 新的一轮：不接着看上一条工作
       setPrompt('')
       setErrorCode(null)
@@ -110,7 +136,7 @@ export function ChatPage({ intent, intentSeq }: ChatPageProps) {
     setStarting(true)
     setErrorCode(null)
     try {
-      setCurrent(await startWork(project.path, text))
+      setCurrent(await startWork(project.path, text, baseRef))
       setPrompt('')
     } catch (err) {
       // ★ 失败要说出来。静默的话用户点了「开始」之后界面毫无变化——
@@ -119,7 +145,7 @@ export function ChatPage({ intent, intentSeq }: ChatPageProps) {
     } finally {
       setStarting(false)
     }
-  }, [prompt, projects, pickedProject])
+  }, [prompt, projects, pickedProject, baseRef])
 
   return (
     <div className={styles.page}>

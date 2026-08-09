@@ -15,8 +15,11 @@ import (
 // 取了就没法写确定性测试。
 func WorkToEntity(w *model.Work) *entity.Work {
 	return &entity.Work{
-		ID:    w.ID(),
-		State: string(w.State()),
+		ID:         w.ID(),
+		Worktree:   w.WorktreePath(),
+		Branch:     w.Branch(),
+		BaseCommit: w.BaseCommit(),
+		State:      string(w.State()),
 	}
 }
 
@@ -25,7 +28,11 @@ func WorkToEntity(w *model.Work) *entity.Work {
 // 用 NewWorkAt 而不是 NewWork：从数据库重建聚合时状态是既定事实，
 // 不该再走一遍初始状态。
 func WorkToModel(e *entity.Work) *model.Work {
-	return model.NewWorkAt(e.ID, constant.WorkState(e.State))
+	w := model.NewWorkAt(e.ID, constant.WorkState(e.State))
+	// ★ git 现场也要还原：不还原的话，重启之后右栏就不知道
+	// 「这个工作从哪儿开始的」，而那正是判断「AI 干了什么」的起点。
+	w.SetWorktree(e.Worktree, e.Branch, e.BaseCommit)
+	return w
 }
 
 // WorksToModels 批量转换。空输入返回空切片而不是 nil——

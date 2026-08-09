@@ -97,3 +97,12 @@ func RunForTest(ctx context.Context, dir string, args ...string) error {
 	_, err := run(ctx, dir, args...)
 	return err
 }
+
+// RunOutputForTest 跑一条 git 子命令并返回去掉首尾空白的 stdout。
+//
+// ★ 只给测试用（与 RunForTest 同理）：生产代码走各自的 Probe* 函数，
+// 那些函数把「git 说了什么」翻成了领域概念，而这个不翻。
+func RunOutputForTest(ctx context.Context, dir string, args ...string) (string, error) {
+	out, err := run(ctx, dir, args...)
+	return strings.TrimSpace(out), err
+}

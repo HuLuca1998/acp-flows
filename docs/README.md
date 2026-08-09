@@ -107,17 +107,18 @@
 | [`milestones/README.md`](plan/milestones/README.md) | 里程碑体系与编号规则 |
 
 里程碑分章（每章是子计划的菜单，**只读你要做的那一个 S**）。
-2026-08-08 按引用关系重排，`M5` 及以后的验收条件在 `roadmap.md` 里，
-**施工图等快做到时才建**——远期写死的单元拆分，到那天必然已经过期。
+2026-08-08 按引用关系重排。**施工图等快做到时才建**——
+远期写死的单元拆分，到那天必然已经过期。`M6` 及以后的验收条件在 `roadmap.md` 里。
 
 | 章 | 做什么 | 状态 |
 |---|---|---|
 | [`M0`](plan/milestones/M0-foundation.md) | 基础框架：窗口布局、七页导航、多语言、骨架占位 | ✓ 完成 |
 | [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新 | 进行中 |
-| [`M2`](plan/milestones/M2-roles-skills-memory.md) | **它有了角色、技能和记性**（后面全部的地基） | **现在做** |
-| [`M3`](plan/milestones/M3-project-onboarding.md) | 把我的项目交给它：创建项目弹层、扫已有 skill | 待开始 |
-| [`M4`](plan/milestones/M4-start-a-work.md) | 开一个工作：新建工作弹层、worktree、右栏工作区 | 待开始 |
-| `M5`–`M12` | 需求 → 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
+| [`M2`](plan/milestones/M2-roles-skills-memory.md) | **它有了角色、技能和记性**（后面全部的地基） | ✓ 完成 |
+| [`M3`](plan/milestones/M3-project-onboarding.md) | 把我的项目交给它：创建项目弹层、扫已有 skill | ✓ 完成 |
+| [`M4`](plan/milestones/M4-start-a-work.md) | 开一个工作：新建工作弹层、worktree、右栏工作区 | ✓ 完成 |
+| [`M5`](plan/milestones/M5-clarify-and-freeze.md) | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | **现在做** |
+| `M6`–`M12` | 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
 
 **重排前的里程碑**（旧 `U2.*`–`U5.*` 编号，只作历史查阅，不要照着干活）：
 

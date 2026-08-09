@@ -21,9 +21,66 @@ type WorkRepo interface {
 // 并没有同意我们在他的仓库里造一堆分支和目录。
 type Worktrees interface {
 	// CreateWorktree 返回工作区路径。同一个 workID 重复调用返回同一个路径。
-	CreateWorktree(ctx context.Context, repo, workID string) (string, error)
+	//
+	// ★ baseRef 是用户选的基线（分支名或 commit），留空时用仓库当前 HEAD。
+	// 他可能想从 `develop` 开工，而当前分支上正躺着他没提交完的东西。
+	CreateWorktree(ctx context.Context, repo, workID, baseRef string) (Worktree, error)
 	// RemoveWorktree 移除工作区。移除不存在的不报错。
 	RemoveWorktree(ctx context.Context, repo, path string) error
+}
+
+// Worktree 是一个建好的工作区。
+type Worktree struct {
+	Path   string
+	Branch string
+	// BaseCommit 是创建时的基线。★ 记下来才能回答「这个工作从哪儿开始的」——
+	// 右栏的「领先几个 commit」与验收 diff 都要它当起点。
+	BaseCommit string
+}
+
+// RepoStatus 是开工前的仓库状态。
+type RepoStatus struct {
+	CurrentBranch string
+	Branches      []string
+	HeadCommit    string
+	// ★ 已跟踪与未跟踪**分开数**：合成一条的话，
+	// 「新建了几个还没 add 的文件」和「改了正在跟踪的代码」长得一模一样。
+	TrackedDirty int
+	Untracked    int
+}
+
+// RepoStatusProbe 探测开工前的仓库状态。**只读。**
+type RepoStatusProbe interface {
+	ProbeRepoStatus(ctx context.Context, path string) (RepoStatus, error)
+	// ProbeWorktreeState 读出一个工作区的现场。
+	//
+	// ★ base 为空时**不报** ahead 与 commits——不知道基线就算不出
+	// 「本次工作改了什么」，而编一个 0 出来比不报更糟。
+	ProbeWorktreeState(ctx context.Context, path, base string) (WorktreeState, error)
+}
+
+// WorktreeState 是一个工作区的 git 现场，右栏照它渲染。
+type WorktreeState struct {
+	Branch     string
+	BaseCommit string
+	Ahead      int
+	Changes    []FileChange
+	Commits    []CommitInfo
+}
+
+// FileChange 是一个文件的改动。
+type FileChange struct {
+	Path    string
+	Added   int
+	Removed int
+}
+
+// CommitInfo 是一条 commit。
+type CommitInfo struct {
+	SHA     string
+	Subject string
+	// When 是相对时间原文（`2 minutes ago`），由 git 算。
+	When string
 }
 
 // WorkEvent 是一条与工作相关的事件，发给界面用。
