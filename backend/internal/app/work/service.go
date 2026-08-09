@@ -7,6 +7,7 @@ package work
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -197,6 +198,17 @@ func (s *Service) runTurn(
 		// 但对用户是完全不同的两件事——他明明是自己点的停，
 		// 界面却说「失败」。真机走查撞到过。
 		if s.isCancelling(workID) {
+			return
+		}
+
+		// ★★ 排队满 / 排队时被放弃**同样不算失败**。
+		//
+		// 推到 failed 的话，用户只是手快点了几下就得重开一个工作——
+		// 而他那几句话其实一句都没丢，只是没排上。
+		if errors.Is(err, port.ErrTurnQueueFull) || errors.Is(err, port.ErrTurnAbandoned) {
+			s.emit(turnCtx, workID, "turn_end", map[string]any{
+				"reason": "queue_full", "detail": err.Error(),
+			})
 			return
 		}
 

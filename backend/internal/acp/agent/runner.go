@@ -52,6 +52,14 @@ type ProcessRunner struct {
 	pool     *sessionPool
 	poolOnce sync.Once
 
+	// gate 让**同一条会话上的轮次串行**。惰性初始化，见 turns()。
+	//
+	// ★★ ACP 的一条会话一次只跑一轮。不排队的后果是真机验过的：
+	// 库里连着两条 `turn_end`，而第二句的回答一个字都没有——
+	// 用户补充一句之后没有任何回应，而界面看起来一切正常。
+	gate     *turnGate
+	gateOnce sync.Once
+
 	// live 记着每个工作正在跑的那一轮，供取消用。
 	//
 	// ★ 跑完必须摘掉：留着的话，取消一个早就结束的工作会去动一条
@@ -131,6 +139,16 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		roleID = DefaultRoleID
 	}
 	key := sessionKey{workID: turn.WorkID, roleID: roleID}
+
+	// ★★ **排队等这条会话空出来**，在开会话之前。
+	//
+	// 放在后面的话，两轮会各自去池子里取同一条会话，然后同时下发 prompt——
+	// 而 ACP 的一条会话一次只跑一轮。
+	release, err := r.turns().enter(ctx, key)
+	if err != nil {
+		return err
+	}
+	defer release()
 
 	// ★★ **先看池子里有没有现成的**（Q42）。
 	//
@@ -215,6 +233,12 @@ func (r *ProcessRunner) SessionsOf(workID string) int {
 func (r *ProcessRunner) sessions() *sessionPool {
 	r.poolOnce.Do(func() { r.pool = newSessionPool() })
 	return r.pool
+}
+
+// turns 惰性初始化轮次闸门。
+func (r *ProcessRunner) turns() *turnGate {
+	r.gateOnce.Do(func() { r.gate = newTurnGate() })
+	return r.gate
 }
 
 // wrapAgentError 把 Agent 的 stderr 带进错误。

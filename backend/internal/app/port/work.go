@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+	"errors"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
@@ -170,6 +171,18 @@ type AgentTurn struct {
 	// 「追问式、不放过『大概』」的角色说话。
 	SystemPrompt string
 }
+
+// ErrTurnQueueFull 表示这条会话上排队的轮次已经到上限。
+//
+// ★★ 定义在 port 而不是 acp：app 层**不许 import acp**（depguard 挡着），
+// 而这件事必须让它分得出来——排队满**不是「AI 跑挂了」**，
+// 把工作推到 failed 的话，用户只是手快点了几下就得重开一个工作。
+var ErrTurnQueueFull = errors.New("port: 这条会话上排队的消息太多了")
+
+// ErrTurnAbandoned 表示这一轮在排队时被取消了。
+//
+// ★ 同样不是失败：用户点了停，排在后面的那几句放弃是**预期行为**。
+var ErrTurnAbandoned = errors.New("port: 这一轮在排队时被放弃")
 
 // AgentRunner 拉起一个 Agent 跑一轮对话，把它说的话发到事件总线。
 //

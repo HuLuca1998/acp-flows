@@ -541,6 +541,13 @@
 | `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
 | `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestTurnGate_R1_SerializesTurnsOnOneSession` | `internal/acp/agent/gate_test.go` | acp | ★★ M5 U5.1.5 R1：同一条会话上五轮并发只允许一轮在跑。**真机验出来的**——两个 prompt 打进同一条会话时库里连着两条 `turn_end`，而第二句的回答一个字都没有，用户补充一句之后没有任何回应而界面看起来一切正常 |
+| `TestTurnGate_R2_QueuedTurnGetsItsChance` | `internal/acp/agent/gate_test.go` | acp | R2：排着的那一轮不丢，前一轮结束后拿得到 |
+| `TestTurnGate_R4_CancelledWhileWaitingGivesUp` | `internal/acp/agent/gate_test.go` | acp | ★★ R4：取消时等着的那一轮放弃，且**名额还回去**。用 `sync.Mutex` 这条做不到——mutex 等不了 ctx，用户明明点了停，排在后面的那几轮还是会一句句跑完 |
+| `TestTurnGate_R5_RefusesBeyondTheQueueLimit` | `internal/acp/agent/gate_test.go` | acp | R5：排队深度上限，超了明确拒绝——无限排队的话用户在反复戳一个没反应的界面，而每一句都会真的跑一轮 |
+| `TestTurnGate_ReleaseIsIdempotent` | `internal/acp/agent/gate_test.go` | acp | ★ `release` 调两次只放开一次：多调一次会取走下一轮刚放进去的令牌，那一轮永远等不到自己结束，整条会话从此卡死。写测试时自己踩了一次，当场挂死 60 秒超时 |
+| `TestTurnGate_DifferentSessionsDoNotBlock` | `internal/acp/agent/gate_test.go` | acp | 不同角色的会话互不阻塞 |
+| `TestTurnGate_ReleasesEmptyLanes` | `internal/acp/agent/gate_test.go` | acp | 没人排队时收掉 lane——跑了几百个工作的进程不该留着几百个空 lane |
 | `TestEventRepo_KeepsWhoSaidItAcrossTheDatabase` | `internal/store/event_repo_test.go` | store | ★★ **真机验证抓出来的**：`events` 表当时没有 role 那几列，而前端首次连接**总是**带 `Last-Event-ID: 0` 把历史要回来——用户看到的**第一屏永远没有角色标签**。内存总线直推时角色在，所以所有单测都绿。这条守住角色 + runtime + 需求版本都过得了库 |
 | `TestEventRepo_AppEventsHaveNoRole` | `internal/store/event_repo_test.go` | store | 应用自己发的事件没有角色——**空就是空**，读回来不该被填默认值（填「系统」会让用户以为有个叫系统的角色在干活） |
 | `TestRequirement_FirstSentenceBecomesV1` | `internal/app/work/requirement_test.go` | app | M5 U5.2.1：★★ 用户提的第一句话就是需求快照 v1，且**不是冻结的**（一出来就冻的话用户没机会再看一眼）。不记的话「我当时到底要它做什么」没有答案，而计划与契约都要照着它做 |
