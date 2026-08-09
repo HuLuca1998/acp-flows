@@ -118,3 +118,20 @@
   font-family: var(--font-mono);
   font-size: 10.5px;
 }
+
+/* 需求版本标签。设计稿形态：角色名旁边一枚等宽小标签
+   `requirement v2 已冻结`（10px 等宽，neutral-600）。 */
+.requirement {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* 冻结是个**状态变化**，给它一点存在感：用户要一眼看出
+   「这一版定下来了」——那意味着接下来的计划都照着它做。 */
+.requirement[data-frozen='true'] .frozen {
+  color: var(--color-accent-400);
+}

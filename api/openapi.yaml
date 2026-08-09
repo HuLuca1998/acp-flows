@@ -426,6 +426,53 @@ paths:
           description: 收到了，正在跑
         default: { $ref: '#/components/responses/Problem' }
 
+  /works/{id}/requirement:
+    get:
+      tags: [work]
+      operationId: getWorkRequirement
+      summary: 这个工作当前的需求快照
+      description: |
+        ★ 还没有需求时返回 404 —— 那是新工作的常态，界面据此不显示标签，
+        而不是显示一个「v0」。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: freezeWorkRequirement
+      summary: 冻结当前这一版需求
+      description: |
+        ★★ **由用户点，不由 AI 判断**。AI 说「我觉得问清楚了」和用户说
+        「就这样」是两件事——而冻结之后这一版就进了计划与契约，改不动了。
+
+        ★ 还有待确认的事实时返回 409 `requirement_open_facts_remain`：
+        带着没问清的问题往下走，AI 会自己替用户做决定，
+        而那些决定会一路固化进计划与契约，等他发现时已经改了几十个文件。
+
+        冻结之后再说一句话会产生 `v(n+1)` —— 冻结的那一版原样留着。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已冻结
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /works/{id}/permission:
     post:
       tags: [work]
@@ -901,6 +948,33 @@ components:
           type: array
           description: 本次工作产生的 commit，最近的排最前
           items: { $ref: '#/components/schemas/CommitInfo' }
+
+    Requirement:
+      type: object
+      required: [version, items, open_facts, frozen]
+      properties:
+        version:
+          type: integer
+          description: 版本号，从 1 开始。**只增不改**（INV-REQ-2）
+          examples: [1, 2]
+        items:
+          type: array
+          description: |
+            需求条目。
+
+            ★ 当前阶段**就是用户说过的话**——需求分析师把它精炼成可验证条目
+            要等 AI 的结构化产出。在那之前，「用户说过什么」是我们能给出的
+            最诚实的一版需求：它不编造、不猜测，用户回头核对时看到的是自己的原话。
+          items: { type: string }
+        open_facts:
+          type: array
+          description: |
+            待确认的事实清单。**非空时不能冻结**（INV-REQ-1）——
+            带着没问清的问题往下走，AI 会自己替用户做决定。
+          items: { type: string }
+        frozen:
+          type: boolean
+          description: 冻结之后一个字都不能改，要改就出新版本
 
     FileChange:
       type: object

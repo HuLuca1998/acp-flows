@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
@@ -58,9 +59,14 @@ func modeIDFor(roleID, runtimeName string) (string, error) {
 // **不编一个显示名**：编出来的名字与角色页上那张表对不上，
 // 用户会以为有两个不同的角色。
 func (r *ProcessRunner) sinkFor(
-	ctx context.Context, log *slog.Logger, roleID, runtimeName string,
+	ctx context.Context, log *slog.Logger, roleID, runtimeName string, t port.AgentTurn,
 ) busSink {
-	sink := busSink{bus: r.Bus, ctx: ctx, log: log, role: roleID, runtime: runtimeName}
+	sink := busSink{
+		bus: r.Bus, ctx: ctx, log: log, role: roleID, runtime: runtimeName,
+		// ★ 需求版本跟着这一轮走，与角色同理：界面另查一次的话，
+		// 拿到的是「现在」的版本，而用户看的是一条历史消息。
+		reqVersion: t.RequirementVersion, reqFrozen: t.RequirementFrozen,
+	}
 	if role, err := model.RoleByID(roleID); err == nil {
 		sink.roleName = role.DisplayName()
 	}

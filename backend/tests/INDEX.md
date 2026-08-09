@@ -538,6 +538,13 @@
 | `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
 | `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
 | `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
+| `TestRequirement_FirstSentenceBecomesV1` | `internal/app/work/requirement_test.go` | app | M5 U5.2.1：★★ 用户提的第一句话就是需求快照 v1，且**不是冻结的**（一出来就冻的话用户没机会再看一眼）。不记的话「我当时到底要它做什么」没有答案，而计划与契约都要照着它做 |
+| `TestRequirement_FollowUpsStayInTheSameDraft` | `internal/app/work/requirement_test.go` | app | ★★ 追问过程中接着说改的是**同一版**，库里始终一条记录。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」 |
+| `TestRequirement_SayingMoreAfterFreezeMakesV2` | `internal/app/work/requirement_test.go` | app | ★★ 完成标志第 4 条：冻结之后再提要求 → v2，而 **v1 一个字没变且还冻着** |
+| `TestRequirement_FreezePersists` | `internal/app/work/requirement_test.go` | app | 冻结落盘——静静成功的话用户点完显示已冻结，而下次打开又变回未冻结 |
+| `TestRequirement_StampedOnTheTurn` | `internal/app/work/requirement_test.go` | app | ★★ 需求版本盖在**这一轮**的 AgentTurn 上，与角色同理：界面另查一次拿到的是「现在」的版本，而用户看的是一条历史消息 |
+| `TestRequirement_UnconfiguredSaysSo` | `internal/app/work/requirement_test.go` | app | ★ 没装配需求存储时**建工作照样成功**（它只是少了一层记录），但冻结明确报 `ErrRequirementsUnavailable` |
+| `TestRequirement_NoneYetIsNotFound` | `internal/app/work/requirement_test.go` | app | 还没有需求时返回 `ErrNotFound`——新工作的常态，界面据此不显示标签而不是显示「v0」 |
 | `TestSay_R1_StaysInTheSameWork` | `internal/app/work/say_test.go` | app | M5 U5.1.3 R1：★★ 说三句只有**一个工作**，三轮都送到同一个 workID + 同一个 worktree（会话池正是按这两样分键的）。第二句开新工作的话，新 worktree 新会话新时间线——前一句彻底不在上下文里，而用户以为自己只是补充了一句 |
 | `TestSay_R2_EverySentenceLandsOnTheTimeline` | `internal/app/work/say_test.go` | app | R2：三句话都进时间线且文本各不相同。漏一句的话用户回头看「我当时说了什么」会少一段，而 AI 的回复还在——他会以为 AI 答非所问 |
 | `TestSay_R4_TerminalWorkRefusesAndSaysWhy` | `internal/app/work/say_test.go` | app | ★★ R4：终态工作拒收，且给出机器可读的 `work_not_accepting_messages`。静默收下的话用户对着一个永远不动的时间线干等，以为 AI 在想事情 |

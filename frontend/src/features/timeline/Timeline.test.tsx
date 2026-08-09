@@ -419,3 +419,56 @@ describe('用户自己说的话', () => {
     expect(mine?.querySelector('[data-role]')).toBeNull()
   })
 })
+
+// M5 U5.3.1 R3 · `requirement v1` `已冻结` 标签
+//
+// ★★ 说这句话时需求是第几版——它决定用户下一步能做什么
+// （没冻结就不能进计划）。
+
+describe('需求版本标签', () => {
+  function reqEv(version: number, frozen: boolean): TimelineEvent {
+    return {
+      ...roleEv('message_chunk', 'requirement_analyst', '需求分析师', '需求快照已更新'),
+      requirement_version: version,
+      requirement_frozen: frozen,
+    }
+  }
+
+  it('显示版本号与冻结态', () => {
+    render(<Timeline events={[reqEv(2, true)]} />)
+
+    expect(screen.getByText('requirement v2')).toBeInTheDocument()
+    expect(screen.getByText('已冻结')).toBeInTheDocument()
+  })
+
+  // 没冻结时只显示版本号——写个「未冻结」上去会让人以为那是个警告。
+  it('没冻结时不显示「已冻结」', () => {
+    render(<Timeline events={[reqEv(1, false)]} />)
+
+    expect(screen.getByText('requirement v1')).toBeInTheDocument()
+    expect(screen.queryByText('已冻结')).not.toBeInTheDocument()
+  })
+
+  // ★★ 还没有需求快照时**整块不显示**——「requirement v0」比不显示更糟。
+  it('还没有需求快照时不显示这一块', () => {
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题')]}
+      />,
+    )
+
+    expect(screen.getByText('我先问几个问题')).toBeInTheDocument()
+    expect(screen.queryByText(/requirement v/)).not.toBeInTheDocument()
+  })
+
+  // ★ 版本号来自**事件载荷**，不是前端另查一次。
+  //
+  // 另查拿到的是「现在」的版本，而用户看的是一条历史消息——
+  // 他会以为当时就已经是 v3 了。
+  it('每条消息各自带着当时的版本', () => {
+    render(<Timeline events={[reqEv(1, true), reqEv(2, false)]} />)
+
+    expect(screen.getByText('requirement v1')).toBeInTheDocument()
+    expect(screen.getByText('requirement v2')).toBeInTheDocument()
+  })
+})

@@ -53,6 +53,9 @@ func (s *Service) Say(ctx context.Context, workID, text string) error {
 	// ★ 用户那句话先进时间线，再跑。反过来的话，AI 的回复可能
 	// 排在他自己的问题前面——时间线是按发出顺序排的。
 	s.emit(ctx, workID, "user_message", map[string]any{"text": text})
+	// ★ 记进需求快照再跑：这一轮产出的事件要盖上更新后的版本号。
+	// 冻结过的版本会因此出一个 v(n+1)——冻结之后又提新要求，那就是改需求。
+	s.recordSaid(ctx, workID, text)
 	s.runTurn(ctx, workID, w.WorktreePath(), text)
 	return nil
 }

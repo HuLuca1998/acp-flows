@@ -45,6 +45,9 @@ type Service struct {
 	ids       port.IDGen
 	runner    port.AgentRunner
 	canceller port.AgentCanceller
+	// requirements 存需求快照。可以为 nil（只跑 API 冒烟时），
+	// 那时工作照建，只是没有需求版本——**不是让整轮对话失败**。
+	requirements port.Requirements
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
@@ -97,6 +100,10 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 	// ★ 排在 state_change 之前：那句话是**最先发生的事**。
 	s.emit(ctx, id, "user_message", map[string]any{"text": prompt})
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
+
+	// ★ 用户那句话就是需求快照 v1 的第一条。
+	// 记在跑之前：这一轮产出的事件要盖上「说这句话时需求是 v1」。
+	s.recordSaid(ctx, id, prompt)
 
 	wt, err := s.worktrees.CreateWorktree(ctx, project, id, baseRef)
 	if err != nil {
@@ -160,12 +167,19 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 		// Cancel 里——只有它知道自己什么时候真的跑完。
 		defer s.clearCancelling(workID)
 
+		// ★ 需求版本在**这一轮开始时**读一次，盖在它产出的每条事件上。
+		// 放在 goroutine 里而不是请求线程上：这是一次 IO，
+		// 而用户点完「发送」该立刻看到界面动起来。
+		version, frozen := s.requirementOf(turnCtx, workID)
+
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID,
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。
-			Cwd:    worktree,
-			Prompt: prompt,
+			Cwd:                worktree,
+			Prompt:             prompt,
+			RequirementVersion: version,
+			RequirementFrozen:  frozen,
 		})
 		if err == nil {
 			return

@@ -9,7 +9,7 @@
 ```
 constant/
 ├── state.go      Work / Unit / Attempt 等状态机取值
-├── event.go      13 类事件 type
+├── event.go      事件 type（以 api/openapi.yaml 的 Event.type 枚举为准）
 ├── decision.go   D0–D3 等级
 ├── path.go       .acpflows 下的固定路径片段
 ├── acp.go        ACP 方法名

@@ -42,6 +42,17 @@ type Segment = {
   role: string;
   roleName: string;
   runtime: string;
+  /**
+   * 说这句话的时候，需求是第几版、冻结了没有。
+   *
+   * ★★ 同样来自事件载荷，**不在前端另查一次**：另查拿到的是「现在」的
+   * 版本，而用户看的是一条历史消息——他会以为当时就已经是 v3 了。
+   *
+   * 0 表示这个工作还没有需求快照，那时不显示这枚标签
+   * （显示一个「v0」比不显示更糟）。
+   */
+  reqVersion: number;
+  reqFrozen: boolean;
 };
 
 /**
@@ -84,6 +95,19 @@ export function Timeline({ events, hidden }: TimelineProps) {
                   <span className={styles.runtime}>{seg.runtime}</span>
                 )}
                 {seg.roleName}
+              </span>
+            )}
+            {/*
+              ★ 需求版本标签，形态照设计稿：`requirement v2 已冻结`。
+              `requirement v2` 是标识不翻译，「已冻结」是状态要翻译。
+              没有需求快照（0）时**整块不显示**——「v0」比不显示更糟。
+            */}
+            {seg.reqVersion > 0 && (
+              <span className={styles.requirement} data-frozen={seg.reqFrozen}>
+                {`requirement v${seg.reqVersion}`}
+                {seg.reqFrozen && (
+                  <span className={styles.frozen}>{t("timeline.requirementFrozen")}</span>
+                )}
               </span>
             )}
             <span className={styles.label}>{t(renderer.labelKey)}</span>
@@ -159,12 +183,17 @@ function mergeEvents(
     // ★★ **角色不同就不能并**：那是两个人在说话。并进去的话，
     // 需求分析师和实现工程师的话会挤在同一个气泡里，
     // 而标签只剩一个——用户分不清哪句是谁说的。
+    //
+    // ★★ **需求版本不同也不能并**，同一个道理：并进去的话标签只剩一个，
+    // 用户看不出「哪句话之后需求变成了 v2」——而那正是他要找的分界。
     const last = out[out.length - 1];
     if (
       renderer.merge === true &&
       last !== undefined &&
       last.type === type &&
-      last.role === (e.role ?? "")
+      last.role === (e.role ?? "") &&
+      last.reqVersion === (e.requirement_version ?? 0) &&
+      last.reqFrozen === (e.requirement_frozen ?? false)
     ) {
       last.text += text;
       last.lastSeq = e.seq ?? last.lastSeq;
@@ -182,6 +211,8 @@ function mergeEvents(
       role: e.role ?? "",
       roleName: e.role_display_name ?? "",
       runtime: e.runtime ?? "",
+      reqVersion: e.requirement_version ?? 0,
+      reqFrozen: e.requirement_frozen ?? false,
       lastSeq: e.seq ?? 0,
       count: 1,
     };

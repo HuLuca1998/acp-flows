@@ -203,6 +203,8 @@ func run() error {
 	// ★ ProcessRunner 同时是取消能力的实现——它记着「哪个工作对应哪个进程」，
 	// 而那份映射只有它有。
 	workSvc.SetCanceller(agentRunner)
+	// ★ 需求快照：没有它工作照建，只是消息头上没有 `requirement vN` 那枚标签。
+	workSvc.SetRequirements(db.Requirements())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

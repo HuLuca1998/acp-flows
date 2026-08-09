@@ -325,6 +325,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/requirement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作当前的需求快照
+         * @description ★ 还没有需求时返回 404 —— 那是新工作的常态，界面据此不显示标签，
+         *     而不是显示一个「v0」。
+         */
+        get: operations["getWorkRequirement"];
+        put?: never;
+        /**
+         * 冻结当前这一版需求
+         * @description ★★ **由用户点，不由 AI 判断**。AI 说「我觉得问清楚了」和用户说
+         *     「就这样」是两件事——而冻结之后这一版就进了计划与契约，改不动了。
+         *
+         *     ★ 还有待确认的事实时返回 409 `requirement_open_facts_remain`：
+         *     带着没问清的问题往下走，AI 会自己替用户做决定，
+         *     而那些决定会一路固化进计划与契约，等他发现时已经改了几十个文件。
+         *
+         *     冻结之后再说一句话会产生 `v(n+1)` —— 冻结的那一版原样留着。
+         */
+        post: operations["freezeWorkRequirement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -669,6 +701,29 @@ export interface components {
             changes: components["schemas"]["FileChange"][];
             /** @description 本次工作产生的 commit，最近的排最前 */
             commits: components["schemas"]["CommitInfo"][];
+        };
+        Requirement: {
+            /**
+             * @description 版本号，从 1 开始。**只增不改**（INV-REQ-2）
+             * @example 1
+             * @example 2
+             */
+            version: number;
+            /**
+             * @description 需求条目。
+             *
+             *     ★ 当前阶段**就是用户说过的话**——需求分析师把它精炼成可验证条目
+             *     要等 AI 的结构化产出。在那之前，「用户说过什么」是我们能给出的
+             *     最诚实的一版需求：它不编造、不猜测，用户回头核对时看到的是自己的原话。
+             */
+            items: string[];
+            /**
+             * @description 待确认的事实清单。**非空时不能冻结**（INV-REQ-1）——
+             *     带着没问清的问题往下走，AI 会自己替用户做决定。
+             */
+            open_facts: string[];
+            /** @description 冻结之后一个字都不能改，要改就出新版本 */
+            frozen: boolean;
         };
         FileChange: {
             path: string;
@@ -1453,6 +1508,52 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    freezeWorkRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已冻结 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Requirement"];
+                };
             };
             default: components["responses"]["Problem"];
         };

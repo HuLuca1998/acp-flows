@@ -42,6 +42,10 @@ func (s *sayStub) Start(context.Context, string, string, string) (work.View, err
 }
 func (s *sayStub) List(context.Context) ([]work.View, error) { return nil, nil }
 func (s *sayStub) Cancel(context.Context, string) error      { return nil }
+func (s *sayStub) RequirementOf(context.Context, string) (work.RequirementView, error) {
+	return work.RequirementView{}, nil
+}
+func (s *sayStub) FreezeRequirement(context.Context, string) error { return nil }
 func (s *sayStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return port.RepoStatus{}, nil
 }

@@ -115,6 +115,8 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("POST /v1/works/{id}/permission", handleAnswerPermission(cfg.Permissions))
 	mux.HandleFunc("POST /v1/works/{id}/cancel", handleCancelWork(cfg.Works))
 	mux.HandleFunc("POST /v1/works/{id}/messages", handleSayInWork(cfg.Works))
+	mux.HandleFunc("GET /v1/works/{id}/requirement", handleGetWorkRequirement(cfg.Works))
+	mux.HandleFunc("POST /v1/works/{id}/requirement", handleFreezeWorkRequirement(cfg.Works))
 	mux.HandleFunc("GET /v1/system/resume", handleListResumable(cfg.Checkpoints))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。

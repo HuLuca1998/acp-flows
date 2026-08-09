@@ -22,6 +22,10 @@ type workService interface {
 	Cancel(ctx context.Context, workID string) error
 	// Say 在一个已有的工作里接着说一句——同一个工作、同一条会话。
 	Say(ctx context.Context, workID, text string) error
+	// RequirementOf 读出这个工作当前的需求快照。没有时返回 model.ErrNotFound。
+	RequirementOf(ctx context.Context, workID string) (work.RequirementView, error)
+	// FreezeRequirement 冻结当前这一版需求。**由用户点，不由 AI 判断。**
+	FreezeRequirement(ctx context.Context, workID string) error
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。

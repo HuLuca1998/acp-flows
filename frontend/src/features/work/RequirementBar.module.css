@@ -1,0 +1,58 @@
+/* 需求快照条。照 design/ACP Duet 1a.dc.html 的等宽小标签形态。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.version {
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.count,
+.open {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+/* ★ 还剩几条没确认要**看得见**：带着没问清的问题往下走，
+   AI 会自己替用户做决定，而那些决定会一路固化进计划与契约。
+   ★ 用比周围亮一档的中性色而不是失败色——「还没确认」不是错误。 */
+.open {
+  color: var(--color-neutral-400);
+}
+
+.frozen {
+  color: var(--color-accent-400);
+  font-size: 11px;
+}
+
+/* 「冻结」是个**不可逆**的动作，所以给描边而不是实心：
+   实心按钮在这一行里会比「停下」还抢眼，而它远没有那么常用。 */
+.freeze {
+  padding: 2px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  color: var(--color-accent-300);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.freeze:disabled {
+  color: var(--color-neutral-600);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  cursor: default;
+}
+
+.error {
+  color: var(--color-fail);
+  font-size: 11px;
+}

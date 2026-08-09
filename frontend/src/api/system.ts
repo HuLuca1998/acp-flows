@@ -1,6 +1,7 @@
 import type { Memory, MemoryStatus } from '@/models/memory'
 import type { ProjectPreview } from '@/models/preview'
 import type { Project } from '@/models/project'
+import type { Requirement } from '@/models/requirement'
 import type { Role } from '@/models/role'
 import type { Runtime } from '@/models/runtime'
 import type { Skill } from '@/models/skill'
@@ -113,6 +114,29 @@ export async function answerPermission(
       typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
     )
   }
+}
+
+/**
+ * 读一个工作当前的需求快照。
+ *
+ * ★ 还没有需求时后端回 404 —— 那是**新工作的常态**，
+ * 调用方据此不显示标签，而不是显示一个「v0」。
+ */
+export async function getRequirement(workID: string): Promise<Requirement> {
+  return unwrap(await api.GET('/works/{id}/requirement', { params: { path: { id: workID } } }))
+}
+
+/**
+ * 冻结当前这一版需求。
+ *
+ * ★★ **由用户点，不由 AI 判断。** AI 说「我觉得问清楚了」和用户说
+ * 「就这样」是两件事——而冻结之后这一版就进了计划与契约，改不动了。
+ *
+ * ★ 抛出的 Error 的 message 是机器可读的错误码
+ * （`requirement_open_facts_remain` 之类），界面按它查 i18n 词条。
+ */
+export async function freezeRequirement(workID: string): Promise<Requirement> {
+  return unwrap(await api.POST('/works/{id}/requirement', { params: { path: { id: workID } } }))
 }
 
 /**

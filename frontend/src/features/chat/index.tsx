@@ -9,6 +9,7 @@ import { PermissionDock } from '../permission/PermissionDock'
 import { usePermissions } from '../permission/use-permissions'
 import { Timeline } from '../timeline/Timeline'
 import { useEventStream } from '../timeline/use-event-stream'
+import { RequirementBar } from '../work/RequirementBar'
 import { WorkStatus } from '../work/WorkStatus'
 
 import styles from './ChatPage.module.css'
@@ -179,11 +180,16 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
       {/* ★ 状态与「停下」排在时间线上方——用户要一眼看到「它在干什么、
           我能不能停」，而不是往下滚才发现。 */}
       {current !== null && (
-        <WorkStatus
-          workID={current.id ?? ''}
-          state={String(current.state ?? '')}
-          onCancelled={() => setCurrent({ ...current, state: 'paused' })}
-        />
+        <>
+          <WorkStatus
+            workID={current.id ?? ''}
+            state={String(current.state ?? '')}
+            onCancelled={() => setCurrent({ ...current, state: 'paused' })}
+          />
+          {/* ★ 需求快照条排在时间线上方，和状态一起——用户要一眼看到
+              「现在是第几版、冻没冻」，而不是往下滚才发现。 */}
+          <RequirementBar workID={current.id ?? ''} />
+        </>
       )}
       <PermissionDock asks={asks} onDecide={decide} />
       <Timeline events={events} />

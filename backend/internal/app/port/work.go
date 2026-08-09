@@ -14,6 +14,17 @@ type WorkRepo interface {
 	FindWork(ctx context.Context, id string) (*model.Work, error)
 }
 
+// Requirements 是需求快照的持久化抽象。
+//
+// ★★ **没有 Update，也没有 Delete**（INV-REQ-2）：对外只有「存一版」和「读」。
+// 已冻结的版本改不动，要改就存一条新版本。
+type Requirements interface {
+	SaveRequirement(ctx context.Context, req *model.RequirementSnapshot) error
+	// LatestRequirement 查不到时返回 model.ErrNotFound。
+	LatestRequirement(ctx context.Context, workID string) (*model.RequirementSnapshot, error)
+	RequirementVersions(ctx context.Context, workID string) ([]*model.RequirementSnapshot, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，
@@ -88,7 +99,7 @@ type WorkEvent struct {
 	WorkID string
 	// Source 取值 acp | app，与 api/openapi.yaml 的 Event.source 一致。
 	Source string
-	// Type 是 13 类之一，见契约的 Event.type。
+	// Type 是 14 类之一，见契约的 Event.type。
 	Type string
 
 	// Role / RoleDisplayName / Runtime 说明**这一条是谁说的**。
@@ -104,6 +115,16 @@ type WorkEvent struct {
 	Role            string
 	RoleDisplayName string
 	Runtime         string
+
+	// RequirementVersion / RequirementFrozen 是**说这句话的时候**需求的样子。
+	//
+	// ★ 设计稿把它画成角色名旁边的一枚等宽小标签（`requirement v2 已冻结`）。
+	// 前端另查一次的话，拿到的是「现在」的版本，而用户看的是一条历史消息——
+	// 他会以为当时就已经是 v3 了。
+	//
+	// 0 表示这个工作还没有需求快照。
+	RequirementVersion int
+	RequirementFrozen  bool
 
 	Payload map[string]any
 }
@@ -133,6 +154,15 @@ type AgentTurn struct {
 	// 沙箱内的写操作连审批都不触发（acp-field-notes.md §3 实测）。
 	// 装配漏了一根线的表现必须是「权限最小」，不能是「什么都放行」。
 	RoleID string
+	// RequirementVersion / RequirementFrozen 是**说这句话的时候**需求的样子。
+	//
+	// ★★ 跟着这一轮走，盖在它产出的每一条事件上——与 RoleID 同理：
+	// 界面另查一次的话，拿到的是「现在」的版本，而用户看的是一条历史消息，
+	// 他会以为当时就已经是 v3 了。
+	//
+	// 0 表示这个工作还没有需求快照。
+	RequirementVersion int
+	RequirementFrozen  bool
 }
 
 // AgentRunner 拉起一个 Agent 跑一轮对话，把它说的话发到事件总线。
