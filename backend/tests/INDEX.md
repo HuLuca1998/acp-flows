@@ -599,6 +599,11 @@
 | `TestAcceptanceOf_MarksCriteriaWithoutEvidence` | `internal/app/work/evidence_test.go` | app | ★★ 没证据的标准**留在表里且为空**，不是「通过」——把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。★ 顺序照契约不照 map（用户是照着契约那张表一条条核对的） |
 | `TestProbeWorktree_CountsUntrackedFiles` | `internal/gitx/status_test.go` | git | ★★ **未跟踪的新文件也算改动**（M8 采集时发现的）：`git diff` 不认识它们，而 AI 干活时新建文件是常态。不算的话，新写了三个文件的单元显示「改了 0 个文件」，用户会以为它什么都没做 |
 | `TestProbeWorktree_SkipsIgnoredFiles` | `internal/gitx/status_test.go` | git | ★ 被 `.gitignore` 忽略的不算——带上的话 `node_modules` 会把证据淹掉 |
+| `TestDecisionRepo_R1_RoundTrip` | `internal/store/decision_repo_test.go` | store | ★★ M9 U9.1.2：选项与**影响说明**都过库——影响丢了的话用户在盲选，他看到两个名字而不知道选哪个会发生什么 |
+| `TestDecisionRepo_R2_AnswersOnlyOnce` | `internal/store/decision_repo_test.go` | store | ★★ R2：作答只能一次，改答案被拒且**库里那条没变**——改了的话「他当时选了什么」就没有答案 |
+| `TestDecisionRepo_R3_PendingOnly` | `internal/store/decision_repo_test.go` | store | ★★ R3：只列未作答的——**左栏那个亮蓝点靠它**。答过的混进来的话，用户会一直看到一个点不掉的提醒 |
+| `TestDecisionRepo_R4_HasNoDeleteMethod` | `internal/store/decision_repo_test.go` | store | ★★ R4：没有 Delete——「他当时被问了什么」不该能被抹掉 |
+| `TestDecisionRepo_NoPending` | `internal/store/decision_repo_test.go` | store | 没有待决策时返回空切片不是错 |
 | `TestDecision_R1_LevelIsClosed` | `internal/domain/model/decision_test.go` | domain | M9 U9.1.1 R1：等级封闭 D0–D3，且 **D2/D3 必须问用户**（改变外部行为、回滚已验收的东西）。全问用户会把他烦死，全不问他会在几十个文件之后才发现 |
 | `TestDecision_R2_NeedsAtLeastTwoOptions` | `internal/domain/model/decision_test.go` | domain | ★★ R2：一个选项的「决策」不是在问，是在**通知**——而通知不该占用用户「停下来做个决定」的注意力 |
 | `TestDecision_R4_EveryOptionNeedsImpact` | `internal/domain/model/decision_test.go` | domain | ★★ R4：每个选项必须写明**影响**。没有的话用户在盲选——他看到三个名字，而不知道选哪个会发生什么。错误里说清是哪个选项 |

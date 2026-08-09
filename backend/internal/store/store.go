@@ -106,6 +106,9 @@ func (s *Store) Contracts() *ContractRepo { return &ContractRepo{db: s.db, clk: 
 // Evidence 返回证据仓储。★ 没有 Update/Delete：证据改写过就不是证据了。
 func (s *Store) Evidence() *EvidenceRepo { return &EvidenceRepo{db: s.db, clk: s.clk} }
 
+// Decisions 返回决策仓储。★ 答过的一个字都不能改。
+func (s *Store) Decisions() *DecisionRepo { return &DecisionRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 
