@@ -39,9 +39,10 @@ func TestRequirement_R1_FrozenIsImmutable(t *testing.T) {
 	allowed := map[string]bool{
 		"WorkID": true, "Version": true, "Frozen": true,
 		"Items": true, "OpenFacts": true,
-		// 这三个是受控的状态迁移，不是任意写入
-		"Freeze": true, "ResolveFact": true, "Revise": true,
-		"IsNextOf": true, "CanStartPlanning": true,
+		// 这几个是受控的状态迁移，不是任意写入：
+		// 前三个都**只在未冻结时**生效，Revise 造的是新对象
+		"Freeze": true, "ResolveFact": true, "ReviseDraft": true,
+		"Revise": true, "IsNextOf": true, "CanStartPlanning": true,
 	}
 	for i := range rt.NumMethod() {
 		name := rt.Method(i).Name
@@ -61,6 +62,45 @@ func TestRequirement_R1_FrozenIsImmutable(t *testing.T) {
 	}
 	if err := r.ResolveFact("随便什么"); !errors.Is(err, model.ErrRequirementFrozen) {
 		t.Errorf("冻结后还能改清单：%v", err)
+	}
+	if err := r.ReviseDraft([]string{"改过的"}, nil); !errors.Is(err, model.ErrRequirementFrozen) {
+		t.Errorf("冻结后还能原地改内容：%v", err)
+	}
+	if len(r.Items()) != 2 || r.Items()[0] != "R1 取消必须幂等" {
+		t.Errorf("被拒之后内容却变了：%v", r.Items())
+	}
+}
+
+// ★★ 未冻结的版本能**原地改**——追问一轮就改一次，不该升版本号。
+//
+// 没有它的话，app 层唯一的出路是 RestoreRequirement，
+// 而那个方法绕过所有校验：「条目不能全空」在追问路径上会彻底失效。
+func TestRequirement_ReviseDraft_UpdatesInPlaceWhileUnfrozen(t *testing.T) {
+	r := newReq(t)
+
+	err := r.ReviseDraft(
+		[]string{"R1 取消必须幂等", "R2 现场要保留", "R3 取消后不回滚已写入的文件"}, nil)
+	if err != nil {
+		t.Fatalf("改草稿: %v", err)
+	}
+	if len(r.Items()) != 3 {
+		t.Errorf("条目 = %v", r.Items())
+	}
+	if r.Version() != 1 {
+		t.Errorf("版本 = v%d，改草稿不该升版本号", r.Version())
+	}
+	// 待确认清单跟着一起被替换掉了，于是能冻结
+	if err := r.Freeze(); err != nil {
+		t.Errorf("清单空了却冻不上：%v", err)
+	}
+
+	// ★ 校验照样生效：全空的条目要被拒
+	r2 := newReq(t)
+	if err := r2.ReviseDraft([]string{"", "  "}, nil); !errors.Is(err, model.ErrNoRequirementItems) {
+		t.Errorf("空条目却改成功了：%v", err)
+	}
+	if len(r2.Items()) != 2 {
+		t.Errorf("被拒之后内容却变了：%v", r2.Items())
 	}
 }
 

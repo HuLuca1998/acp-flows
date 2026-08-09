@@ -527,4 +527,15 @@
 | `TestNewRequirement_DropsBlankItems` | `internal/domain/model/requirement_test.go` | domain | ★ 空白条目丢掉——留着的话「需求 6 · 已映射 6」会变成假的，那个 6 里有一条没内容 |
 | `TestRequirement_ResolveUnknownFactErrs` | `internal/domain/model/requirement_test.go` | domain | 划掉不存在的待确认事实要报错，否则用户以为自己确认过了 |
 | `TestRequirement_ReturnsCopies` | `internal/domain/model/requirement_test.go` | domain | `Items()` / `OpenFacts()` 返回副本 |
+| `TestRequirement_ReviseDraft_UpdatesInPlaceWhileUnfrozen` | `internal/domain/model/requirement_test.go` | domain | ★★ 未冻结的版本能**原地改**，不升版本号。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」。★ 没有它的话 app 层唯一的出路是 `RestoreRequirement`——那个方法绕过全部校验，「条目不能全空」在追问路径上会彻底失效 |
+| `TestRequirementRepo_SaveAndLatestRoundTrip` | `internal/store/requirement_repo_test.go` | store | M5 U5.2.1 落库：存进去再取出来，条目与待确认清单都不丢。★ 条目里有逗号——用逗号当分隔符的话那一条会被拆成两条 |
+| `TestRequirementRepo_RefusesToRewriteAFrozenVersion` | `internal/store/requirement_repo_test.go` | store | ★★ 改写**已冻结**的版本要报错，判据是库里那条一个字没变。静默覆盖的话，一次重试就能把冻结那版换掉而没有任何痕迹——计划、契约、单元全是照着那一版做的 |
+| `TestRequirementRepo_ResavingIdenticalFrozenIsIdempotent` | `internal/store/requirement_repo_test.go` | store | 原样重存已冻结的版本是幂等的，且不造新记录——重试与手快点两下都是常态 |
+| `TestRequirementRepo_DraftIsUpdatedInPlace` | `internal/store/requirement_repo_test.go` | store | ★★ 未冻结的版本是草稿，原地覆盖且不升版本号。★ 判据落在**划掉最后一条待确认事实**上：空清单是零值，GORM 的 `Updates` 传 struct 会当「没设置」丢掉，于是用户看到「还剩 1 条」而永远冻不上（负例验证过） |
+| `TestRequirementRepo_FreezingPersists` | `internal/store/requirement_repo_test.go` | store | 冻结落盘后 `CanStartPlanning()` 为真 |
+| `TestRequirementRepo_RefusesToUnfreeze` | `internal/store/requirement_repo_test.go` | store | ★★ 解冻是没有的事——冻结之后那一版就是历史的一部分 |
+| `TestRequirementRepo_KeepsEveryVersion` | `internal/store/requirement_repo_test.go` | store | ★★ 旧版本全都留着，`RequirementVersions` 从新到旧、`LatestRequirement` 取到 v2。旧版被覆盖的话「上周那版说的是什么」永远没有答案 |
+| `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
+| `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
+| `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
 | `TestRunTurn_StampsRoleOnEveryEvent` | `internal/acp/agent/role_test.go` | acp | M5 U5.3.1：★★ **每条事件都盖着是谁说的**（role + 显示名 + runtime）。漏盖的话界面上那条消息没有角色标签，用户会以为它是「系统」说的——而他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。★ 显示名一并给出，让前端查表的话认不出的角色会显示成原始 id |

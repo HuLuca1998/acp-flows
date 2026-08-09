@@ -144,6 +144,28 @@ func (r *RequirementSnapshot) ResolveFact(fact string) error {
 	return nil
 }
 
+// ReviseDraft 原地改这一版的内容，**只在未冻结时允许**。
+//
+// ★★ 这是追问过程中的常规动作：需求分析师问完一轮，把用户的回答揉进
+// 需求条目、划掉几条待确认事实。每问一个问题就升一个版本号的话，
+// 版本链记的就不再是「需求变过几次」而是「问过几个问题」。
+//
+// ★★ 没有它的话，app 层唯一的出路是 `RestoreRequirement`——
+// 那个方法**绕过所有校验**（它是给读存量数据用的），
+// 用它做业务改动等于让「条目不能全空」在追问路径上彻底失效。
+func (r *RequirementSnapshot) ReviseDraft(items, openFacts []string) error {
+	if r.frozen {
+		return fmt.Errorf("%w: v%d", ErrRequirementFrozen, r.version)
+	}
+	kept := trimAll(items)
+	if len(kept) == 0 {
+		return ErrNoRequirementItems
+	}
+	r.items = kept
+	r.openFacts = trimAll(openFacts)
+	return nil
+}
+
 // Revise 基于这一版造下一版。
 //
 // ★★ **旧版本原样留着**（INV-REQ-2）：用户要能回答

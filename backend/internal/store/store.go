@@ -92,6 +92,11 @@ func (s *Store) Projects() *ProjectRepo { return &ProjectRepo{db: s.db, clk: s.c
 // ★★ 它**没有 Delete**（INV-MEM-6）：失效不等于删除。
 func (s *Store) Memories() *MemoryRepo { return &MemoryRepo{db: s.db, clk: s.clk} }
 
+// Requirements 返回需求快照仓储。
+//
+// ★★ 它**没有 Update 也没有 Delete**（INV-REQ-2）：版本链只增不改。
+func (s *Store) Requirements() *RequirementRepo { return &RequirementRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 
