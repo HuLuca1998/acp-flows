@@ -2,8 +2,6 @@ package store
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -117,17 +115,5 @@ func (r *ProjectRepo) MaxProjectSeq(ctx context.Context) (int, error) {
 		return 0, translate("max project seq", err)
 	}
 
-	maxSeq := 0
-	for _, id := range ids {
-		_, digits, ok := strings.Cut(id, "-")
-		if !ok {
-			continue
-		}
-		n, err := strconv.Atoi(digits)
-		if err != nil {
-			continue
-		}
-		maxSeq = max(maxSeq, n)
-	}
-	return maxSeq, nil
+	return maxSeqOf(ids), nil
 }

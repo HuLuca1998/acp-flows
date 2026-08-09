@@ -157,6 +157,15 @@ func run() error {
 	}
 	ids.PrimeSeq("proj", maxSeq)
 
+	// ★★ 工作也要回填——不回填的话，一个已经有 work-01 的库重启后会再发
+	// 一次 work-01，而 SaveWork 是 upsert：那条新工作会**直接覆盖掉旧的**，
+	// 连 worktree 目录都是同一个。用户重开应用、新建一个工作，昨天那条就没了。
+	maxWorkSeq, err := db.Works().MaxWorkSeq(context.Background())
+	if err != nil {
+		return fmt.Errorf("prime work id seq: %w", err)
+	}
+	ids.PrimeSeq("work", maxWorkSeq)
+
 	// ★ 创建项目的预演要四件东西：算计划、扫已有 skill、读 remote、检测 gh。
 	// 任何一件缺了都不该让整次预演失败——扫不到 skill、没装 gh
 	// 都是很常见的正常状态。

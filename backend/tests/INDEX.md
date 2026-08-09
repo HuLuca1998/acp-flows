@@ -577,6 +577,9 @@
 | `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
 | `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
 | `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
+| `TestWorkRepo_MaxWorkSeq` | `internal/store/work_repo_test.go` | store | ★★ **数据丢失级别的 bug**（2026-08-10 真机走查发现）：`PrimeSeq` 只给项目调了没给工作调，重启后 `NextID("work")` 又从 work-01 开始，而 `SaveWork` 是 upsert——新工作**直接覆盖掉旧的**，连 worktree 目录都是同一个（两个工作的 AI 在同一份代码上改）。开发机上撞不到（库总是空的），只会在用户那儿炸 |
+| `TestWorkRepo_MaxWorkSeqSkipsWeirdIDs` | `internal/store/work_repo_test.go` | store | ★ 解析不出的 ID 跳过而不是报错——宁可序号多跳几个，也不能因为一条手工改过的记录就打不开应用 |
+| `TestList_CarriesTheProjectSoTheRailCanGroupThem` | `internal/app/work/service_test.go` | app | ★★ 工作要记住**自己属于哪个项目**：`WorkToEntity` 从来没填过 `ProjectID`，于是左栏的项目下永远是空的——而工作明明就在库里。`design/PARITY.md` 开篇记的正是这一类「数据有却不显示，等于界面说谎」 |
 | `TestEvidenceRepo_RoundTrip` | `internal/store/evidence_repo_test.go` | store | ★★ M8：**原始输出一个字节都不少**过库（截断过的输出在排查时等于没有）；来源与「支持哪几条标准」也过库——关系丢了的话它在「标准 ✓ ev-441」里不会出现，用户以为它没派上用场 |
 | `TestEvidenceRepo_KeepsAgentSource` | `internal/store/evidence_repo_test.go` | store | ★★ AI 转述的过库之后**还是 agent**——那正好是这一层最不该弄错的一件事 |
 | `TestEvidenceRepo_HasNoRewriteMethods` | `internal/store/evidence_repo_test.go` | store | ★★ 反射断言没有 Update/Delete——证据改写过就不是证据了 |

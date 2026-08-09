@@ -79,6 +79,7 @@ func (r *memWorks) FindWork(_ context.Context, id string) (*model.Work, error) {
 			// 不还原的话这个替身在撒谎：读回来的工作永远没有工作区，
 			// 而那是生产里不会发生的情况。`Say` 的测试撞到过——
 			// 它被「工作区还没准备好」拒了，而真实路径上工作区明明切好了。
+			out.SetProject(w.ProjectPath())
 			out.SetWorktree(w.WorktreePath(), w.Branch(), w.BaseCommit())
 			// ★ 当前单元也要还原——真 mapper 就是这么做的。
 			// 不还原的话边界判定永远说「不知道」，而契约明明就在库里。
@@ -781,5 +782,33 @@ func TestCancel_ReleasesTheLiveSession(t *testing.T) {
 	if len(released) != 1 || released[0] != "work-01" {
 		t.Errorf("暂停之后没放掉会话：released=%v——"+
 			"那个工作会一直占着 Agent 进程，而用户以为它已经停了", released)
+	}
+}
+
+// ★★ 工作要记住**自己属于哪个项目**——左栏的项目树按它归组。
+//
+// 不记的话，用户打开应用看到一个空荡荡的项目，而工作明明就在库里。
+// `design/PARITY.md` 开篇记的正是这一类：「数据有却不显示，等于界面说谎」。
+func TestList_CarriesTheProjectSoTheRailCanGroupThem(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	repo := &memWorks{}
+	svc := newService(t, repo, &recordingBus{})
+	ctx := context.Background()
+
+	if _, err := svc.Start(ctx, project, "做点事", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	views, err := svc.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(views) != 1 {
+		t.Fatalf("列出 %d 条", len(views))
+	}
+	if views[0].Project != project {
+		t.Errorf("列表里的 project = %q，想要 %q——"+
+			"前端按它把工作挂到项目下，不带的话左栏永远是空的",
+			views[0].Project, project)
 	}
 }

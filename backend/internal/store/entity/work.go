@@ -12,13 +12,17 @@ import "time"
 
 // Work 是 works 表的行结构。
 type Work struct {
-	ID        string    `gorm:"column:id;primaryKey;size:64"`
-	ProjectID string    `gorm:"column:project_id;size:64;not null"`
-	State     string    `gorm:"column:state;size:32;not null"`
-	Branch    string    `gorm:"column:branch;size:255;not null"`
-	Worktree  string    `gorm:"column:worktree;size:1024;not null"`
-	CreatedAt time.Time `gorm:"column:created_at;not null"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null"`
+	ID        string `gorm:"column:id;primaryKey;size:64"`
+	ProjectID string `gorm:"column:project_id;size:64;not null"`
+	// ProjectPath 是工作属于哪个项目（绝对路径）。左栏的项目树按它归组。
+	//
+	// ★ 用路径而不是 ProjectID：项目移除再加回来时 id 变了而路径没变。
+	ProjectPath string    `gorm:"column:project_path;not null;default:''"`
+	State       string    `gorm:"column:state;size:32;not null"`
+	Branch      string    `gorm:"column:branch;size:255;not null"`
+	Worktree    string    `gorm:"column:worktree;size:1024;not null"`
+	CreatedAt   time.Time `gorm:"column:created_at;not null"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;not null"`
 	// BaseCommit 是这个工作的基线。
 	//
 	// ★★ 右栏的「领先几个 commit」与验收 diff 都拿它当起点。

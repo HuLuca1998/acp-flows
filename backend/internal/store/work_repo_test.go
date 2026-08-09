@@ -88,3 +88,57 @@ func TestWorkRepo_SaveIsUpsert(t *testing.T) {
 		t.Errorf("State = %q，更新没落库", all[0].State())
 	}
 }
+
+// ★★ 序号要能**从库里回填**，否则重启后会覆盖已有的工作。
+//
+// `SaveWork` 是 upsert：一个已经有 work-01 的库重启后再发一次 work-01，
+// 那条新工作会**直接覆盖掉旧的**，连 worktree 目录都是同一个
+// （两个工作的 AI 在同一份代码上改）。
+//
+// ★ 这个坑在开发机上撞不到（数据库总是空的），只会在用户那儿炸：
+// 他重开应用、新建一个工作，昨天那条就没了。
+func TestWorkRepo_MaxWorkSeq(t *testing.T) {
+	db := openTestStore(t)
+	ctx := context.Background()
+
+	if n, err := db.Works().MaxWorkSeq(ctx); err != nil || n != 0 {
+		t.Fatalf("空库的最大序号 = %d, err = %v，想要 0", n, err)
+	}
+
+	for _, id := range []string{"work-01", "work-07", "work-03"} {
+		if err := db.Works().SaveWork(ctx, model.NewWork(id)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := db.Works().MaxWorkSeq(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 7 {
+		t.Errorf("最大序号 = %d，想要 7——回填成 3 的话下一个是 work-04，"+
+			"而 work-07 会在几次之后被覆盖掉", got)
+	}
+}
+
+// ★ 解析不出来的 ID **跳过**，不让 duetd 起不来。
+//
+// 宁可序号往后多跳几个，也不能因为一条手工改过的记录就打不开应用。
+func TestWorkRepo_MaxWorkSeqSkipsWeirdIDs(t *testing.T) {
+	db := openTestStore(t)
+	ctx := context.Background()
+
+	for _, id := range []string{"work-02", "手工改的", "work-abc"} {
+		if err := db.Works().SaveWork(ctx, model.NewWork(id)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := db.Works().MaxWorkSeq(ctx)
+	if err != nil {
+		t.Fatalf("一条认不出的 ID 就让它报错了：%v——用户会打不开应用", err)
+	}
+	if got != 2 {
+		t.Errorf("最大序号 = %d，想要 2", got)
+	}
+}

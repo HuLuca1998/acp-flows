@@ -97,6 +97,9 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 
 	id := s.ids.NextID(idPrefix)
 	w := model.NewWork(id)
+	// ★ 记下它属于哪个项目——左栏的项目树按它把工作挂到项目下。
+	// 不记的话用户看到一个空荡荡的项目，而工作明明就在库里。
+	w.SetProject(project)
 	if err := s.repo.SaveWork(ctx, w); err != nil {
 		return View{}, fmt.Errorf("保存工作 %s: %w", id, err)
 	}
@@ -303,7 +306,13 @@ func (s *Service) List(ctx context.Context) ([]View, error) {
 	// 空结果返回空切片而不是 nil：api 层要序列化成 [] 而不是 null
 	out := make([]View, 0, len(works))
 	for _, w := range works {
-		out = append(out, View{ID: w.ID(), State: w.State()})
+		out = append(out, View{
+			ID: w.ID(), State: w.State(),
+			// ★★ 项目要带出来：前端按它把工作挂到项目下，
+			// 不带的话左栏永远是空的
+			Project: w.ProjectPath(), Worktree: w.WorktreePath(),
+			Branch: w.Branch(), BaseCommit: w.BaseCommit(),
+		})
 	}
 	return out, nil
 }

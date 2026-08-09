@@ -106,7 +106,23 @@ type Work struct {
 	//
 	// ★ 空表示还没开始做任何单元（澄清、规划阶段都是空的）。
 	currentUnitID string
+	// projectPath 是这个工作属于哪个项目（**绝对路径**）。
+	//
+	// ★★ 左栏的项目树按它把工作挂到项目下。不记的话，用户打开应用看到
+	// 一个空荡荡的项目——而工作明明就在库里。
+	// （`design/PARITY.md` 开篇记的正是这一类：「数据有却不显示，
+	// 等于界面说谎」。）
+	//
+	// ★ 用**路径**而不是项目 id：项目可以被移除再加回来，那时 id 变了
+	// 而路径没变——按 id 关联的话，那些工作会集体失去归属。
+	projectPath string
 }
+
+// ProjectPath 返回这个工作属于哪个项目；空表示还没记（老数据）。
+func (w *Work) ProjectPath() string { return w.projectPath }
+
+// SetProject 记下它属于哪个项目。
+func (w *Work) SetProject(path string) { w.projectPath = path }
 
 // CurrentUnitID 返回现在在做的单元；空表示还没开始做任何单元。
 func (w *Work) CurrentUnitID() string { return w.currentUnitID }

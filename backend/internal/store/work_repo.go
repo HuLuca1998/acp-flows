@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -21,7 +23,7 @@ type WorkRepo struct {
 }
 
 // 查询时显式列出列，不用 SELECT *：加列时不会静默改变返回结构。
-const workColumns = "id, project_id, state, branch, worktree, base_commit, " +
+const workColumns = "id, project_id, project_path, state, branch, worktree, base_commit, " +
 	"current_unit_id, created_at, updated_at"
 
 // CreateWork 新增一条工作记录。
@@ -109,4 +111,42 @@ func (r *WorkRepo) SaveWork(ctx context.Context, w *model.Work) error {
 		Create(e).Error
 
 	return translate("save work "+w.ID(), err)
+}
+
+// MaxWorkSeq 返回库里最大的工作序号，供启动时回填 ID 生成器。
+//
+// ★★ 不回填的话，一个已经有 work-01 的库**重启后会再发一次 work-01**——
+// 而 `SaveWork` 是 upsert，那条新工作会**直接覆盖掉旧的**，
+// 连 worktree 目录都是同一个（两个工作的 AI 在同一份代码上改）。
+//
+// ★ 这个坑在开发机上撞不到（数据库总是空的），只会在用户那儿炸：
+// 他重开应用、新建一个工作，昨天那条就没了。
+//
+// 解析不出来的 ID 一律跳过（手工改过、或将来 ID 格式变了）：
+// 宁可序号往后多跳几个，也不能让 duetd 起不来。
+func (r *WorkRepo) MaxWorkSeq(ctx context.Context) (int, error) {
+	var ids []string
+	if err := r.db.WithContext(ctx).
+		Model(&entity.Work{}).
+		Pluck("id", &ids).Error; err != nil {
+		return 0, translate("max work seq", err)
+	}
+	return maxSeqOf(ids), nil
+}
+
+// maxSeqOf 从一组形如 `work-08` 的标识里取最大序号。
+func maxSeqOf(ids []string) int {
+	maxSeq := 0
+	for _, id := range ids {
+		_, digits, ok := strings.Cut(id, "-")
+		if !ok {
+			continue
+		}
+		n, err := strconv.Atoi(digits)
+		if err != nil {
+			continue
+		}
+		maxSeq = max(maxSeq, n)
+	}
+	return maxSeq
 }
