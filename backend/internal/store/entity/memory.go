@@ -17,20 +17,20 @@ type Memory struct {
 	// ★ 不建关联表：`source_refs` 是**写一次就不再变**的溯源信息，
 	// 没有任何按单个 ref 反查的需求。为它建一张表只会让「取一条记忆」
 	// 从一次查询变成两次。
-	SourceRefs  string    `gorm:"column:source_refs;size:2048;not null;default:''"`
-	CreatedBy   string    `gorm:"column:created_by;size:64;not null;default:''"`
-	ConfirmedBy string    `gorm:"column:confirmed_by;size:64;not null;default:''"`
-	Reason      string    `gorm:"column:reason;size:1024;not null;default:''"`
-	Supersedes  string    `gorm:"column:supersedes;size:64;not null;default:''"`
-	HistoryLen  int       `gorm:"column:history_len;not null;default:1"`
+	SourceRefs  string `gorm:"column:source_refs;size:2048;not null;default:''"`
+	CreatedBy   string `gorm:"column:created_by;size:64;not null;default:''"`
+	ConfirmedBy string `gorm:"column:confirmed_by;size:64;not null;default:''"`
+	Reason      string `gorm:"column:reason;size:1024;not null;default:''"`
+	Supersedes  string `gorm:"column:supersedes;size:64;not null;default:''"`
+	HistoryLen  int    `gorm:"column:history_len;not null;default:1"`
 	// HitCount 是这条记忆被注入过几次。
 	//
 	// ★★ **应用自己数**，不问 AI：它会把「我读到了这条」说成
 	// 「我用上了这条」——而用户看这个数字是为了判断
 	// 「哪些记忆真的在起作用、哪些该清掉」。
-	HitCount    int       `gorm:"column:hit_count;not null;default:0"`
-	CreatedAt   time.Time `gorm:"column:created_at;not null"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null"`
+	HitCount  int       `gorm:"column:hit_count;not null;default:0"`
+	CreatedAt time.Time `gorm:"column:created_at;not null"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null"`
 }
 
 // TableName 显式指定表名，不依赖 GORM 的自动推导。

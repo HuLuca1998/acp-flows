@@ -235,7 +235,7 @@ func (s *Service) injectFor(ctx context.Context, workID string) injection {
 			// 而计数却会显示它「被用过」——那个数字就成了假的。
 			continue
 		}
-		sb.WriteString(fmt.Sprintf("- [%s] %s\n", m.ID(), title))
+		fmt.Fprintf(&sb, "- [%s] %s\n", m.ID(), title)
 		ids = append(ids, m.ID())
 	}
 	if len(ids) == 0 {
