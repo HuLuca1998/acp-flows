@@ -149,3 +149,36 @@ describe('左栏项目树', () => {
     ).toBeInTheDocument()
   })
 })
+
+// ★★ 左栏显示**标题**而不是 id。
+//
+// 一列 `work-01` `work-02` 的话，用户完全分不出哪条是哪条——
+// 而他可能同时开着五六条。
+it('工作显示标题而不是 id', async () => {
+  listProjects.mockResolvedValue([
+    { id: 'proj-01', name: 'acp-flows', path: '/w/acp-flows', is_git_repo: true },
+  ])
+  listWorks.mockResolvedValue([
+    {
+      id: 'work-01',
+      state: 'clarifying',
+      project: '/w/acp-flows',
+      title: '用户能取消正在运行的 turn',
+    },
+  ])
+  render(<ProjectTree onNewWork={noop} onOpenWork={noop} />)
+
+  expect(await screen.findByText('用户能取消正在运行的 turn')).toBeInTheDocument()
+  expect(screen.queryByText('work-01')).not.toBeInTheDocument()
+})
+
+// ★ 没有标题的老数据**退到 id**，不显示空白——空白的话那一行点得到但看不见。
+it('没有标题时退到 id', async () => {
+  listProjects.mockResolvedValue([
+    { id: 'proj-01', name: 'acp-flows', path: '/w/acp-flows', is_git_repo: true },
+  ])
+  listWorks.mockResolvedValue([{ id: 'work-09', state: 'paused', project: '/w/acp-flows' }])
+  render(<ProjectTree onNewWork={noop} onOpenWork={noop} />)
+
+  expect(await screen.findByText('work-09')).toBeInTheDocument()
+})

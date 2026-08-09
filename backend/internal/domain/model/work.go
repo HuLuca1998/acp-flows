@@ -116,7 +116,18 @@ type Work struct {
 	// ★ 用**路径**而不是项目 id：项目可以被移除再加回来，那时 id 变了
 	// 而路径没变——按 id 关联的话，那些工作会集体失去归属。
 	projectPath string
+	// title 是这条工作在列表里显示的名字。
+	//
+	// ★★ 取自**用户提的那句需求**（截断），不是 AI 起的名字：
+	// AI 起的名字与他说的话对不上时，他找不到自己那条工作。
+	title string
 }
+
+// Title 返回工作标题；空表示还没记（老数据）。
+func (w *Work) Title() string { return w.title }
+
+// SetTitle 记下标题。
+func (w *Work) SetTitle(t string) { w.title = t }
 
 // ProjectPath 返回这个工作属于哪个项目；空表示还没记（老数据）。
 func (w *Work) ProjectPath() string { return w.projectPath }

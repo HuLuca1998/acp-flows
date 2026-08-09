@@ -27,6 +27,8 @@ type View struct {
 	Project  string
 	Worktree string
 	Prompt   string
+	// Title 是列表里显示的名字，取自用户提的那句需求。
+	Title string
 	// Branch 与 BaseCommit 是这个工作的 git 现场。
 	//
 	// ★ 右栏「领先几个 commit」与验收时的 diff 都要 BaseCommit 当起点，
@@ -100,6 +102,9 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 	// ★ 记下它属于哪个项目——左栏的项目树按它把工作挂到项目下。
 	// 不记的话用户看到一个空荡荡的项目，而工作明明就在库里。
 	w.SetProject(project)
+	// ★ 标题就是他那句话（截断）——AI 起的名字与他说的话对不上时，
+	// 他在列表里找不到自己那条工作。
+	w.SetTitle(workTitle(prompt))
 	if err := s.repo.SaveWork(ctx, w); err != nil {
 		return View{}, fmt.Errorf("保存工作 %s: %w", id, err)
 	}
@@ -311,6 +316,7 @@ func (s *Service) List(ctx context.Context) ([]View, error) {
 			// ★★ 项目要带出来：前端按它把工作挂到项目下，
 			// 不带的话左栏永远是空的
 			Project: w.ProjectPath(), Worktree: w.WorktreePath(),
+			Title:  w.Title(),
 			Branch: w.Branch(), BaseCommit: w.BaseCommit(),
 		})
 	}
@@ -329,4 +335,23 @@ func (s *Service) emit(ctx context.Context, workID, typ string, payload map[stri
 	_ = s.bus.PublishWorkEvent(ctx, port.WorkEvent{
 		WorkID: workID, Source: "app", Type: typ, Payload: payload,
 	})
+}
+
+// workTitle 把用户那句需求截成一行标题。
+//
+// ★ 按**字符**截不按字节——按字节截会把中文切成乱码。
+// ★ 取第一行：他可能贴了一整段，而列表里只放得下一行。
+func workTitle(prompt string) string {
+	line := prompt
+	if i := strings.IndexAny(line, "\r\n"); i >= 0 {
+		line = line[:i]
+	}
+	line = strings.TrimSpace(line)
+
+	const maxRunes = 40
+	runes := []rune(line)
+	if len(runes) <= maxRunes {
+		return line
+	}
+	return string(runes[:maxRunes]) + "…"
 }

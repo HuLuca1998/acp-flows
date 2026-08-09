@@ -17,6 +17,7 @@ func WorkToEntity(w *model.Work) *entity.Work {
 	return &entity.Work{
 		ID:            w.ID(),
 		ProjectPath:   w.ProjectPath(),
+		Title:         w.Title(),
 		Worktree:      w.WorktreePath(),
 		Branch:        w.Branch(),
 		CurrentUnitID: w.CurrentUnitID(),
@@ -34,6 +35,7 @@ func WorkToModel(e *entity.Work) *model.Work {
 	// ★ git 现场也要还原：不还原的话，重启之后右栏就不知道
 	// 「这个工作从哪儿开始的」，而那正是判断「AI 干了什么」的起点。
 	w.SetProject(e.ProjectPath)
+	w.SetTitle(e.Title)
 	w.SetWorktree(e.Worktree, e.Branch, e.BaseCommit)
 	// ★ 当前单元也要还原：不还原的话重启之后边界判定会说「不知道」，
 	// 而契约明明就在库里。

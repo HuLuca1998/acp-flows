@@ -813,6 +813,17 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+            /**
+             * @description 列表里显示的名字，**取自用户提的那句需求**（截断）。
+             *
+             *     ★★ 左栏显示 `work-01` 的话，用户看不出那条工作是干嘛的——
+             *     而他可能同时开着五六条。
+             *
+             *     ★ 不用 AI 起的名字：起的名字与他说的话对不上时，
+             *     他在列表里找不到自己那条工作。
+             * @example 用户能取消正在运行的 turn，取消后现场证据要保留
+             */
+            title?: string;
         };
         WorktreeState: {
             /** @example duet/work-08 */

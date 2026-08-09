@@ -97,7 +97,16 @@ export function ProjectTree({ onNewWork, onOpenWork }: ProjectTreeProps) {
                     data-state={w.state}
                     onClick={() => onOpenWork(w.id ?? '')}
                   >
-                    <span className={styles.workTitle}>{w.prompt ?? w.id}</span>
+                    {/*
+                      ★★ 优先显示**标题**（用户那句需求的截断）。
+                      退到 id 的话，用户看到一列 `work-01` `work-02`——
+                      而他可能同时开着五六条，完全分不出哪条是哪条。
+                    */}
+                    <span className={styles.workTitle}>
+                      {w.title !== undefined && w.title !== ''
+                        ? w.title
+                        : (w.prompt ?? w.id)}
+                    </span>
                     <span className={styles.workState}>{w.state}</span>
                   </button>
                 ))}

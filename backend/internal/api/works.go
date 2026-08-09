@@ -53,6 +53,8 @@ type workBody struct {
 	Project  string `json:"project,omitempty"`
 	Worktree string `json:"worktree,omitempty"`
 	Prompt   string `json:"prompt,omitempty"`
+	// Title 是列表里显示的名字，取自用户提的那句需求。
+	Title string `json:"title,omitempty"`
 }
 
 type worksBody struct {
@@ -162,6 +164,7 @@ func toWorkBody(v work.View) workBody {
 	return workBody{
 		ID: v.ID, State: string(v.State),
 		Project: v.Project, Worktree: v.Worktree, Prompt: v.Prompt,
+		Title: v.Title,
 	}
 }
 
