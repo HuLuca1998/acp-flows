@@ -554,6 +554,7 @@
 | `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
 | `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
 | `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestBroker_BoundaryVerdictIsThreeState` | `internal/app/permission/broker_test.go` | app | ★★ M7 U7.2.1 R3：边界判定是**三态**，「不知道」不等于「没问题」。用 bool 的话契约还没冻结时那条请求会长得和「边界内」一模一样——而那正是用户最需要看清楚 AI 要动什么的时刻。★ 留空按 unknown 处理：装配漏一根线时表现必须是「说不清」不能是「没问题」 |
 | `TestContractRepo_R1_RoundTrip` | `internal/store/contract_repo_test.go` | store | ★★ M7 U7.1.2 R1：边界与验收标准逐字过库、顺序也在。★ 标准正文里有逗号——用逗号当分隔符会把一条拆成两条；★★ 边界少一条就等于**放宽了一次** |
 | `TestContractRepo_R2_RefusesToRewriteFrozen` | `internal/store/contract_repo_test.go` | store | ★★ R2：改写已冻结的契约被拒，库里那条一个字没变——否则边界随时可以被放宽到全放行 |
 | `TestContractRepo_DraftIsUpdatedInPlace` | `internal/store/contract_repo_test.go` | store | 未冻结的是草稿原地覆盖（单元设计师还在往里加标准），不升版本号 |

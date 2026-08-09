@@ -9,6 +9,7 @@ import (
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
 // U3.1.4 · 权限请求接线（验收点 V8）
@@ -356,4 +357,60 @@ func waitAskID(t *testing.T, bus *recordingBus) string {
 		return false
 	})
 	return id
+}
+
+// ★★ M7 U7.2.1 R3 · 边界判定是**三态**，「不知道」不等于「没问题」。
+//
+// 用 bool 的话，契约还没冻结时那条请求会长得和「边界内」一模一样——
+// 而那正是用户最需要看清楚 AI 要动什么的时刻。
+func TestBroker_BoundaryVerdictIsThreeState(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		in   model.BoundaryVerdict
+		want string
+	}{
+		{"边界内", model.BoundaryInside, "in_boundary"},
+		{"越界", model.BoundaryOutside, "out_of_boundary"},
+		{"说不清", model.BoundaryUnknown, "unknown"},
+		// ★ 留空按 unknown 处理——装配漏了一根线时，
+		// 表现必须是「说不清」，不能是「没问题」
+		{"没填", "", "unknown"},
+	} {
+		bus := &recordingBus{}
+		b := permission.New(bus, &seqIDs{})
+		go func() {
+			_, _ = b.Ask(context.Background(), permission.Ask{
+				WorkID: "work-08", ToolCallID: "tc-1", Path: "internal/acp/x.go",
+				Boundary: tc.in,
+				Options:  []permission.Option{{OptionID: "allow", Name: "允许", Kind: "allow_once"}},
+			})
+		}()
+
+		waitFor(t, "权限事件一直没来", func() bool {
+			for _, e := range bus.snapshot() {
+				if e.Type == "request_permission" {
+					return true
+				}
+			}
+			return false
+		})
+		got := boundaryOf(t, bus)
+		if got != tc.want {
+			t.Errorf("%s：载荷里的 boundary = %q，想要 %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// boundaryOf 从最后一条权限事件里取 boundary。
+func boundaryOf(t *testing.T, bus *recordingBus) string {
+	t.Helper()
+	for _, e := range bus.snapshot() {
+		if e.Type != "request_permission" {
+			continue
+		}
+		v, _ := e.Payload["boundary"].(string)
+		return v
+	}
+	t.Fatal("没有权限事件")
+	return ""
 }

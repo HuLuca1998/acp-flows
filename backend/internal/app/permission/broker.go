@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
 // 应答相关的错误。
@@ -43,10 +44,15 @@ type Ask struct {
 	Runtime    string
 	Kind       string
 	Path       string
-	// OutOfBounds 只在**真的越界**时填 true。
-	// 乱填的话用户会对所有提示脱敏，真正越界那次他也不会看。
-	OutOfBounds bool
-	Options     []Option
+	// Boundary 是「这次写入在不在契约的写入边界内」，三态。
+	//
+	// ★★ **不是 bool**：bool 表达不了「不知道」，而把「不知道」当成
+	// 「没问题」等于在最该提醒的时候保持沉默——契约没冻结时用户
+	// 正好最需要看清楚 AI 要动什么。留空按 unknown 处理。
+	//
+	// ★ 乱填的话用户会对所有提示脱敏，真正越界那次他也不会看。
+	Boundary model.BoundaryVerdict
+	Options  []Option
 }
 
 // Pending 是一条正在等的请求，供界面刷新后重新画出来。
@@ -210,9 +216,13 @@ func (b *Broker) publish(ctx context.Context, askID string, ask Ask) error {
 	if ask.Path != "" {
 		payload["path"] = ask.Path
 	}
-	if ask.OutOfBounds {
-		payload["out_of_bounds"] = true
+	// ★ 三态都放进去，包括 unknown——**「不知道」也是要告诉用户的信息**。
+	// 只在越界时才放的话，界面分不出「边界内」与「没有契约」。
+	verdict := ask.Boundary
+	if verdict == "" {
+		verdict = model.BoundaryUnknown
 	}
+	payload["boundary"] = string(verdict)
 
 	return b.bus.PublishWorkEvent(ctx, port.WorkEvent{
 		WorkID:  ask.WorkID,
