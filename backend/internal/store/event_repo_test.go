@@ -200,3 +200,72 @@ func TestEventRepo_PayloadRoundTrips(t *testing.T) {
 		t.Errorf("载荷变了：%+v", payload)
 	}
 }
+
+// ★★ M5：角色与需求版本**要过得了库**。
+//
+// 这条是真机验证抓出来的：内存总线直推订阅者时角色在，而前端首次连接
+// **总是**带 `Last-Event-ID: 0` 把历史要回来（不带的话用户重开应用后
+// 时间线是空的）——那条路径经过这张表，而表里当时没有这几列。
+//
+// 表现是：用户看到的**第一屏永远没有角色标签**，而他正是靠这个标签判断
+// 「现在是谁在说话、他能不能动我的文件」。单测里事件不过库，所以全绿。
+func TestEventRepo_KeepsWhoSaidItAcrossTheDatabase(t *testing.T) {
+	db := openTestStore(t)
+	ctx := context.Background()
+	repo := db.Events()
+
+	e := &store.Event{
+		ID: "evt_work-08", WorkID: "work-08", Source: "acp", Type: "message_chunk",
+		TS: testutil.T0, Payload: json.RawMessage(`{"text":"我先问几个问题"}`),
+		Role: "requirement_analyst", RoleDisplayName: "需求分析师", Runtime: "claude",
+		RequirementVersion: 2, RequirementFrozen: true,
+	}
+	if err := repo.AppendEvent(ctx, e); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := repo.EventsAfter(ctx, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("取回 %d 条，想要 1 条", len(got))
+	}
+	back := got[0]
+	if back.Role != "requirement_analyst" || back.RoleDisplayName != "需求分析师" {
+		t.Errorf("角色没过库：role=%q name=%q——用户重开应用后第一屏就没有角色标签了",
+			back.Role, back.RoleDisplayName)
+	}
+	if back.Runtime != "claude" {
+		t.Errorf("runtime 没过库：%q", back.Runtime)
+	}
+	if back.RequirementVersion != 2 || !back.RequirementFrozen {
+		t.Errorf("需求版本没过库：v%d frozen=%v",
+			back.RequirementVersion, back.RequirementFrozen)
+	}
+}
+
+// 应用自己发的事件没有角色——**空就是空**，读回来也不该被填上默认值。
+func TestEventRepo_AppEventsHaveNoRole(t *testing.T) {
+	db := openTestStore(t)
+	ctx := context.Background()
+
+	e := &store.Event{
+		ID: "evt_work-08", WorkID: "work-08", Source: "app", Type: "state_change",
+		TS: testutil.T0, Payload: json.RawMessage(`{"to":"clarifying"}`),
+	}
+	if err := db.Events().AppendEvent(ctx, e); err != nil {
+		t.Fatal(err)
+	}
+	got, err := db.Events().EventsAfter(ctx, 0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got[0].Role != "" || got[0].RoleDisplayName != "" {
+		t.Errorf("应用事件被填了角色（%q / %q）——用户会以为有个叫「系统」的角色在干活",
+			got[0].Role, got[0].RoleDisplayName)
+	}
+	if got[0].RequirementVersion != 0 {
+		t.Errorf("需求版本 = %d，想要 0", got[0].RequirementVersion)
+	}
+}

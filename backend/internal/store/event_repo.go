@@ -27,6 +27,13 @@ type Event struct {
 	Type    string          `json:"type"`
 	TS      time.Time       `json:"ts"`
 	Payload json.RawMessage `json:"payload,omitempty"`
+	// ★ 顺序与 eventbus.Event **必须逐字一致**（见上面的类型注释）：
+	// 结构化类型匹配靠的是字段名与顺序，错一处接口就不满足了。
+	Role               string `json:"role,omitempty"`
+	RoleDisplayName    string `json:"role_display_name,omitempty"`
+	Runtime            string `json:"runtime,omitempty"`
+	RequirementVersion int    `json:"requirement_version,omitempty"`
+	RequirementFrozen  bool   `json:"requirement_frozen,omitempty"`
 }
 
 // EventRepo 是事件的持久化实现。
@@ -34,7 +41,8 @@ type EventRepo struct {
 	db *gorm.DB
 }
 
-const eventColumns = "seq, id, work_id, source, type, ts, payload"
+const eventColumns = "seq, id, work_id, source, type, ts, payload, " +
+	"role, role_display_name, runtime, requirement_version, requirement_frozen"
 
 // AppendEvent 落一条事件，并把数据库发放的序号写回 e.Seq。
 //
@@ -50,6 +58,12 @@ func (r *EventRepo) AppendEvent(ctx context.Context, e *Event) error {
 	row := &entity.Event{
 		ID: e.ID, WorkID: e.WorkID, Source: e.Source,
 		Type: e.Type, TS: e.TS, Payload: string(payload),
+		// ★★ 角色与需求版本要跟着落库——不存的话，用户重开应用看到的
+		// 第一屏就没有角色标签（前端首次连接总是带 Last-Event-ID: 0
+		// 把历史要回来，那条路径经过这张表）。
+		Role: e.Role, RoleDisplayName: e.RoleDisplayName, Runtime: e.Runtime,
+		RequirementVersion: e.RequirementVersion,
+		RequirementFrozen:  e.RequirementFrozen,
 	}
 	if err := r.db.WithContext(ctx).Create(row).Error; err != nil {
 		return translate("append event "+e.Type, err)
@@ -102,6 +116,10 @@ func (r *EventRepo) EventsAfter(ctx context.Context, after int64, limit int) ([]
 			ID: row.ID, Seq: row.Seq, WorkID: row.WorkID,
 			Source: row.Source, Type: row.Type, TS: row.TS,
 			Payload: json.RawMessage(row.Payload),
+			Role:    row.Role, RoleDisplayName: row.RoleDisplayName,
+			Runtime:            row.Runtime,
+			RequirementVersion: row.RequirementVersion,
+			RequirementFrozen:  row.RequirementFrozen,
 		})
 	}
 	return out, nil

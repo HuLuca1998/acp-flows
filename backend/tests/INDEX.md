@@ -541,6 +541,8 @@
 | `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
 | `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestEventRepo_KeepsWhoSaidItAcrossTheDatabase` | `internal/store/event_repo_test.go` | store | ★★ **真机验证抓出来的**：`events` 表当时没有 role 那几列，而前端首次连接**总是**带 `Last-Event-ID: 0` 把历史要回来——用户看到的**第一屏永远没有角色标签**。内存总线直推时角色在，所以所有单测都绿。这条守住角色 + runtime + 需求版本都过得了库 |
+| `TestEventRepo_AppEventsHaveNoRole` | `internal/store/event_repo_test.go` | store | 应用自己发的事件没有角色——**空就是空**，读回来不该被填默认值（填「系统」会让用户以为有个叫系统的角色在干活） |
 | `TestRequirement_FirstSentenceBecomesV1` | `internal/app/work/requirement_test.go` | app | M5 U5.2.1：★★ 用户提的第一句话就是需求快照 v1，且**不是冻结的**（一出来就冻的话用户没机会再看一眼）。不记的话「我当时到底要它做什么」没有答案，而计划与契约都要照着它做 |
 | `TestRequirement_FollowUpsStayInTheSameDraft` | `internal/app/work/requirement_test.go` | app | ★★ 追问过程中接着说改的是**同一版**，库里始终一条记录。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」 |
 | `TestRequirement_SayingMoreAfterFreezeMakesV2` | `internal/app/work/requirement_test.go` | app | ★★ 完成标志第 4 条：冻结之后再提要求 → v2，而 **v1 一个字没变且还冻着** |

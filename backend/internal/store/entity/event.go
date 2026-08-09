@@ -15,6 +15,19 @@ type Event struct {
 	Type    string    `gorm:"column:type;size:64;not null"`
 	TS      time.Time `gorm:"column:ts;not null"`
 	Payload string    `gorm:"column:payload;not null;default:'{}'"`
+
+	// Role / RoleDisplayName / Runtime 说明**这一条是谁说的**。
+	//
+	// ★★ 不存的话，用户重开应用（或前端首次连接带 `Last-Event-ID: 0`
+	// 要历史）看到的第一屏就没有角色标签——而他正是靠这个标签判断
+	// 「现在是谁在说话、他能不能动我的文件」。
+	Role            string `gorm:"column:role;size:64;not null;default:''"`
+	RoleDisplayName string `gorm:"column:role_display_name;size:64;not null;default:''"`
+	Runtime         string `gorm:"column:runtime;size:32;not null;default:''"`
+	// RequirementVersion / RequirementFrozen 是说这句话时需求的样子。
+	// 0 表示那时还没有需求快照。
+	RequirementVersion int  `gorm:"column:requirement_version;not null;default:0"`
+	RequirementFrozen  bool `gorm:"column:requirement_frozen;not null;default:false"`
 }
 
 // TableName 显式指定表名，不依赖 GORM 的自动推导。
