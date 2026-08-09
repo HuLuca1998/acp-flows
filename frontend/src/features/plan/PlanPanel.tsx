@@ -5,6 +5,8 @@ import { getPlan, getPlanHistory } from '@/api/system'
 import type { Plan } from '@/models/plan'
 
 import styles from './PlanPanel.module.css'
+import { UnitContract } from './UnitContract'
+
 
 export type PlanPanelProps = {
   workID: string
@@ -95,6 +97,9 @@ export function PlanPanel({ workID }: PlanPanelProps) {
                 {!u.contract_frozen && (
                   <span className={styles.unfrozen}>{t('plan.contractNotFrozen')}</span>
                 )}
+                {/* ★ 契约按需展开：十几个单元全展开的话，
+                    真正要看的那一个会淹在里面 */}
+                <UnitContract workID={workID} unitID={u.id} />
               </li>
             ))}
           </ul>

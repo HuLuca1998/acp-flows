@@ -1,3 +1,4 @@
+import type { Contract } from '@/models/contract'
 import type { Memory, MemoryStatus } from '@/models/memory'
 import type { Plan } from '@/models/plan'
 import type { ProjectPreview } from '@/models/preview'
@@ -115,6 +116,33 @@ export async function answerPermission(
       typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
     )
   }
+}
+
+/**
+ * 读一个单元的契约。
+ *
+ * ★ 还没有契约时后端回 404 —— 单元设计师还没跑，那是常态。
+ */
+export async function getContract(workID: string, unitID: string): Promise<Contract> {
+  return unwrap(
+    await api.GET('/works/{id}/units/{unitId}/contract', {
+      params: { path: { id: workID, unitId: unitID } },
+    }),
+  )
+}
+
+/**
+ * 冻结一个单元的契约。**由用户点。**
+ *
+ * ★ 冻结之后 AI 才能照着它开工，而冻结前它一个字都不该改——
+ * 所以这一下是用户把关的那一次。
+ */
+export async function freezeContract(workID: string, unitID: string): Promise<Contract> {
+  return unwrap(
+    await api.POST('/works/{id}/units/{unitId}/contract/freeze', {
+      params: { path: { id: workID, unitId: unitID } },
+    }),
+  )
 }
 
 /**
