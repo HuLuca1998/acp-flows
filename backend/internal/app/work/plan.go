@@ -174,6 +174,22 @@ func (s *Service) SavePlanVersion(ctx context.Context, workID string, v model.Pl
 		"version": v.Version(), "title": v.Title(),
 		"subplans": subs, "units": units,
 	})
+
+	// ★★ 计划落库了就是 **ready**：可以开始执行第一个单元。
+	//
+	// 不推的话工作停在 `planning`，而 `StartUnit` 要求 ready——
+	// 用户会看到「计划出来了但点不动开始」，而没有任何地方说明为什么。
+	//
+	// ★ 推不动就算了（比如工作已经在 executing，或者被用户停了）：
+	// 计划本身已经存好，因为一次状态迁移失败就把它回滚，是拿主体换附属。
+	if w, findErr := s.repo.FindWork(ctx, workID); findErr == nil {
+		if w.State() == constant.WorkStatePlanning {
+			if tErr := w.Transition(constant.WorkStateReady); tErr == nil {
+				_ = s.repo.SaveWork(ctx, w)
+				s.emit(ctx, workID, "state_change", map[string]any{"to": string(w.State())})
+			}
+		}
+	}
 	return nil
 }
 

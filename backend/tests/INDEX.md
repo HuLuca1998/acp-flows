@@ -554,6 +554,13 @@
 | `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
 | `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
 | `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestStartUnit_R1_RefusesWhileContractIsDraft` | `internal/app/work/unit_test.go` | app | ★★ M7 U7.3.1 R1：契约没冻结时拒绝开工，**且一轮都不跑**。没冻结就开工的话 AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——产出对不上任何一版契约 |
+| `TestStartUnit_R2_RunsAsTheUnitsOwnRole` | `internal/app/work/unit_test.go` | app | ★★ R2（裁定三）：这一轮用**单元自己派的那个角色**（测试里是审查员），不是按工作状态选。按状态选的话会错派成实现工程师——而实现方审查自己的产出是 INV-ATT-8 禁止的 |
+| `TestStartUnit_R5_PromptCarriesTheContract` | `internal/app/work/unit_test.go` | app | ★★ R5：prompt 里带验收标准原文、允许与禁止的边界、依赖。不贴边界的话 AI 不知道哪些不该碰——而越界会在权限卡片上被标出来，那时用户看到「它想动不该动的东西」，实际上是我们从没告诉过它 |
+| `TestStartUnit_EmptyBoundarySaysSo` | `internal/app/work/unit_test.go` | app | ★★ 没有允许项时**明说**「不要改动任何文件」，别让那段空着——空着的话 AI 会以为没有限制，而实际上一个字节都不许改 |
+| `TestStartUnit_UnknownUnitIsRejected` | `internal/app/work/unit_test.go` | app | 计划里没有的单元不凭空造：造的话它没有角色、没有契约，而 AI 会照着一份不存在的说明开始改文件 |
+| `TestStartUnit_WorkRemembersTheUnit` | `internal/app/work/unit_test.go` | app | ★ 判据落在**边界判定**上而不是「字段等于 unit-013」——后者只证明字段被赋值了，前者证明这条链真的通了 |
+| `TestStartUnit_TerminalWorkRefuses` | `internal/app/work/unit_test.go` | app | 终态的工作切不动单元——那会让边界判定拿到一份过期的契约 |
 | `TestBoundaryFor_UnknownWhenItCannotTell` | `internal/app/work/plan_test.go` | app | ★★ M7 U7.2.1：四种「说不清」（没装配契约存储 / 工作查不到 / 还没开始做单元 / 没有路径）每一种都返回 `unknown` 而不是 `in_boundary`——把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |
 | `TestBoundaryFor_JudgesAgainstTheCurrentUnitsContract` | `internal/app/work/plan_test.go` | app | ★★ 有契约时**真的判得出来**（边界内 / 越界 / 没说过的路径）——不然上面那些 unknown 就只是永远说不清。★ 这条先红发现 `memWorks` 又漏还原了一个字段 |
 | `TestBroker_BoundaryVerdictIsThreeState` | `internal/app/permission/broker_test.go` | app | ★★ M7 U7.2.1 R3：边界判定是**三态**，「不知道」不等于「没问题」。用 bool 的话契约还没冻结时那条请求会长得和「边界内」一模一样——而那正是用户最需要看清楚 AI 要动什么的时刻。★ 留空按 unknown 处理：装配漏一根线时表现必须是「说不清」不能是「没问题」 |

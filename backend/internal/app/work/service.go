@@ -172,6 +172,39 @@ func (s *Service) runTurn(
 //
 // ★ onReply 在**后台那个 goroutine 里**被调用：调用方不许在里面做慢操作，
 // 也不许假设自己还在原来的请求上下文里。
+// runTurnAs 跑一轮，角色**由调用方指定**。
+//
+// ★ 与 runTurn 的区别：那个按工作状态选角色，而单元执行要用
+// **单元自己派的那个**（裁定三）——一个单元可能派给审查员，
+// 而工作状态是 executing。
+func (s *Service) runTurnAs(ctx context.Context, workID, worktree, prompt, roleID string) {
+	if s.runner == nil {
+		return
+	}
+	turnCtx := context.WithoutCancel(ctx)
+
+	go func() {
+		defer s.clearCancelling(workID)
+
+		version, frozen := s.requirementOf(turnCtx, workID)
+		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
+			WorkID: workID, Cwd: worktree, Prompt: prompt,
+			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
+			RequirementVersion: version, RequirementFrozen: frozen,
+		})
+		if err == nil || s.isCancelling(workID) {
+			return
+		}
+		if errors.Is(err, port.ErrTurnQueueFull) || errors.Is(err, port.ErrTurnAbandoned) {
+			s.emit(turnCtx, workID, "turn_end", map[string]any{
+				"reason": "queue_full", "detail": err.Error(),
+			})
+			return
+		}
+		s.failWork(turnCtx, workID, err)
+	}()
+}
+
 func (s *Service) runTurnWith(
 	ctx context.Context, workID, worktree, prompt string,
 	state constant.WorkState, onReply func(string),
