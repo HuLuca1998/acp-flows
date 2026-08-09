@@ -63,6 +63,10 @@ func (s *prepStub) CollectDiffEvidence(
 func (s *prepStub) AcceptUnit(context.Context, string, string) (string, error) {
 	return "", nil
 }
+func (s *prepStub) PendingDecisionsOf(context.Context, string) ([]work.DecisionView, error) {
+	return nil, nil
+}
+func (s *prepStub) AnswerDecision(context.Context, string, string, string) error { return nil }
 func (s *prepStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return s.status, s.err
 }

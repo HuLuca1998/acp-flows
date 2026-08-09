@@ -48,6 +48,10 @@ type workService interface {
 	) (model.Evidence, error)
 	// AcceptUnit 验收通过：提交改动并落检查点。**由用户点。**
 	AcceptUnit(ctx context.Context, workID, unitID string) (string, error)
+	// PendingDecisionsOf 列出还没答的决策。左栏那个亮蓝点靠它。
+	PendingDecisionsOf(ctx context.Context, workID string) ([]work.DecisionView, error)
+	// AnswerDecision 记下用户的选择。**只能答一次。**
+	AnswerDecision(ctx context.Context, workID, decisionID, optionID string) error
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。

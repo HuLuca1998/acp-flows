@@ -599,6 +599,13 @@
 | `TestAcceptanceOf_MarksCriteriaWithoutEvidence` | `internal/app/work/evidence_test.go` | app | ★★ 没证据的标准**留在表里且为空**，不是「通过」——把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。★ 顺序照契约不照 map（用户是照着契约那张表一条条核对的） |
 | `TestProbeWorktree_CountsUntrackedFiles` | `internal/gitx/status_test.go` | git | ★★ **未跟踪的新文件也算改动**（M8 采集时发现的）：`git diff` 不认识它们，而 AI 干活时新建文件是常态。不算的话，新写了三个文件的单元显示「改了 0 个文件」，用户会以为它什么都没做 |
 | `TestProbeWorktree_SkipsIgnoredFiles` | `internal/gitx/status_test.go` | git | ★ 被 `.gitignore` 忽略的不算——带上的话 `node_modules` 会把证据淹掉 |
+| `TestAskDecision_D2StopsAndWaits` | `internal/app/work/decision_test.go` | app | ★★ M9 U9.2.1：D2 提问时工作进 `waiting_user`——**AI 停在这里等他**。不停的话它会带着自己选的答案往下做几十个文件。★ 测试现场是 executing（状态机不许 `clarifying → waiting_user`，那条限制是对的） |
+| `TestAskDecision_D1DoesNotStop` | `internal/app/work/decision_test.go` | app | ★★ D0/D1 不停下来等——全停的话用户会被一堆「用哪个变量名」的问题烦死 |
+| `TestAskDecision_OptionsCarryImpactAndRecommendation` | `internal/app/work/decision_test.go` | app | ★★ 事件载荷里每个选项都带**影响**，推荐的**只是标记不是预选**——预选中的话用户会顺手点确定，而那正好绕过了「让他自己决定」 |
+| `TestAnswerDecision_ResumesTheWork` | `internal/app/work/decision_test.go` | app | 答完回到执行态——不回的话它一直停在那儿，而用户以为自己已经放行了 |
+| `TestAnswerDecision_KeepsWaitingWhileOthersPend` | `internal/app/work/decision_test.go` | app | ★★ 还有别的没答完时**继续等**：答了一条就全放行的话，另一条会被静静跳过 |
+| `TestAnswerDecision_OnlyOnce` | `internal/app/work/decision_test.go` | app | 答过的不能再答 |
+| `TestDecision_UnconfiguredSaysSo` | `internal/app/work/decision_test.go` | app | 没装配决策存储时明确报错——不是「AI 自己选一个往下走」 |
 | `TestDecisionRepo_R1_RoundTrip` | `internal/store/decision_repo_test.go` | store | ★★ M9 U9.1.2：选项与**影响说明**都过库——影响丢了的话用户在盲选，他看到两个名字而不知道选哪个会发生什么 |
 | `TestDecisionRepo_R2_AnswersOnlyOnce` | `internal/store/decision_repo_test.go` | store | ★★ R2：作答只能一次，改答案被拒且**库里那条没变**——改了的话「他当时选了什么」就没有答案 |
 | `TestDecisionRepo_R3_PendingOnly` | `internal/store/decision_repo_test.go` | store | ★★ R3：只列未作答的——**左栏那个亮蓝点靠它**。答过的混进来的话，用户会一直看到一个点不掉的提醒 |

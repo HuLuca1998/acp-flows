@@ -62,6 +62,9 @@ type Service struct {
 	// committer 把改动提交到工作分支。为 nil 时验收会明确报错——
 	// **不是**「通过了但什么都没提交」。
 	committer port.Committer
+	// decisions 存决策。为 nil 时提问会明确报错——
+	// **不是**「AI 自己选一个往下走」。
+	decisions port.Decisions
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。

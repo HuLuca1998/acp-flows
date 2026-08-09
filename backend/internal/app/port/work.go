@@ -66,6 +66,16 @@ type Committer interface {
 	Commit(ctx context.Context, path, message string) (string, error)
 }
 
+// Decisions 是决策的持久化抽象。
+//
+// ★★ **没有 Delete**，Update 只有一条路：作答（且只能一次）。
+type Decisions interface {
+	SaveDecision(ctx context.Context, d *model.Decision) error
+	// FindDecision 查不到时返回 model.ErrNotFound。
+	FindDecision(ctx context.Context, id string) (*model.Decision, error)
+	PendingDecisions(ctx context.Context, workID string) ([]*model.Decision, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，

@@ -540,6 +540,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作**还没答**的决策
+         * @description ★★ 左栏那个亮蓝点靠它：不列的话，用户不知道有件事在等他，
+         *     而工作停在 `waiting_user` 永远不动。
+         */
+        get: operations["listPendingDecisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/decisions/{decisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 回答一条决策
+         * @description ★★ **只能答一次**（409 `decision_answered`）：答过还能改的话，
+         *     「他当时选了什么」就没有答案，而后面几十个文件的改动都是照着
+         *     那个选择做的。
+         *
+         *     答完之后，如果没有别的待决策，工作从 `waiting_user` 回到执行态。
+         *     ★ 还有别的没答完时**继续等**——一次答一条。
+         */
+        post: operations["answerDecision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -1058,6 +1104,42 @@ export interface components {
             trustworthy: boolean;
             /** @description 这条证据支持哪几条验收标准 */
             criteria: string[];
+        };
+        Decision: {
+            /** @example dec-01 */
+            id: string;
+            /** @description 所属单元；空表示这是计划层面的决定 */
+            unit_id?: string;
+            /**
+             * @description ★ `D2`/`D3` **必须问用户**（改变外部行为、回滚已验收的东西）；
+             *     `D0`/`D1` 是 AI 自己就能定的。全问会把他烦死，
+             *     全不问他会在几十个文件之后才发现。
+             * @enum {string}
+             */
+            level: "D0" | "D1" | "D2" | "D3";
+            /** @example 取消之后要不要回滚已写入的文件？ */
+            question: string;
+            /** @description ★★ **至少两个**：一个选项的「决策」不是在问，是在通知。 */
+            options: {
+                /** @example a */
+                id: string;
+                /** @example 不回滚，仅停止 */
+                text: string;
+                /**
+                 * @description ★★ **选了它会怎样**。必填——没有它用户在盲选：
+                 *     他看到三个名字，而不知道选哪个会发生什么。
+                 * @example 已写入的文件留着，下次从这里接着干
+                 */
+                impact: string;
+                /**
+                 * @description AI 推荐的那个。★★ **只是标记，不是预选**：
+                 *     预选中的话，用户会顺手点确定——而那正好绕过了
+                 *     「让他自己决定」这件事。
+                 */
+                recommended: boolean;
+            }[];
+            /** @description 他选的那个选项 id；空表示还没答（「稍后决定」） */
+            answered_with?: string;
         };
         FileChange: {
             path: string;
@@ -2123,6 +2205,60 @@ export interface operations {
         responses: {
             /** @description 收到了，正在做 */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPendingDecisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        decisions: components["schemas"]["Decision"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    answerDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                decisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 他选的那个选项 id，**原样回传** */
+                    option_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已记下 */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

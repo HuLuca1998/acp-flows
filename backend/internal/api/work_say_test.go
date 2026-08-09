@@ -70,6 +70,10 @@ func (s *sayStub) CollectDiffEvidence(
 func (s *sayStub) AcceptUnit(context.Context, string, string) (string, error) {
 	return "", nil
 }
+func (s *sayStub) PendingDecisionsOf(context.Context, string) ([]work.DecisionView, error) {
+	return nil, nil
+}
+func (s *sayStub) AnswerDecision(context.Context, string, string, string) error { return nil }
 func (s *sayStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return port.RepoStatus{}, nil
 }

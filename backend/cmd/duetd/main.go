@@ -231,6 +231,8 @@ func run() error {
 	workSvc.SetEvidence(db.Evidence())
 	// ★ 提交能力：没有它验收会明确报错，而不是「通过了但什么都没提交」。
 	workSvc.SetCommitter(committer{})
+	// ★ 决策：没有它提问会明确报错，而不是「AI 自己选一个往下走」。
+	workSvc.SetDecisions(db.Decisions())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

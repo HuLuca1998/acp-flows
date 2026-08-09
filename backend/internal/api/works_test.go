@@ -73,6 +73,10 @@ func (s *stubWorkSvc) CollectDiffEvidence(
 func (s *stubWorkSvc) AcceptUnit(context.Context, string, string) (string, error) {
 	return "", nil
 }
+func (s *stubWorkSvc) PendingDecisionsOf(context.Context, string) ([]work.DecisionView, error) {
+	return nil, nil
+}
+func (s *stubWorkSvc) AnswerDecision(context.Context, string, string, string) error { return nil }
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -234,6 +238,10 @@ func (c *cancelStub) CollectDiffEvidence(
 func (c *cancelStub) AcceptUnit(context.Context, string, string) (string, error) {
 	return "", nil
 }
+func (c *cancelStub) PendingDecisionsOf(context.Context, string) ([]work.DecisionView, error) {
+	return nil, nil
+}
+func (c *cancelStub) AnswerDecision(context.Context, string, string, string) error { return nil }
 
 func (c *cancelStub) count() int {
 	c.mu.Lock()
