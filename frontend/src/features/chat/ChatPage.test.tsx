@@ -13,11 +13,13 @@ import { ChatPage } from './index'
 const listProjects = vi.fn()
 const listWorks = vi.fn()
 const startWork = vi.fn()
+const sayInWork = vi.fn()
 
 vi.mock('@/api/system', () => ({
   listProjects: (...a: unknown[]): unknown => listProjects(...a),
   listWorks: (...a: unknown[]): unknown => listWorks(...a),
   startWork: (...a: unknown[]): unknown => startWork(...a),
+  sayInWork: (...a: unknown[]): unknown => sayInWork(...a),
 }))
 
 /**
@@ -67,6 +69,7 @@ beforeEach(() => {
     id: 'work-01', state: 'clarifying',
     project: '/Users/me/work/my-app', worktree: '/tmp/wt/work-01', prompt: '帮我加个功能',
   })
+  sayInWork.mockReset().mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -207,5 +210,94 @@ describe('响应左栏的动作', () => {
 
     // 第二次点之后输入框仍在、且是空的（新的一轮）
     expect((await screen.findByRole('textbox')).getAttribute('value') ?? '').toBe('')
+  })
+})
+
+// M5 U5.1.3 R5 · 在同一个工作里接着说
+//
+// ★★ 这一族守的是完成标志第 5 条：**连着说三句，AI 记得前两句**。
+//
+// 后端的会话池早就能复用会话了，但界面上没有多轮的入口——用户说第二句时
+// 开的是一个新工作：新 worktree、新会话、新时间线，前一句彻底不在上下文里。
+describe('接着说', () => {
+  it('已经有工作时走「接着说」，不再建新工作', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    // 第一句：建工作
+    await user.type(await screen.findByRole('textbox'), '用户能取消正在运行的 turn')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+    await waitFor(() => {
+      expect(startWork).toHaveBeenCalledTimes(1)
+    })
+
+    // 第二句、第三句：接着说
+    for (const more of ['取消后现场证据要保留', '先别写代码']) {
+      await user.type(screen.getByRole('textbox'), more)
+      await user.click(screen.getByRole('button', { name: /发送/ }))
+      await waitFor(() => {
+        expect(sayInWork).toHaveBeenCalledWith('work-01', more)
+      })
+    }
+
+    expect(
+      startWork,
+      '第二句又建了一个新工作——新 worktree 新会话新时间线，前一句彻底不在上下文里',
+    ).toHaveBeenCalledTimes(1)
+    expect(sayInWork).toHaveBeenCalledTimes(2)
+  })
+
+  // ★ 输入框自己要说清楚「这句话会进已有的对话，还是另起一个工作」。
+  // 后者会新开一个 worktree——那是用户该知道的事。
+  it('有工作时按钮与提示都变成「接着说」', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    expect(await screen.findByRole('button', { name: /开始/ })).toBeInTheDocument()
+
+    await user.type(screen.getByRole('textbox'), '第一句')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /发送/ })).toBeInTheDocument()
+    })
+    expect(screen.getByPlaceholderText(/接着说/)).toBeInTheDocument()
+  })
+
+  // ★★ 工作已经结束时**说清楚**，而不是静默失败。
+  //
+  // 静默的话用户对着一个永远不动的时间线干等，以为 AI 在想事情。
+  it('工作已结束时说清楚', async () => {
+    const user = userEvent.setup()
+    sayInWork.mockRejectedValue({ type: 'work_not_accepting_messages' })
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    await user.type(await screen.findByRole('textbox'), '第一句')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /发送/ })).toBeInTheDocument()
+    })
+
+    await user.type(screen.getByRole('textbox'), '再试一次好吗')
+    await user.click(screen.getByRole('button', { name: /发送/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/这个工作已经结束/)).toBeInTheDocument()
+    })
+  })
+
+  // 空话不发——已有工作时也一样。
+  it('接着说时空话不发请求', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    await user.type(await screen.findByRole('textbox'), '第一句')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /发送/ })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /发送/ }))
+    expect(sayInWork).not.toHaveBeenCalled()
   })
 })

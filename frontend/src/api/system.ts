@@ -116,6 +116,31 @@ export async function answerPermission(
 }
 
 /**
+ * 在一个**已有**的工作里接着说一句。
+ *
+ * ★★ 同一个工作、同一条会话——这正是「连着说三句，AI 记得前两句」的那条路。
+ * 走 `startWork` 的话，用户说第二句时开的是一个**新工作**：
+ * 新 worktree、新会话、新时间线，前一句彻底不在上下文里，
+ * 而他以为自己只是补充了一句。
+ *
+ * ★ 抛出的 Error 的 message 是**机器可读的错误码**，界面按它查 i18n 词条。
+ */
+export async function sayInWork(workID: string, text: string): Promise<void> {
+  const result = await api.POST('/works/{id}/messages', {
+    params: { path: { id: workID } },
+    body: { text },
+  })
+  // 202 没有响应体，unwrap 会因为 data === undefined 而抛「empty_response」，
+  // 所以这里只把错误挑出来。
+  if (result.error !== undefined && result.error !== null) {
+    const problem = result.error as Problem
+    throw new Error(
+      typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
+    )
+  }
+}
+
+/**
  * 停下一个工作正在跑的那一轮。
  *
  * ★ 抛出的 Error 的 message 是**机器可读的错误码**（`work_cancel_not_allowed`

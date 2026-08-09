@@ -292,6 +292,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 在这个工作里接着说一句
+         * @description ★★ **同一个工作、同一条会话。** 这正是「连着说三句，AI 记得前两句」
+         *     的那条路：会话按「工作 + 角色」常驻（Q42），第二句进的是上一句的上下文。
+         *
+         *     ★ 不走这个端点而是再 `POST /works` 的话，用户说第二句时开的是一个
+         *     **新工作**：新 worktree、新会话、新时间线——前一句彻底不在上下文里，
+         *     而他以为自己只是补充了一句。
+         *
+         *     用户那句话**原样**进时间线（一条 `user_message` 事件），
+         *     然后后台跑一轮。返回 202 表示「收到了，正在跑」——
+         *     一轮要好几分钟，同步等的话请求早超时了。
+         *
+         *     终态的工作（`completed` / `failed` / `initializing_failed`）拒绝，
+         *     返回 409 `work_not_accepting_messages`：那时再说什么都不会有人听，
+         *     而界面上如果静默成功，用户会对着一个永远不动的时间线干等。
+         */
+        post: operations["sayInWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -1387,6 +1420,35 @@ export interface operations {
         responses: {
             /** @description 已停下 */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    sayInWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 工作标识 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 用户说的那句话，**原样**转发给 Agent 并进时间线 */
+                    text: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 收到了，正在跑 */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

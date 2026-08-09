@@ -538,5 +538,19 @@
 | `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
 | `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
 | `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
+| `TestSay_R1_StaysInTheSameWork` | `internal/app/work/say_test.go` | app | M5 U5.1.3 R1：★★ 说三句只有**一个工作**，三轮都送到同一个 workID + 同一个 worktree（会话池正是按这两样分键的）。第二句开新工作的话，新 worktree 新会话新时间线——前一句彻底不在上下文里，而用户以为自己只是补充了一句 |
+| `TestSay_R2_EverySentenceLandsOnTheTimeline` | `internal/app/work/say_test.go` | app | R2：三句话都进时间线且文本各不相同。漏一句的话用户回头看「我当时说了什么」会少一段，而 AI 的回复还在——他会以为 AI 答非所问 |
+| `TestSay_R4_TerminalWorkRefusesAndSaysWhy` | `internal/app/work/say_test.go` | app | ★★ R4：终态工作拒收，且给出机器可读的 `work_not_accepting_messages`。静默收下的话用户对着一个永远不动的时间线干等，以为 AI 在想事情 |
+| `TestSay_R4_RefusedMeansNothingHappened` | `internal/app/work/say_test.go` | app | ★ 被拒之后**一轮没跑、时间线上也不留那句话**——留下的话会有一句「用户说了什么」而永远没有下文 |
+| `TestSay_RefusesBeforeTheWorktreeIsReady` | `internal/app/work/say_test.go` | app | ★ 工作区还没切好时拒绝：用空 cwd 跑一轮的话，Agent 会在 **duetd 自己的当前目录**里干活 |
+| `TestSay_RejectsBlank` | `internal/app/work/say_test.go` | app | 空话不发——发出去的话 Agent 会为一句空白跑一整轮 |
+| `TestSay_UnknownWorkIsNotFound` | `internal/app/work/say_test.go` | app | 工作不存在时能判定成 `ErrNotFound`（上层据此回 404） |
+| `TestSay_WithoutRunnerDoesNotPanic` | `internal/app/work/say_test.go` | app | 没装配 runner 时不崩（只跑 API 冒烟的场景） |
+| `TestSayInWork_HappyPathIs202` | `internal/api/work_say_test.go` | api | ★ 返回 **202** 而不是 200：一轮要好几分钟，同步等的话请求早超时了。原话一个字不少地转下去 |
+| `TestSayInWork_TerminalIs409` | `internal/api/work_say_test.go` | api | ★★ 终态翻成 **409** 不是 500——500 会让界面提示「再试一次」，而用户一试还是同样的结果 |
+| `TestSayInWork_UnknownIs404` | `internal/api/work_say_test.go` | api | 工作不存在时 404 |
+| `TestSayInWork_RejectsBadInput` | `internal/api/work_say_test.go` | api | 空话 / 缺字段 / 坏 JSON 一律 400，且**不转调** |
+| `TestSayInWork_UnconfiguredSaysSo` | `internal/api/work_say_test.go` | api | 没装配回 503，不是 500 也不是静静成功 |
+| `TestSayInWork_RequiresToken` | `internal/api/work_say_test.go` | api | 没带 token 401，且不转调 |
 | `TestStart_PutsTheUsersOwnWordsOnTheTimeline` | `internal/app/work/service_test.go` | app | M5 U5.3.1 R2：★★ 用户自己说的那句话要进时间线，且**原话一个字不少**。不发的话对话页上只有 AI 的独白——而「它有没有听懂我」正是靠两句话对照看出来的：他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据 |
 | `TestRunTurn_StampsRoleOnEveryEvent` | `internal/acp/agent/role_test.go` | acp | M5 U5.3.1：★★ **每条事件都盖着是谁说的**（role + 显示名 + runtime）。漏盖的话界面上那条消息没有角色标签，用户会以为它是「系统」说的——而他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。★ 显示名一并给出，让前端查表的话认不出的角色会显示成原始 id |

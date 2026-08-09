@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listProjects, listWorks, startWork } from '@/api/system'
+import { listProjects, listWorks, sayInWork, startWork } from '@/api/system'
 import type { Project } from '@/models/project'
 import type { Work } from '@/models/work'
 
@@ -118,8 +118,35 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
     })()
   }, [intent, intentSeq])
 
-  const start = useCallback(async () => {
+  const send = useCallback(async () => {
     const text = prompt.trim()
+    // ★ 空需求不发请求。发出去的话后端会拒，而用户看到的是一句莫名其妙的
+    // 错误——他明明什么都没输入。
+    if (text === '') {
+      return
+    }
+
+    // ★★ **已经有工作就接着说，不新建。**
+    //
+    // 每句都 startWork 的话，用户说第二句时开的是一个新工作：
+    // 新 worktree、新会话、新时间线——前一句彻底不在上下文里，
+    // 而他以为自己只是补充了一句。会话按「工作 + 角色」常驻（Q42），
+    // 走这条路第二句才进得了上一句的上下文。
+    const workID = current?.id
+    if (workID !== undefined && workID !== '') {
+      setStarting(true)
+      setErrorCode(null)
+      try {
+        await sayInWork(workID, text)
+        setPrompt('')
+      } catch (err) {
+        setErrorCode(errorCodeOf(err))
+      } finally {
+        setStarting(false)
+      }
+      return
+    }
+
     // ★ 优先用左栏点的那个项目。固定取 projects[0] 的话，
     // 用户在 B 项目下点「新建对话」，工作却建到了 A 项目里——
     // 而他要到 AI 开始读错文件时才发现。
@@ -127,9 +154,7 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
       pickedProject === null
         ? projects[0]
         : (projects.find((p) => p.path === pickedProject) ?? projects[0])
-    // ★ 空需求不发请求。发出去的话后端会拒，而用户看到的是一句莫名其妙的
-    // 错误——他明明什么都没输入。
-    if (text === '' || project === undefined || project.path === undefined) {
+    if (project === undefined || project.path === undefined) {
       return
     }
 
@@ -145,7 +170,7 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
     } finally {
       setStarting(false)
     }
-  }, [prompt, projects, pickedProject, baseRef])
+  }, [prompt, projects, pickedProject, baseRef, current])
 
   return (
     <div className={styles.page}>
@@ -171,24 +196,29 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
       return <p className={styles.empty}>{t('chat.needProject')}</p>
     }
 
+    // ★ 有工作时这个输入框是「接着说」，没有时是「开始一个新工作」。
+    // 两者文案不同不是装饰：用户要看得出这句话会进已有的对话，
+    // 还是会另起一个工作——后者会新开一个 worktree。
+    const continuing = current !== null && (current.id ?? '') !== ''
+
     return (
       <form
         className={styles.composer}
         onSubmit={(e) => {
           e.preventDefault()
-          void start()
+          void send()
         }}
       >
         <input
           type="text"
           className={styles.input}
           value={prompt}
-          placeholder={t('chat.placeholder')}
-          aria-label={t('chat.inputLabel')}
+          placeholder={t(continuing ? 'chat.sayMore' : 'chat.placeholder')}
+          aria-label={t(continuing ? 'chat.sayMoreLabel' : 'chat.inputLabel')}
           onChange={(e) => setPrompt(e.target.value)}
         />
         <button type="submit" className={styles.submit} disabled={starting}>
-          {t(starting ? 'chat.starting' : 'chat.start')}
+          {t(submitKey(continuing, starting))}
         </button>
       </form>
     )
@@ -209,10 +239,25 @@ const ERROR_KEY: Record<string, string> = {
   work_project_not_found: 'chat.error.work_project_not_found',
   project_path_not_absolute: 'chat.error.project_path_not_absolute',
   work_prompt_required: 'chat.error.work_prompt_required',
+  work_not_accepting_messages: 'chat.error.work_not_accepting_messages',
+  work_message_required: 'chat.error.work_message_required',
 }
 
 function problemKey(code: string): string {
   return ERROR_KEY[code] ?? 'chat.error.unknown'
+}
+
+/**
+ * 提交按钮的词条 key，**显式四选一**。
+ *
+ * ★ 不许写成 `chat.${continuing ? 'send' : 'start'}${...}`：
+ * 动态拼接之后静态分析查不出词条缺失（docs/rules/i18n.md §4）。
+ */
+function submitKey(continuing: boolean, busy: boolean): string {
+  if (continuing) {
+    return busy ? 'chat.sending' : 'chat.send'
+  }
+  return busy ? 'chat.starting' : 'chat.start'
 }
 
 /** 从错误里取机器可读的原因码；取不到时给兜底码，绝不返回 null。 */

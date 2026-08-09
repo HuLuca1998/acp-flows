@@ -118,6 +118,8 @@ func ErrorCode(err error) string {
 		return "work_cancel_not_allowed"
 	case errors.Is(err, ErrNoCanceller):
 		return "work_cancel_unavailable"
+	case errors.Is(err, ErrNotAcceptingMessages):
+		return "work_not_accepting_messages"
 	case errors.Is(err, model.ErrNotFound):
 		return "work_not_found"
 	default:

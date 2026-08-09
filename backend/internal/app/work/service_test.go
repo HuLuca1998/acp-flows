@@ -73,7 +73,14 @@ func (r *memWorks) FindWork(_ context.Context, id string) (*model.Work, error) {
 	defer r.mu.Unlock()
 	for _, w := range r.items {
 		if w.ID() == id {
-			return model.NewWorkAt(w.ID(), w.State()), nil
+			out := model.NewWorkAt(w.ID(), w.State())
+			// ★★ **git 现场也要还原**——真 store 的 mapper.WorkToModel 就是这么做的。
+			//
+			// 不还原的话这个替身在撒谎：读回来的工作永远没有工作区，
+			// 而那是生产里不会发生的情况。`Say` 的测试撞到过——
+			// 它被「工作区还没准备好」拒了，而真实路径上工作区明明切好了。
+			out.SetWorktree(w.WorktreePath(), w.Branch(), w.BaseCommit())
+			return out, nil
 		}
 	}
 	return nil, model.ErrNotFound

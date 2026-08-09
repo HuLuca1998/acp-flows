@@ -33,6 +33,7 @@ func (s *prepStub) Start(_ context.Context, project, prompt, baseRef string) (wo
 }
 func (s *prepStub) List(context.Context) ([]work.View, error) { return nil, nil }
 func (s *prepStub) Cancel(context.Context, string) error      { return nil }
+func (s *prepStub) Say(context.Context, string, string) error { return nil }
 func (s *prepStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return s.status, s.err
 }

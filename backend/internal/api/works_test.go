@@ -44,6 +44,8 @@ func (s *stubWorkSvc) List(context.Context) ([]work.View, error) { return s.item
 
 func (s *stubWorkSvc) Cancel(context.Context, string) error { return nil }
 
+func (s *stubWorkSvc) Say(context.Context, string, string) error { return nil }
+
 type workBody struct {
 	ID       string `json:"id"`
 	State    string `json:"state"`
@@ -175,6 +177,7 @@ func (c *cancelStub) Start(context.Context, string, string, string) (work.View, 
 	return work.View{}, nil
 }
 func (c *cancelStub) List(context.Context) ([]work.View, error) { return nil, nil }
+func (c *cancelStub) Say(context.Context, string, string) error { return nil }
 
 func (c *cancelStub) count() int {
 	c.mu.Lock()

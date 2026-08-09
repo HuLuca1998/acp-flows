@@ -51,6 +51,19 @@ EXEMPT = {
     # （比如将来有五六个 check-perf-*）。到那时再分，分法也会自然清楚。
     "scripts/check": "每个文件是一个独立检查入口，与 Makefile target 一一对应；"
                      "分子目录会让「新检查放哪」变成没有好答案的问题。超过 25 个时重新考虑",
+    # ★ HTTP 边界层：一个文件 = openapi 的一个资源族（works / projects /
+    # memories / skills / roles / runtimes / events / permission / resume /
+    # update），「新端点放哪」有唯一答案——看它属于哪个资源。
+    #
+    # 分子目录要先把 writeProblem / writeJSON / Config / NewRouter 提成一个
+    # 新包，而那个包除了「被所有人 import」之外没有身份——它不回答
+    # 「这是什么」，只回答「谁需要它」。那不是分包，那是把耦合改个名字。
+    #
+    # **什么时候该重新考虑**：某个资源族自己长到三四个文件（那时它自成一包，
+    # 比如 api/work/），或总数超过 22。到那时分法也会自然清楚。
+    "backend/internal/api": "一个文件 = openapi 的一个资源族，「新端点放哪」有唯一答案；"
+                            "分子目录要先把 Problem/JSON/Config 提成一个没有身份的公共包。"
+                            "某个资源族长到三四个文件、或总数超过 22 时重新考虑",
 }
 
 # 测试文件与源文件的配对后缀，按语言。
