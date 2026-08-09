@@ -541,6 +541,8 @@
 | `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
 | `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestEventStore_FieldCountsMatch` | `cmd/duetd/wiring_test.go` | cmd | ★★ **真机抓出来的第六次同类 bug**：`eventStore` 是逐字段手抄的翻译层，给事件加五个字段时三处都改了唯独这层没抄——事件照样落库照样读得回来，只是角色标签没了，而所有单测都绿（它们不过这层）。这条不测字段值，测**两个结构体字段数与字段名逐个对上**：下一个加字段的人当场看到红 |
+| `TestEventStore_RoundTripKeepsEveryField` | `cmd/duetd/wiring_test.go` | cmd | ★ 只测「字段数一致」挡不住「抄了但抄错了」（把 Runtime 抄成 Role），所以再走一遍来回搬运 |
 | `TestParsePlanReply_R6_ExtractsTheGraph` | `internal/app/work/plan_parse_test.go` | app | ★★ M6 U6.2.1 R6：AI 回复里带 `duet-plan` 围栏的 JSON → 结构化 PlanVersion，角色与依赖都在。**版本号由我们给**——让 AI 猜的话会给出一个与库里对不上的号，而版本号是版本链的骨架 |
 | `TestParsePlanReply_R7_PlainProseSaysWhatItSaid` | `internal/app/work/plan_parse_test.go` | app | ★★ R7：一段散文 → 报错且**带上它的原话**。静默失败的话用户看到「正在规划」然后永远没有下文，而真正的原因躺在没人读的地方 |
 | `TestParsePlanReply_TakesTheLastFence` | `internal/app/work/plan_parse_test.go` | app | ★★ 取**最后一段**围栏：AI 常常先贴一段示例再给真计划，取第一段的话用户会得到一份内容是我们自己例子的计划 |

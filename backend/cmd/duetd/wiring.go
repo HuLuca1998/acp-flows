@@ -54,6 +54,12 @@ func (s eventStore) AppendEvent(ctx context.Context, e *eventbus.Event) error {
 	row := &store.Event{
 		ID: e.ID, WorkID: e.WorkID, Source: e.Source,
 		Type: e.Type, TS: e.TS, Payload: e.Payload,
+		// ★★ 这几个**极易漏抄**——漏了的话事件照样落库、照样能读回来，
+		// 只是角色标签没了，而所有单测都绿（它们不过这层）。
+		// 有反射测试守着「两个结构体字段数一致」。
+		Role: e.Role, RoleDisplayName: e.RoleDisplayName, Runtime: e.Runtime,
+		RequirementVersion: e.RequirementVersion,
+		RequirementFrozen:  e.RequirementFrozen,
 	}
 	if err := s.repo.AppendEvent(ctx, row); err != nil {
 		return err
@@ -76,6 +82,10 @@ func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]
 		out = append(out, eventbus.Event{
 			ID: r.ID, Seq: r.Seq, WorkID: r.WorkID,
 			Source: r.Source, Type: r.Type, TS: r.TS, Payload: r.Payload,
+			// ★ 回来的方向同样别漏——用户重开应用看到的就是这条路。
+			Role: r.Role, RoleDisplayName: r.RoleDisplayName, Runtime: r.Runtime,
+			RequirementVersion: r.RequirementVersion,
+			RequirementFrozen:  r.RequirementFrozen,
 		})
 	}
 	return out, nil
