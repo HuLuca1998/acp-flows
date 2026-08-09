@@ -67,6 +67,9 @@ func (s *sayStub) CollectDiffEvidence(
 ) (model.Evidence, error) {
 	return model.Evidence{}, nil
 }
+func (s *sayStub) AcceptUnit(context.Context, string, string) (string, error) {
+	return "", nil
+}
 func (s *sayStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return port.RepoStatus{}, nil
 }

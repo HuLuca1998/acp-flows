@@ -55,6 +55,17 @@ type Evidence interface {
 	EvidenceOf(ctx context.Context, workID, unitID string) ([]model.Evidence, error)
 }
 
+// Committer 把工作区里的改动提交到工作分支。
+//
+// ★ 定义成 port 而不是直接调 gitx：app 层不许 import 基础设施
+// （depguard 挡着）。
+type Committer interface {
+	// Commit 提交全部改动，返回短 sha。没有改动时返回错误——
+	// ★★ **不造空提交**：一个「验收通过」却什么都没改的单元，
+	// 说明该被质疑的是那次验收。
+	Commit(ctx context.Context, path, message string) (string, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，

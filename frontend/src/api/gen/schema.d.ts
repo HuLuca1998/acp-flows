@@ -487,6 +487,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/units/{unitId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 验收通过——提交改动并落检查点
+         * @description ★★ **通过由用户点，不由 AI 判断。** 没有任何路径能自动走到这里。
+         *
+         *     ★ 一条验收标准都没有证据时返回 409 `nothing_accepted`：
+         *     允许的话，「验收」这个动作就没有内容了——用户点通过时以为自己
+         *     核对过什么，而实际上什么都没有。
+         *
+         *     ★ 没有改动时返回 409 `nothing_to_commit`，**不造空提交**：
+         *     一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收。
+         *
+         *     提交发生在**工作自己的 worktree** 上，用户的分支一字不动。
+         */
+        post: operations["acceptUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/units/{unitId}/start": {
         parameters: {
             query?: never;
@@ -2045,6 +2074,36 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Acceptance"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    acceptUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已提交 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 那次提交的短 sha，检查点绑着它
+                         * @example abc1234
+                         */
+                        commit: string;
+                    };
                 };
             };
             default: components["responses"]["Problem"];

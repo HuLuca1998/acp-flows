@@ -59,6 +59,9 @@ type Service struct {
 	// evidence 存证据。为 nil 时采集照跑但不落盘——
 	// 那时用户重开应用证据就没了，所以装配必须给它。
 	evidence port.Evidence
+	// committer 把改动提交到工作分支。为 nil 时验收会明确报错——
+	// **不是**「通过了但什么都没提交」。
+	committer port.Committer
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。

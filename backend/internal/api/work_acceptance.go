@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
+	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 )
 
 // evidenceBody 对应 openapi 的 Evidence。
@@ -102,4 +104,45 @@ func toAcceptanceBody(v work.AcceptanceView) acceptanceBody {
 		})
 	}
 	return body
+}
+
+// acceptBody 是验收通过的响应。
+type acceptBody struct {
+	Commit string `json:"commit"`
+}
+
+// handleAcceptUnit 处理 POST /v1/works/{id}/units/{unitId}/accept。
+//
+// ★★ **通过由用户点，不由 AI 判断。**
+func handleAcceptUnit(svc workService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workID, unitID, ok := requireUnitID(w, r, svc)
+		if !ok {
+			return
+		}
+		sha, err := svc.AcceptUnit(r.Context(), workID, unitID)
+		if err != nil {
+			writeAcceptProblem(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, acceptBody{Commit: sha})
+	}
+}
+
+// writeAcceptProblem 把验收的错误翻成 HTTP 状态码。
+func writeAcceptProblem(w http.ResponseWriter, err error) {
+	switch {
+	// ★★ 这两条都是 **409 不是 500**：它们不是故障，是「现在不该通过」。
+	case errors.Is(err, work.ErrNothingAccepted):
+		writeProblem(w, http.StatusConflict, "nothing_accepted",
+			"no criterion has evidence yet")
+	case errors.Is(err, gitx.ErrNothingToCommit):
+		writeProblem(w, http.StatusConflict, "nothing_to_commit",
+			"there is nothing to commit")
+	case errors.Is(err, work.ErrNoCommitter):
+		writeProblem(w, http.StatusServiceUnavailable, "commit_unavailable",
+			"commit capability is not configured")
+	default:
+		writeContractProblem(w, err)
+	}
 }

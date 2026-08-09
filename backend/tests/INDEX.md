@@ -580,6 +580,10 @@
 | `TestWorkRepo_MaxWorkSeq` | `internal/store/work_repo_test.go` | store | ★★ **数据丢失级别的 bug**（2026-08-10 真机走查发现）：`PrimeSeq` 只给项目调了没给工作调，重启后 `NextID("work")` 又从 work-01 开始，而 `SaveWork` 是 upsert——新工作**直接覆盖掉旧的**，连 worktree 目录都是同一个（两个工作的 AI 在同一份代码上改）。开发机上撞不到（库总是空的），只会在用户那儿炸 |
 | `TestWorkRepo_MaxWorkSeqSkipsWeirdIDs` | `internal/store/work_repo_test.go` | store | ★ 解析不出的 ID 跳过而不是报错——宁可序号多跳几个，也不能因为一条手工改过的记录就打不开应用 |
 | `TestList_CarriesTheProjectSoTheRailCanGroupThem` | `internal/app/work/service_test.go` | app | ★★ 工作要记住**自己属于哪个项目**：`WorkToEntity` 从来没填过 `ProjectID`，于是左栏的项目下永远是空的——而工作明明就在库里。`design/PARITY.md` 开篇记的正是这一类「数据有却不显示，等于界面说谎」 |
+| `TestAcceptUnit_CommitsAndCheckpoints` | `internal/app/work/accept_test.go` | app | ★★ M8 U8.2.2 R2 R3 R4：**改动真的落进分支**（判据是「验收后工作区干净了」，用真 gitx 不塞假的）；提交信息带单元 id 与每条标准的 `✓ ev-441` / `○`——三个月后那条 commit 才说明得了「凭什么算通过」；检查点绑着 commit（不绑的话「恢复到哪」没有答案） |
+| `TestAcceptUnit_RefusesWithoutAnyEvidence` | `internal/app/work/accept_test.go` | app | ★★ 一条标准都没有证据时拒绝，且**一次提交都没发生**。允许的话「验收」这个动作就没有内容了——用户点通过时以为自己核对过什么 |
+| `TestAcceptUnit_RefusesToCommitNothing` | `internal/app/work/accept_test.go` | app | R5：没有改动时不造空提交 |
+| `TestAcceptUnit_NoCommitterSaysSo` | `internal/app/work/accept_test.go` | app | 没装配提交能力时明确报错——不是「通过了但什么都没提交」，那会让用户以为改动已经落进分支，而它还散在工作区里 |
 | `TestCommit_IncludesUntrackedFiles` | `internal/gitx/commit_test.go` | git | ★★ M8 U8.2.2：提交带上**未跟踪的新文件**。AI 干活时新建文件是常态，不带的话提交里少了一半东西——而 diff 证据里明明有它们，用户会发现两处对不上。判据是「提交之后工作区干净了」 |
 | `TestCommit_RefusesToMakeAnEmptyCommit` | `internal/gitx/commit_test.go` | git | ★★ 没有改动时**不造空提交**：一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收，而不是往历史里塞一个空 commit 把问题盖过去 |
 | `TestCommit_KeepsTheMessage` | `internal/gitx/commit_test.go` | git | 提交信息原样进历史——用户日后 `git log` 要能看懂那次验收 |

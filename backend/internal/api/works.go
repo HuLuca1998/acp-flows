@@ -46,6 +46,8 @@ type workService interface {
 	CollectDiffEvidence(
 		ctx context.Context, workID, unitID string, criteria []string,
 	) (model.Evidence, error)
+	// AcceptUnit 验收通过：提交改动并落检查点。**由用户点。**
+	AcceptUnit(ctx context.Context, workID, unitID string) (string, error)
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。

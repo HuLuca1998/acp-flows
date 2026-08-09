@@ -214,3 +214,12 @@ func (repoStatus) ProbeWorktreeState(
 	}
 	return out, nil
 }
+
+// committer 把 gitx 的提交能力接到 app 上。
+//
+// ★ app 层不许 import gitx（depguard 的分层规则），接缝落在 cmd。
+type committer struct{}
+
+func (committer) Commit(ctx context.Context, path, message string) (string, error) {
+	return gitx.Commit(ctx, path, message)
+}

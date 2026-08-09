@@ -70,6 +70,9 @@ func (s *stubWorkSvc) CollectDiffEvidence(
 ) (model.Evidence, error) {
 	return model.Evidence{}, nil
 }
+func (s *stubWorkSvc) AcceptUnit(context.Context, string, string) (string, error) {
+	return "", nil
+}
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -227,6 +230,9 @@ func (c *cancelStub) CollectDiffEvidence(
 	context.Context, string, string, []string,
 ) (model.Evidence, error) {
 	return model.Evidence{}, nil
+}
+func (c *cancelStub) AcceptUnit(context.Context, string, string) (string, error) {
+	return "", nil
 }
 
 func (c *cancelStub) count() int {
