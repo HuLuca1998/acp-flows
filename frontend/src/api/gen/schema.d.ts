@@ -411,6 +411,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/units/{unitId}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 一个单元的当前契约 */
+        get: operations["getUnitContract"];
+        put?: never;
+        /**
+         * 让单元设计师产出一版契约
+         * @description ★★ 契约由**单元设计师**产出，不是实现工程师自己写：自己给自己定
+         *     验收标准与边界，等于没有边界——他会写一个刚好装得下自己想改的东西
+         *     的范围（INV-ATT-8 的同一条道理）。
+         *
+         *     产出的是**草稿**。冻结是用户的动作——自动冻结的话，用户还没看过
+         *     这份契约，AI 就已经照着它开始改文件了。
+         */
+        post: operations["designUnitContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/contract/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 冻结这一版契约
+         * @description ★ 一条验收标准都没有时拒绝冻结（409 `contract_empty`）：
+         *     空契约冻结之后，「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+         */
+        post: operations["freezeUnitContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 让这个单元开工
+         * @description ★★ 契约**没冻结时拒绝**（409 `contract_not_frozen`）：没冻结就开工
+         *     的话，AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——
+         *     产出对不上任何一版契约。
+         *
+         *     这一轮由**单元自己派的那个角色**跑（裁定三）。
+         */
+        post: operations["startUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -842,6 +913,34 @@ export interface components {
             /** @description 设计稿的「契约未冻结」 */
             contract_frozen: boolean;
             accepted: boolean;
+        };
+        Contract: {
+            /** @example unit-012 */
+            unit_id: string;
+            /** @example 3 */
+            version: number;
+            /** @description 冻结之后一个字都不能改，要改就出新版本（INV-UC-2） */
+            frozen: boolean;
+            /**
+             * @description 验收标准。★ **一条都没有时不许冻结**：空契约冻结之后，
+             *     「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+             */
+            criteria: {
+                /** @example ac-1 */
+                id: string;
+                text: string;
+            }[];
+            boundary: components["schemas"]["WriteBoundary"];
+        };
+        /**
+         * @description 写入边界。★★ 用**路径前缀**不是正则：正则能表达更多，但边界是用户
+         *     唯一的防线，而一条他自己都读不懂的正则不构成防线——他会直接点「允许」。
+         */
+        WriteBoundary: {
+            /** @description 允许改的前缀。**空表示什么都不许改**，不是什么都许。 */
+            allowed: string[];
+            /** @description 明确禁止的前缀，**压过 allowed** */
+            forbidden: string[];
         };
         FileChange: {
             path: string;
@@ -1741,6 +1840,98 @@ export interface operations {
                         versions: components["schemas"]["Plan"][];
                     };
                 };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    designUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在设计 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    freezeUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已冻结 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在做 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Problem"];
         };

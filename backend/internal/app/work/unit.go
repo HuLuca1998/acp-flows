@@ -227,3 +227,30 @@ func (s *Service) FreezeContract(ctx context.Context, workID, unitID string) err
 	}
 	return nil
 }
+
+// ContractView 是交给上层的契约视图。
+type ContractView struct {
+	UnitID   string
+	Version  int
+	Frozen   bool
+	Criteria []model.Criterion
+	// Allowed / Forbidden 是写入边界。
+	Allowed   []string
+	Forbidden []string
+}
+
+// ContractOf 读出一个单元的当前契约。查不到返回 model.ErrNotFound。
+func (s *Service) ContractOf(ctx context.Context, unitID string) (ContractView, error) {
+	if s.contracts == nil {
+		return ContractView{}, fmt.Errorf("%w: %s", ErrContractsUnavailable, unitID)
+	}
+	c, err := s.contracts.LatestContract(ctx, unitID)
+	if err != nil {
+		return ContractView{}, fmt.Errorf("查契约 %s: %w", unitID, err)
+	}
+	b := c.Boundary()
+	return ContractView{
+		UnitID: c.UnitID(), Version: c.Version(), Frozen: c.IsFrozen(),
+		Criteria: c.Criteria(), Allowed: b.Allowed, Forbidden: b.Forbidden,
+	}, nil
+}

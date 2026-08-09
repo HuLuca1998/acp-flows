@@ -45,6 +45,12 @@ func (s *prepStub) PlanHistoryOf(context.Context, string) ([]work.PlanView, erro
 	return nil, nil
 }
 func (s *prepStub) StartPlanning(context.Context, string) error { return nil }
+func (s *prepStub) ContractOf(context.Context, string) (work.ContractView, error) {
+	return work.ContractView{}, nil
+}
+func (s *prepStub) DesignContract(context.Context, string, string) error { return nil }
+func (s *prepStub) FreezeContract(context.Context, string, string) error { return nil }
+func (s *prepStub) StartUnit(context.Context, string, string) error      { return nil }
 func (s *prepStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return s.status, s.err
 }

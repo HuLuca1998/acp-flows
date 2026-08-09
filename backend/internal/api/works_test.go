@@ -56,6 +56,12 @@ func (s *stubWorkSvc) PlanHistoryOf(context.Context, string) ([]work.PlanView, e
 	return nil, nil
 }
 func (s *stubWorkSvc) StartPlanning(context.Context, string) error { return nil }
+func (s *stubWorkSvc) ContractOf(context.Context, string) (work.ContractView, error) {
+	return work.ContractView{}, nil
+}
+func (s *stubWorkSvc) DesignContract(context.Context, string, string) error { return nil }
+func (s *stubWorkSvc) FreezeContract(context.Context, string, string) error { return nil }
+func (s *stubWorkSvc) StartUnit(context.Context, string, string) error      { return nil }
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -200,6 +206,12 @@ func (c *cancelStub) PlanHistoryOf(context.Context, string) ([]work.PlanView, er
 	return nil, nil
 }
 func (c *cancelStub) StartPlanning(context.Context, string) error { return nil }
+func (c *cancelStub) ContractOf(context.Context, string) (work.ContractView, error) {
+	return work.ContractView{}, nil
+}
+func (c *cancelStub) DesignContract(context.Context, string, string) error { return nil }
+func (c *cancelStub) FreezeContract(context.Context, string, string) error { return nil }
+func (c *cancelStub) StartUnit(context.Context, string, string) error      { return nil }
 
 func (c *cancelStub) count() int {
 	c.mu.Lock()

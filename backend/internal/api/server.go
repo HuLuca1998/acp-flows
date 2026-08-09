@@ -120,6 +120,11 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("GET /v1/works/{id}/plan", handleGetWorkPlan(cfg.Works))
 	mux.HandleFunc("POST /v1/works/{id}/plan", handleStartWorkPlanning(cfg.Works))
 	mux.HandleFunc("GET /v1/works/{id}/plan/history", handleGetWorkPlanHistory(cfg.Works))
+	mux.HandleFunc("GET /v1/works/{id}/units/{unitId}/contract", handleGetUnitContract(cfg.Works))
+	mux.HandleFunc("POST /v1/works/{id}/units/{unitId}/contract", handleDesignUnitContract(cfg.Works))
+	mux.HandleFunc("POST /v1/works/{id}/units/{unitId}/contract/freeze",
+		handleFreezeUnitContract(cfg.Works))
+	mux.HandleFunc("POST /v1/works/{id}/units/{unitId}/start", handleStartUnit(cfg.Works))
 	mux.HandleFunc("GET /v1/system/resume", handleListResumable(cfg.Checkpoints))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。

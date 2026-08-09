@@ -545,6 +545,77 @@ paths:
                     items: { $ref: '#/components/schemas/Plan' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /works/{id}/units/{unitId}/contract:
+    get:
+      tags: [work]
+      operationId: getUnitContract
+      summary: 一个单元的当前契约
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contract' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: designUnitContract
+      summary: 让单元设计师产出一版契约
+      description: |
+        ★★ 契约由**单元设计师**产出，不是实现工程师自己写：自己给自己定
+        验收标准与边界，等于没有边界——他会写一个刚好装得下自己想改的东西
+        的范围（INV-ATT-8 的同一条道理）。
+
+        产出的是**草稿**。冻结是用户的动作——自动冻结的话，用户还没看过
+        这份契约，AI 就已经照着它开始改文件了。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '202': { description: 收到了，正在设计 }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/contract/freeze:
+    post:
+      tags: [work]
+      operationId: freezeUnitContract
+      summary: 冻结这一版契约
+      description: |
+        ★ 一条验收标准都没有时拒绝冻结（409 `contract_empty`）：
+        空契约冻结之后，「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已冻结
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contract' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/start:
+    post:
+      tags: [work]
+      operationId: startUnit
+      summary: 让这个单元开工
+      description: |
+        ★★ 契约**没冻结时拒绝**（409 `contract_not_frozen`）：没冻结就开工
+        的话，AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——
+        产出对不上任何一版契约。
+
+        这一轮由**单元自己派的那个角色**跑（裁定三）。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '202': { description: 收到了，正在做 }
+        default: { $ref: '#/components/responses/Problem' }
+
   /works/{id}/permission:
     post:
       tags: [work]
@@ -1114,6 +1185,45 @@ components:
           type: boolean
           description: 设计稿的「契约未冻结」
         accepted: { type: boolean }
+
+    Contract:
+      type: object
+      required: [unit_id, version, frozen, criteria, boundary]
+      properties:
+        unit_id: { type: string, examples: ['unit-012'] }
+        version: { type: integer, examples: [3] }
+        frozen:
+          type: boolean
+          description: 冻结之后一个字都不能改，要改就出新版本（INV-UC-2）
+        criteria:
+          type: array
+          description: |
+            验收标准。★ **一条都没有时不许冻结**：空契约冻结之后，
+            「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+          items:
+            type: object
+            required: [id, text]
+            properties:
+              id: { type: string, examples: ['ac-1'] }
+              text: { type: string }
+        boundary:
+          $ref: '#/components/schemas/WriteBoundary'
+
+    WriteBoundary:
+      type: object
+      required: [allowed, forbidden]
+      description: |
+        写入边界。★★ 用**路径前缀**不是正则：正则能表达更多，但边界是用户
+        唯一的防线，而一条他自己都读不懂的正则不构成防线——他会直接点「允许」。
+      properties:
+        allowed:
+          type: array
+          description: 允许改的前缀。**空表示什么都不许改**，不是什么都许。
+          items: { type: string, examples: ['internal/acp/'] }
+        forbidden:
+          type: array
+          description: 明确禁止的前缀，**压过 allowed**
+          items: { type: string, examples: ['internal/api/gen/'] }
 
     FileChange:
       type: object

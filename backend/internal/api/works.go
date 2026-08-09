@@ -32,6 +32,14 @@ type workService interface {
 	PlanHistoryOf(ctx context.Context, workID string) ([]work.PlanView, error)
 	// StartPlanning 让计划架构师产出一版计划。需求没冻结时拒绝。
 	StartPlanning(ctx context.Context, workID string) error
+	// ContractOf 读出一个单元的当前契约。
+	ContractOf(ctx context.Context, unitID string) (work.ContractView, error)
+	// DesignContract 让单元设计师产出一版契约。
+	DesignContract(ctx context.Context, workID, unitID string) error
+	// FreezeContract 冻结当前这一版契约。**由用户点。**
+	FreezeContract(ctx context.Context, workID, unitID string) error
+	// StartUnit 让一个单元开工。契约没冻结时拒绝。
+	StartUnit(ctx context.Context, workID, unitID string) error
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。
