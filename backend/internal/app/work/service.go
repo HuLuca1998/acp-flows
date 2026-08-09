@@ -143,7 +143,7 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 		Branch: wt.Branch, BaseCommit: wt.BaseCommit,
 	}
 
-	s.runTurn(ctx, id, wt.Path, prompt)
+	s.runTurn(ctx, id, wt.Path, prompt, w.State())
 
 	return view, nil
 }
@@ -156,7 +156,9 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 //
 // 用 WithoutCancel 而不是 context.Background()：它保留了链路上的值
 // （日志的 trace id 之类），只是不跟着取消。
-func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) {
+func (s *Service) runTurn(
+	ctx context.Context, workID, worktree, prompt string, state constant.WorkState,
+) {
 	if s.runner == nil {
 		return
 	}
@@ -174,6 +176,11 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID,
+			// ★★ **角色决定这条会话有多大权限。** 澄清需求阶段是
+			// 需求分析师——只读，它读得到代码与记忆但一个字节都写不了。
+			// 不传的话 acp 层退到实现工程师（受控写），
+			// 那意味着用户以为自己只是在聊天，而对面能改他的文件。
+			RoleID: roleForState(state),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。
 			Cwd:                worktree,

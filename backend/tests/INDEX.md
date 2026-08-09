@@ -538,6 +538,8 @@
 | `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
 | `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
 | `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
+| `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
+| `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestRequirement_FirstSentenceBecomesV1` | `internal/app/work/requirement_test.go` | app | M5 U5.2.1：★★ 用户提的第一句话就是需求快照 v1，且**不是冻结的**（一出来就冻的话用户没机会再看一眼）。不记的话「我当时到底要它做什么」没有答案，而计划与契约都要照着它做 |
 | `TestRequirement_FollowUpsStayInTheSameDraft` | `internal/app/work/requirement_test.go` | app | ★★ 追问过程中接着说改的是**同一版**，库里始终一条记录。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」 |
 | `TestRequirement_SayingMoreAfterFreezeMakesV2` | `internal/app/work/requirement_test.go` | app | ★★ 完成标志第 4 条：冻结之后再提要求 → v2，而 **v1 一个字没变且还冻着** |

@@ -56,6 +56,6 @@ func (s *Service) Say(ctx context.Context, workID, text string) error {
 	// ★ 记进需求快照再跑：这一轮产出的事件要盖上更新后的版本号。
 	// 冻结过的版本会因此出一个 v(n+1)——冻结之后又提新要求，那就是改需求。
 	s.recordSaid(ctx, workID, text)
-	s.runTurn(ctx, workID, w.WorktreePath(), text)
+	s.runTurn(ctx, workID, w.WorktreePath(), text, w.State())
 	return nil
 }
