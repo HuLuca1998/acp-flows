@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work/reply"
+	"strings"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
@@ -165,4 +166,103 @@ func (s *Service) withMemoryCapture(
 		}
 		s.captureMemory(ctx, workID, unitID, agentSay, scope)
 	}
+}
+
+// ── 注入（U10.3.1）──────────────────────────────────────────
+//
+// ★ 与上面的「收下候选」是一件事的两头：那边把经验收进来，
+// 这边把已收下的带进下一轮。放同一个文件里，改一头时另一头就在眼前。
+
+// MemoryHits 记命中计数。
+type MemoryHits interface {
+	BumpHits(ctx context.Context, ids []string) error
+}
+
+// SetMemoryHits 装上命中计数。为 nil 时注入照跑但不计数。
+func (s *Service) SetMemoryHits(h MemoryHits) { s.hits = h }
+
+// injection 是一轮注入的结果。
+type injection struct {
+	// Text 是拼进 prompt 的那段话。
+	Text string
+	// MemoryIDs 是这一轮**真的注入了**的记忆。
+	//
+	// ★★ 这份清单由**应用记**，不问 AI。它说「我参考了那条记忆」时
+	// 可能根本没收到那条——而用户正是靠这份清单判断
+	// 「它是不是带着我的规矩在干活」。
+	MemoryIDs []string
+}
+
+// injectFor 取一个工作这一轮该带上的记忆。
+//
+// ★★ 只取 **active**：candidate 是还没被用户收下的，
+// invalid / obsolete 是他明确判过失效的。把它们注入进去，
+// 等于让 AI 照着一条用户否决过的前提干活——而他很难想到问题出在这。
+func (s *Service) injectFor(ctx context.Context, workID string) injection {
+	if s.memories == nil || s.memoryBodies == nil {
+		return injection{}
+	}
+	scope := workID
+	if w, err := s.repo.FindWork(ctx, workID); err == nil && w != nil {
+		if p := w.ProjectPath(); p != "" {
+			scope = p
+		}
+	}
+
+	var picked []*model.Memory
+	for _, sc := range []string{scope, string(model.CrossProjectScope)} {
+		list, err := s.memories.ListMemories(ctx, port.MemoryFilter{
+			Scope: sc, Status: string(model.MemoryActive),
+		})
+		if err != nil {
+			continue
+		}
+		picked = append(picked, list...)
+	}
+	if len(picked) == 0 {
+		// ★ 一条都没有时**什么都不发**：发一条「注入 0 条」的话，
+		// 时间线上会多出一行永远为空的噪音，而它什么也没告诉用户。
+		return injection{}
+	}
+
+	var sb strings.Builder
+	sb.WriteString("\n\n以下是这个项目已经确认过的经验，**照着它们做**：\n")
+	ids := make([]string, 0, len(picked))
+	for _, m := range picked {
+		title := s.memoryBodies.TitleOf(m.ID())
+		if title == "" {
+			// ★ 正文丢了的不注入：注入一个空标题等于什么都没说，
+			// 而计数却会显示它「被用过」——那个数字就成了假的。
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("- [%s] %s\n", m.ID(), title))
+		ids = append(ids, m.ID())
+	}
+	if len(ids) == 0 {
+		return injection{}
+	}
+	return injection{Text: sb.String(), MemoryIDs: ids}
+}
+
+// applyInjection 把注入拼进 prompt，记下清单与命中计数。
+//
+// ★★ **计数在这里加，不由 AI 自报**：只有这里知道「真的拼进去了」。
+// 它自报的话，会把「我读到了这条」说成「我用上了这条」。
+func (s *Service) applyInjection(ctx context.Context, workID, prompt string) string {
+	inj := s.injectFor(ctx, workID)
+	if len(inj.MemoryIDs) == 0 {
+		return prompt
+	}
+
+	if s.hits != nil {
+		// 计数失败不该拦住这一轮：用户要的是活干完，不是一个准确的统计
+		_ = s.hits.BumpHits(ctx, inj.MemoryIDs)
+	}
+	// ★ 清单发进时间线（M7 完成标志第 3 条）：不发的话，
+	// 用户没法判断它是不是带着自己的规矩在干活。
+	s.emit(ctx, workID, "injection", map[string]any{
+		"memory_ids": inj.MemoryIDs,
+		"count":      len(inj.MemoryIDs),
+	})
+	return prompt + inj.Text
 }

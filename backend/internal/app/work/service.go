@@ -69,6 +69,8 @@ type Service struct {
 	// 都可以为 nil，那时候选照解析但不落库。
 	memories     port.MemoryRepo
 	memoryBodies MemoryBodies
+	// hits 记命中计数。为 nil 时注入照跑但不计数。
+	hits MemoryHits
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
@@ -216,7 +218,10 @@ func (s *Service) runTurnAsWithReply(
 
 		version, frozen := s.requirementOf(turnCtx, workID)
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
-			WorkID: workID, Cwd: worktree, Prompt: prompt,
+			WorkID: workID, Cwd: worktree,
+			// ★★ 注入在**这里**发生，不在调用方：漏掉一条路径的话，
+			// 那条路径上的 AI 就是不带记忆干活的，而没有任何地方会报错。
+			Prompt: s.applyInjection(turnCtx, workID, prompt),
 			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
 			RequirementVersion: version, RequirementFrozen: frozen,
 			// ★★ 每一轮都过一遍记忆提取。不套的话，`reply.ParseMemoryReply`
@@ -269,8 +274,10 @@ func (s *Service) runTurnWith(
 			SystemPrompt: systemPromptFor(roleForState(state)),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。
-			Cwd:                worktree,
-			Prompt:             prompt,
+			Cwd: worktree,
+			// ★★ 同上：对话轮也要带着记忆，它恰恰是最需要的那一类
+			// （用户的规矩多半是在对话里定下来的）。
+			Prompt:             s.applyInjection(turnCtx, workID, prompt),
 			RequirementVersion: version,
 			RequirementFrozen:  frozen,
 		})

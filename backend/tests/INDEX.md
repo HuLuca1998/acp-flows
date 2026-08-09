@@ -381,6 +381,11 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestService_Injection_ActiveMemoryReachesThePrompt` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R1：active 记忆真的进了**发给 Agent 的那段 prompt**（判据落在 `AgentTurn.Prompt` 上，不是某个函数的返回值）——不进的话它还是每次从零开始，这一整步就白做了 |
+| `TestService_Injection_SkipsNonActiveMemories` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R4：candidate 不注入——注入进去等于让 AI 照着一条**用户从没同意过**的前提干活，而他很难想到问题出在一条老记忆上 |
+| `TestService_Injection_CountsHitsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.3.1 R3：跑两轮命中计数是 2，且**由应用数不问 AI**——它自报的话会把「我读到了这条」说成「我用上了这条」 |
+| `TestService_Injection_NoEventWhenNothingToInject` | `internal/app/work/memory_capture_test.go` | app | M10 U10.3.1 R5：没有可注入的记忆时一条 `injection` 事件都不发——「注入 0 条」是一行永远为空的噪音 |
+| `TestService_Injection_ListComesFromWhatWeActuallySent` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R2：AI 在回复里胡说「我参考了 mem-99」，清单里仍然只有真的发出去的 mem-01——跟着它的说法走的话，这份清单没有任何价值 |
 | `TestService_MemoryCandidate_IsAlwaysCandidateNeverActive` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R1 R2：AI 在载荷里**明写 `status: active`** 也只能建出 candidate——那是这一整步的底线（它自己写的话，一条它误解的「经验」会一直影响后面每一轮，而用户从没同意过）。判据落在**库里那条记录**上，顺带断言正文真落了盘（索引有而 md 不在的话，用户点开看到「文件不存在」） |
 | `TestService_MemoryCandidate_EventCarriesID` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1 R5：候选事件带 `memory_id` 与 `status`——不带 id 的话用户在时间线上看到候选却点不动 |
 | `TestService_MemoryCandidate_BrokenFenceIsReported` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R3：围栏写坏了要**发事件说原因**，不静默——咽下去的话 AI 想记的那条经验消失了而没有任何人知道 |

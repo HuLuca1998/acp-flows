@@ -27,7 +27,7 @@ type MemoryRepo struct {
 
 // 显式列出列，不用 SELECT *：加列时不会静默改变返回结构。
 const memoryColumns = "id, kind, scope, status, source_refs, created_by, " +
-	"confirmed_by, reason, supersedes, history_len, created_at, updated_at"
+	"confirmed_by, reason, supersedes, history_len, hit_count, created_at, updated_at"
 
 // SaveMemory 新增或更新一条记忆索引。
 //
@@ -90,4 +90,34 @@ func (r *MemoryRepo) ListMemories(ctx context.Context, q port.MemoryFilter) ([]*
 		out = append(out, mapper.MemoryToModel(&rows[i]))
 	}
 	return out, nil
+}
+
+// BumpHits 给一批记忆的命中计数各加一。
+//
+// ★★ **只加计数，不碰别的列**：记忆本身是不可改写的（INV-MEM-6/7），
+// 而「被用过几次」是应用观察到的事实，不是记忆的内容。
+// 用 `UpdateColumn` 而不是 `Updates`——后者会顺手写 updated_at，
+// 让一条从没被修改过的记忆看起来刚被人动过。
+func (r *MemoryRepo) BumpHits(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	err := r.db.WithContext(ctx).Model(&entity.Memory{}).
+		Where("id IN ?", ids).
+		UpdateColumn("hit_count", gorm.Expr("hit_count + 1")).Error
+	if err != nil {
+		return fmt.Errorf("store: 记忆命中计数: %w", err)
+	}
+	return nil
+}
+
+// HitsOf 读一条记忆的命中计数。
+func (r *MemoryRepo) HitsOf(ctx context.Context, id string) (int, error) {
+	var n int
+	err := r.db.WithContext(ctx).Model(&entity.Memory{}).
+		Where("id = ?", id).Select("hit_count").Scan(&n).Error
+	if err != nil {
+		return 0, fmt.Errorf("store: 读命中计数: %w", err)
+	}
+	return n, nil
 }

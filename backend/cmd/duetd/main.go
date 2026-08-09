@@ -236,6 +236,9 @@ func run() error {
 	// ★★ 记忆：没有它候选照解析但不落库，用户重开应用就没了。
 	// 正文走 md 文件（INV-MEM-8），索引走 DB——两边分工，不是两份拷贝。
 	workSvc.SetMemories(db.Memories(), newMemoryBodies(paths.DataDir()))
+	// ★★ 命中计数：没有它注入照跑但数字永远是 0，而用户看这个数字
+	// 是为了判断「哪些记忆真的在起作用、哪些该清掉」。
+	workSvc.SetMemoryHits(db.Memories())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

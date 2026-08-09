@@ -232,3 +232,159 @@ func TestAgentTurn_SystemPromptTellsAgentHowToProposeMemory(t *testing.T) {
 	assert.Contains(t, prompt, "没有就不要输出",
 		"不明说的话它每轮硬凑一条，用户的记忆库会被废话塞满")
 }
+
+// ── U10.3.1 · 注入清单与命中计数 ──────────────────────────────
+
+// activeMemory 造一条**用户已经收下的**记忆。
+func activeMemory(t *testing.T, id, scope string, bodies *memBodies) *model.Memory {
+	t.Helper()
+	m, err := model.ProposeCandidate(id, model.MemoryConstraint,
+		model.MemoryScope(scope), []string{"unit-013"}, "agent")
+	require.NoError(t, err)
+	// ★ 走真实的迁移，不手搓状态：candidate → active 必须有用户确认动作
+	require.NoError(t, m.Confirm("user"))
+	require.NoError(t, bodies.WriteBody(id, "这个仓库的迁移必须手写 SQL", "正文"))
+	return m
+}
+
+// hitCounter 记命中计数的替身。
+type hitCounter struct {
+	mu   sync.Mutex
+	hits map[string]int
+}
+
+func newHits() *hitCounter { return &hitCounter{hits: map[string]int{}} }
+
+func (h *hitCounter) BumpHits(_ context.Context, ids []string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, id := range ids {
+		h.hits[id]++
+	}
+	return nil
+}
+
+func (h *hitCounter) countOf(id string) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.hits[id]
+}
+
+// R1 ★★ 开场白里带着 active 记忆。
+//
+// 判据落在**真的发给 Agent 的那段 prompt** 上，不是某个函数的返回值。
+func TestService_Injection_ActiveMemoryReachesThePrompt(t *testing.T) {
+	repo, bodies := &memMemories{}, newBodies()
+	runner := &fakeRunner{}
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetMemories(repo, bodies)
+	require.NoError(t, repo.SaveMemory(context.Background(),
+		activeMemory(t, "mem-01", project, bodies)))
+
+	_, err := svc.Start(context.Background(), project, "让取消真的停下来", "")
+	require.NoError(t, err)
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	assert.Contains(t, runner.snapshot()[0].Prompt, "这个仓库的迁移必须手写 SQL",
+		"★★ 记忆没进 prompt——它还是每次从零开始，那这一整步就白做了")
+}
+
+// R4 ★★ 失效的记忆**不注入**。
+//
+// 注入进去等于让 AI 照着一条用户否决过的前提干活，
+// 而他很难想到问题出在一条老记忆上。
+func TestService_Injection_SkipsNonActiveMemories(t *testing.T) {
+	repo, bodies := &memMemories{}, newBodies()
+	runner := &fakeRunner{}
+	project := testutil.NewGitRepo(t)
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetMemories(repo, bodies)
+
+	// 一条还没被收下的候选
+	cand, err := model.ProposeCandidate("mem-02", model.MemoryExperience,
+		model.MemoryScope(project), []string{"unit-013"}, "agent")
+	require.NoError(t, err)
+	require.NoError(t, bodies.WriteBody("mem-02", "这条用户还没收下", "正文"))
+	require.NoError(t, repo.SaveMemory(context.Background(), cand))
+
+	_, err = svc.Start(context.Background(), project, "让取消真的停下来", "")
+	require.NoError(t, err)
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	assert.NotContains(t, runner.snapshot()[0].Prompt, "这条用户还没收下",
+		"候选被当成生效的注入了——用户从没同意过这条")
+}
+
+// R3 ★ 命中计数每注入一次加一，且**由应用数**，不问 AI。
+func TestService_Injection_CountsHitsPerTurn(t *testing.T) {
+	repo, bodies, hits := &memMemories{}, newBodies(), newHits()
+	runner := &fakeRunner{}
+	project := testutil.NewGitRepo(t)
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetMemories(repo, bodies)
+	svc.SetMemoryHits(hits)
+	require.NoError(t, repo.SaveMemory(context.Background(),
+		activeMemory(t, "mem-01", project, bodies)))
+
+	view, err := svc.Start(context.Background(), project, "让取消真的停下来", "")
+	require.NoError(t, err)
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+	require.NoError(t, svc.Say(context.Background(), view.ID, "接着说"))
+	waitFor(t, "第二轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+
+	assert.Equal(t, 2, hits.countOf("mem-01"), "跑了两轮，命中计数不是 2")
+}
+
+// R5 ★ 一条记忆都没有时**不发空清单**。
+//
+// 发一条「注入 0 条」的话，时间线上多出一行永远为空的噪音。
+func TestService_Injection_NoEventWhenNothingToInject(t *testing.T) {
+	runner := &fakeRunner{}
+	_, bus, _ := memorySetup(t, runner, &memMemories{}, newBodies())
+
+	for _, e := range bus.snapshot() {
+		assert.NotEqual(t, "injection", e.Type,
+			"没有可注入的记忆却发了清单——那一行什么也没告诉用户")
+	}
+}
+
+// R2 ★★ 注入清单**由应用记**，不解析 AI 的自由文本。
+//
+// 它说「我参考了那条记忆」时可能根本没收到那条——
+// 而用户正是靠这份清单判断「它是不是带着我的规矩在干活」。
+func TestService_Injection_ListComesFromWhatWeActuallySent(t *testing.T) {
+	repo, bodies := &memMemories{}, newBodies()
+	// AI 在回复里胡说自己用了另一条
+	runner := &fakeRunner{reply: "我参考了 mem-99 那条经验。"}
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetMemories(repo, bodies)
+	require.NoError(t, repo.SaveMemory(context.Background(),
+		activeMemory(t, "mem-01", project, bodies)))
+
+	_, err := svc.Start(context.Background(), project, "让取消真的停下来", "")
+	require.NoError(t, err)
+	waitFor(t, "注入清单没发出来", func() bool {
+		for _, e := range bus.snapshot() {
+			if e.Type == "injection" {
+				return true
+			}
+		}
+		return false
+	})
+
+	for _, e := range bus.snapshot() {
+		if e.Type != "injection" {
+			continue
+		}
+		assert.Equal(t, []string{"mem-01"}, e.Payload["memory_ids"],
+			"清单跟着 AI 的说法走了——它说什么就记什么，那这份清单没有任何价值")
+	}
+}
