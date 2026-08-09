@@ -45,7 +45,7 @@ export type ChatPageProps = {
    * ★ 右栏「工作区」要靠它知道该读哪个工作的 git 现场——
    * 让右栏自己去查「哪个工作是当前的」的话，两处会各有一份答案。
    */
-  onWorkChange?: (workID: string) => void
+  onWorkChange?: (work: Work | null) => void
   /** 左栏点过来的动作；为 null 表示用户直接进的对话页。 */
   intent: ChatIntent | null
   /**
@@ -74,7 +74,7 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
   // ★ 把当前工作报给外面（右栏要用）。放在 effect 里而不是每次 setCurrent
   // 时手动调——手动调的话，漏掉任何一条赋值路径都会让右栏停在旧工作上。
   useEffect(() => {
-    onWorkChange?.(current?.id ?? '')
+    onWorkChange?.(current)
   }, [current, onWorkChange])
 
   const { events } = useEventStream(current?.id ?? null)

@@ -7,6 +7,7 @@ import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
 import { NewWorkDialog } from '@/features/work/NewWorkDialog'
 import type { Project } from '@/models/project'
+import type { Work } from '@/models/work'
 import { Button } from '@/ui/Button'
 import { Resizer } from '@/ui/Resizer'
 import { STORAGE_KEYS, usePersistedState } from '@/utils/persisted'
@@ -56,7 +57,10 @@ export function App() {
   // 有权知道「从哪条分支切、我的工作区会不会被动」。
   const [pendingProject, setPendingProject] = useState<string | null>(null)
   // ★ 当前打开的工作 id，右栏「工作区」靠它知道该读哪个工作的 git 现场。
-  const [currentWorkID, setCurrentWorkID] = useState('')
+  // ★ 存整个 Work 而不只是 id：面包屑第三段要显示**标题与状态**。
+  // 只存 id 的话，App 要为了显示一行标题再查一次工作列表。
+  const [currentWork, setCurrentWork] = useState<Work | null>(null)
+  const currentWorkID = currentWork?.id ?? ''
   const [intentSeq, setIntentSeq] = useState(0)
 
   const openIntent = (next: ChatIntent) => {
@@ -122,6 +126,24 @@ export function App() {
               <span className={styles.crumbCurrent} data-tauri-drag-region>
                 {t(navPage?.titleKey ?? 'nav.chat')}
               </span>
+              {/* ★ 第三段：**当前工作**（标题 + 状态）。
+                  没有它的话，用户开着三条工作时看不出自己在哪一条里。 */}
+              {currentWork !== null && (
+                <>
+                  <span className={styles.crumbSep} aria-hidden="true" data-tauri-drag-region>
+                    /
+                  </span>
+                  <span className={styles.crumbWork} data-tauri-drag-region>
+                    {currentWork.title !== undefined && currentWork.title !== ''
+                      ? currentWork.title
+                      : currentWork.id}
+                  </span>
+                  {/* 状态词**显示英文原值**，不翻译（术语表硬要求） */}
+                  <span className={styles.crumbState} data-tauri-drag-region>
+                    {currentWork.state}
+                  </span>
+                </>
+              )}
             </>
           )}
         </nav>
@@ -166,7 +188,7 @@ export function App() {
 
         <main className={styles.main}>
           {navPage === null ? (
-            <ChatPage intent={intent} intentSeq={intentSeq} onWorkChange={setCurrentWorkID} />
+            <ChatPage intent={intent} intentSeq={intentSeq} onWorkChange={setCurrentWork} />
           ) : (
             <navPage.Component />
           )}

@@ -301,3 +301,22 @@ describe('接着说', () => {
     expect(sayInWork).not.toHaveBeenCalled()
   })
 })
+
+// ★ `onWorkChange` 交出去的是**整个工作**，不只是 id。
+//
+// 面包屑第三段要显示标题与状态（设计稿：
+// `acp-engine › 取消运行中的 Agent turn › wt/work-08 · executing`）——
+// 只给 id 的话，外面要为了显示一行标题再查一次工作列表。
+it('把整个工作交给外面，不只是 id', async () => {
+  const onWorkChange = vi.fn()
+  listWorks.mockResolvedValue([
+    { id: 'work-01', state: 'clarifying', title: '用户能取消正在运行的 turn' },
+  ])
+  render(<ChatPage intent={null} intentSeq={0} onWorkChange={onWorkChange} />)
+
+  await waitFor(() => {
+    expect(onWorkChange).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'work-01', title: '用户能取消正在运行的 turn' }),
+    )
+  })
+})
