@@ -1,0 +1,113 @@
+/* 待决策卡片。照 design/ACP Duet 1a.dc.html 的决策卡片。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* ★ D3 比 D2 更重：D3 要回滚已验收的东西，那是最该看清楚的一类。 */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--s-raised);
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+}
+
+.card[data-level='D3'] {
+  box-shadow: inset 0 0 0 1px var(--color-fail);
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+/* 等级显示**原值**（D2/D3），不翻译——术语表硬要求。 */
+.level {
+  flex: none;
+  color: var(--color-accent-300);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.question {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 每个选项是一个按钮——**没有预选中的那个**。 */
+.option {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: 7px 11px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-surface);
+}
+
+.option:disabled {
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
+/* 推荐的那个描边亮一点——**只是标记**，不是预选中。 */
+.option[data-recommended='true'] {
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+}
+
+.optionText {
+  flex: none;
+}
+
+/* ★★ 影响必须显示：没有它用户在盲选。 */
+.impact {
+  min-width: 0;
+  color: var(--color-neutral-500);
+  font-size: 11px;
+}
+
+.recommended {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-accent-300);
+  font-size: 10.5px;
+}
+
+.later {
+  margin: 0;
+  color: var(--color-neutral-600);
+  font-size: 10.5px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-fail);
+  font-size: 11px;
+}

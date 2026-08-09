@@ -5,6 +5,7 @@ import { listProjects, listWorks, sayInWork, startWork } from '@/api/system'
 import type { Project } from '@/models/project'
 import type { Work } from '@/models/work'
 
+import { DecisionDock } from '../decision/DecisionDock'
 import { PermissionDock } from '../permission/PermissionDock'
 import { usePermissions } from '../permission/use-permissions'
 import { PlanPanel } from '../plan/PlanPanel'
@@ -215,6 +216,9 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
           <PlanPanel workID={current.id ?? ''} />
         </>
       )}
+        {/* ★ 待决策排在时间线上方——与权限卡片同理：
+            用户要一眼看到「有件事在等我」，而不是往下滚才发现。 */}
+        <DecisionDock workID={current?.id ?? ''} />
         <PermissionDock asks={asks} onDecide={decide} />
         <Timeline events={events} />
       </div>

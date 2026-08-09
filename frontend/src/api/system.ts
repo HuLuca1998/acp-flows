@@ -1,5 +1,6 @@
 import type { Acceptance } from '@/models/acceptance'
 import type { Contract } from '@/models/contract'
+import type { Decision } from '@/models/decision'
 import type { Memory, MemoryStatus } from '@/models/memory'
 import type { Plan } from '@/models/plan'
 import type { ProjectPreview } from '@/models/preview'
@@ -156,6 +157,38 @@ export async function acceptUnit(workID: string, unitID: string): Promise<string
     }),
   )
   return body.commit
+}
+
+/**
+ * 列出一个工作**还没答**的决策。
+ *
+ * ★★ 左栏那个亮蓝点靠它：不列的话，用户不知道有件事在等他。
+ */
+export async function listPendingDecisions(workID: string): Promise<Decision[]> {
+  const body = unwrap(
+    await api.GET('/works/{id}/decisions', { params: { path: { id: workID } } }),
+  )
+  return body.decisions
+}
+
+/**
+ * 回答一条决策。**只能答一次。**
+ */
+export async function answerDecision(
+  workID: string,
+  decisionID: string,
+  optionID: string,
+): Promise<void> {
+  const result = await api.POST('/works/{id}/decisions/{decisionId}', {
+    params: { path: { id: workID, decisionId: decisionID } },
+    body: { option_id: optionID },
+  })
+  if (result.error !== undefined && result.error !== null) {
+    const problem = result.error as Problem
+    throw new Error(
+      typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'request_failed',
+    )
+  }
 }
 
 /**
