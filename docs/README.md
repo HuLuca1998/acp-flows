@@ -117,7 +117,8 @@
 | [`M2`](plan/milestones/M2-roles-skills-memory.md) | **它有了角色、技能和记性**（后面全部的地基） | ✓ 完成 |
 | [`M3`](plan/milestones/M3-project-onboarding.md) | 把我的项目交给它：创建项目弹层、扫已有 skill | ✓ 完成 |
 | [`M4`](plan/milestones/M4-start-a-work.md) | 开一个工作：新建工作弹层、worktree、右栏工作区 | ✓ 完成 |
-| [`M5`](plan/milestones/M5-clarify-and-freeze.md) | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | **现在做** |
+| [`M5`](plan/milestones/M5-clarify-and-freeze.md) | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | 主体完成 |
+| [`M6`](plan/milestones/M6-plan-and-units.md) | 它给出计划，每条都派好了人（子计划 DAG · **单元分配角色**） | **现在做** |
 | `M6`–`M12` | 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
 
 **重排前的里程碑**（旧 `U2.*`–`U5.*` 编号，只作历史查阅，不要照着干活）：

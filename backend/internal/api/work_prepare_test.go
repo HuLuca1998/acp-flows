@@ -38,6 +38,13 @@ func (s *prepStub) RequirementOf(context.Context, string) (work.RequirementView,
 	return work.RequirementView{}, nil
 }
 func (s *prepStub) FreezeRequirement(context.Context, string) error { return nil }
+func (s *prepStub) PlanOf(context.Context, string) (work.PlanView, error) {
+	return work.PlanView{}, nil
+}
+func (s *prepStub) PlanHistoryOf(context.Context, string) ([]work.PlanView, error) {
+	return nil, nil
+}
+func (s *prepStub) StartPlanning(context.Context, string) error { return nil }
 func (s *prepStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return s.status, s.err
 }

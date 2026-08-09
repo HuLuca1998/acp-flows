@@ -357,6 +357,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作当前的计划（子计划 DAG + 单元）
+         * @description ★ 还没规划时返回 404 —— 那是新工作的常态，界面据此不显示计划面板。
+         *
+         *     ★★ 每个单元都带**由哪个角色做**（裁定三）。不带的话，
+         *     用户看不出「这条谁在干」，而那正是他判断「该不该信这个产出」的依据
+         *     （实现方审查自己的产出是 INV-ATT-8 明令禁止的）。
+         */
+        get: operations["getWorkPlan"];
+        put?: never;
+        /**
+         * 让计划架构师产出一版计划
+         * @description ★★ **需求没冻结时拒绝**（INV-REQ-1），返回 409
+         *     `requirement_not_frozen`：需求还在变的时候做出来的计划，做完也对不上，
+         *     而那时用户已经等了一整轮还得从头再来。
+         *
+         *     返回 202 表示「收到了，正在规划」——结果通过事件流回到界面。
+         */
+        post: operations["startWorkPlanning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/plan/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 计划的变更历史，**从新到旧**
+         * @description ★ 设计稿计划面板的「变更历史」：改过几版、每次为什么改。
+         *     旧版本一个字不改（INV-PLAN-4）——覆盖掉的话「上周那版拆成了什么」
+         *     永远没有答案。
+         */
+        get: operations["getWorkPlanHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/permission": {
         parameters: {
             query?: never;
@@ -724,6 +778,70 @@ export interface components {
             open_facts: string[];
             /** @description 冻结之后一个字都不能改，要改就出新版本 */
             frozen: boolean;
+        };
+        Plan: {
+            /** @example 5 */
+            version: number;
+            /** @example 取消运行中的 Agent turn */
+            title: string;
+            /**
+             * @description 设计稿的「N 子计划」。★ **算出来的**，不是存的字段——
+             *     存的话它会和真实内容漂移，而用户看到「7 单元」时以为真有七个。
+             */
+            subplan_count: number;
+            /** @description 设计稿的「M 单元」，同样算出来 */
+            unit_count: number;
+            /**
+             * @description 重规划时每一项已验收工作的处置（仍有效 / 需补充 / 需回滚 / 已废弃）。
+             *     ★ 缺一项就不许重规划——漏掉的那项会悄悄失效，而没人知道。
+             */
+            dispositions?: {
+                [key: string]: string;
+            };
+            subplans: components["schemas"]["Subplan"][];
+        };
+        Subplan: {
+            /** @example subplan-01 */
+            id: string;
+            /** @example ACP Runtime 抽象层 */
+            title: string;
+            /**
+             * @description 由单元推导：全验收 `accepted`、一个都没动 `pending`、其余 `in_progress`。
+             *     ★ 不单独存——存的话它与进度会各说各话。
+             * @example accepted
+             * @example in_progress
+             * @example pending
+             * @example empty
+             */
+            status: string;
+            /** @description 设计稿 `accepted · 3/3` 的分子 */
+            done: number;
+            /** @description 分母 */
+            total: number;
+            units: components["schemas"]["PlanUnit"][];
+        };
+        PlanUnit: {
+            /** @example unit-012 */
+            id: string;
+            title: string;
+            /**
+             * @description ★★ **由哪个角色做**（裁定三）。必填——不写的话到执行时才发现
+             *     没人认领，而那时用户已经等了几分钟。
+             * @example implementer
+             * @example unit_reviewer
+             */
+            role_id: string;
+            /**
+             * @description 角色显示名。★ 一并给出而不是让前端查表：认不出的角色
+             *     前端查表会显示成一个原始 id。**认不出时留空**，不编一个。
+             * @example 实现工程师
+             */
+            role_display_name?: string;
+            /** @description 设计稿的「依赖 unit-012」 */
+            depends_on: string[];
+            /** @description 设计稿的「契约未冻结」 */
+            contract_frozen: boolean;
+            accepted: boolean;
         };
         FileChange: {
             path: string;
@@ -1553,6 +1671,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startWorkPlanning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在规划 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkPlanHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        versions: components["schemas"]["Plan"][];
+                    };
                 };
             };
             default: components["responses"]["Problem"];

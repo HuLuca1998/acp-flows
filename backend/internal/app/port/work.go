@@ -26,6 +26,16 @@ type Requirements interface {
 	RequirementVersions(ctx context.Context, workID string) ([]*model.RequirementSnapshot, error)
 }
 
+// Plans 是计划版本的持久化抽象。
+//
+// ★★ **没有 Update，也没有 Delete**（INV-PLAN-4）：计划改了就存新版本。
+type Plans interface {
+	SavePlan(ctx context.Context, workID string, v model.PlanVersion) error
+	// LatestPlan 查不到时返回 model.ErrNotFound。
+	LatestPlan(ctx context.Context, workID string) (model.PlanVersion, error)
+	PlanVersions(ctx context.Context, workID string) ([]model.PlanVersion, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，

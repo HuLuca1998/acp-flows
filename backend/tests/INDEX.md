@@ -541,6 +541,31 @@
 | `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
 | `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
 | `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestUnit_R1_RoleIsRequiredAndMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ M6 U6.1.1 R1（裁定三）：单元**必须**有角色且角色要在角色库里，错误里带上角色 id 与单元 id。不写的话到执行时才发现没人认领——而那时用户已经等了几分钟；更糟的是随手派一个，让实现方审查自己的产出（INV-ATT-8 禁止） |
+| `TestSubplan_R2_IsImmutable` | `internal/domain/model/subplan_test.go` | domain | R2：反射断言 Unit / Subplan 只有读方法；`DependsOn()` 返回副本 |
+| `TestSubplan_R3_DependencyMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ R3：依赖必须指向存在的单元。静静忽略的话那条依赖永远不生效——一个本该等着的单元会提前开工，表现是 AI 对着一个不存在的接口写代码 |
+| `TestSubplan_R4_RejectsDependencyCycle` | `internal/domain/model/subplan_test.go` | domain | ★★ R4：成环被拒，且**错误里把环列出来**。有环就没有「先做哪个」的答案，不拦的话调度会挑一个下手，而那个选择每次运行都可能不同 |
+| `TestSubplan_R5_ProgressComesFromUnits` | `internal/domain/model/subplan_test.go` | domain | ★★ R5：`3/3` 由单元算出来不单独存——存一个字段的话它会和真实状态漂移，而用户看到「3/3」时以为全做完了 |
+| `TestSubplan_DependencyAcrossSubplansIsFine` | `internal/domain/model/subplan_test.go` | domain | 依赖可跨子计划（设计稿里 unit-013 依赖 unit-012 就是这样） |
+| `TestSubplan_RejectsSelfDependency` | `internal/domain/model/subplan_test.go` | domain | 自己依赖自己也是环 |
+| `TestSubplan_AcceptsAcyclicGraph` | `internal/domain/model/subplan_test.go` | domain | 正常 DAG 照常通过（挡住「一律报环」的假实现） |
+| `TestSubplan_RejectsDuplicateUnitID` | `internal/domain/model/subplan_test.go` | domain | 同版计划不许重名单元——依赖指向它时没人说得清指的是哪一个 |
+| `TestSubplan_StatusFromUnits` | `internal/domain/model/subplan_test.go` | domain | 设计稿的 `accepted · 3/3`：全验收 accepted / 没动 pending / 空 empty |
+| `TestRestoreUnit_DoesNotValidateRole` | `internal/domain/model/subplan_test.go` | domain | ★ 重建**不校验角色**：角色库将来删掉一个角色时，不该让历史计划读不出来 |
+| `TestPlanVersion_WithSubplansLeavesTheOriginalAlone` | `internal/domain/model/subplan_test.go` | domain | ★★ 值接收者 + 返回新值 = 仍然不可变。在原值上追加的话「v3 当时拆成了什么」会随时间变化，而计划面板的「变更历史」正是靠它回答「每次为什么改」 |
+| `TestPlanVersion_WithSubplansValidatesTheGraph` | `internal/domain/model/subplan_test.go` | domain | ★ DAG 校验在**装进计划时**做掉，不留到调度时（那时错误会表现成「没有可执行的单元」，用户看不出是计划写错了） |
+| `TestPlanRepo_R1_RoundTripKeepsTheGraph` | `internal/store/plan_repo_test.go` | store | ★★ M6 U6.1.2 R1：角色、依赖、**顺序**都过得了库。顺序按 ord 存——按 id 排的话 unit-10 会排在 unit-02 前面；角色丢了的话执行时没人认领 |
+| `TestPlanRepo_R2_RefusesToRewriteAVersion` | `internal/store/plan_repo_test.go` | store | ★★ R2：改写已有版本被拒，库里那条一个字没变 |
+| `TestPlanRepo_R3_KeepsEveryVersion` | `internal/store/plan_repo_test.go` | store | R3：版本链从新到旧，重规划的**处置**也过库——不然「那次重规划怎么处理已验收的东西」没有答案 |
+| `TestPlanRepo_R4_HasNoRewriteMethods` | `internal/store/plan_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-PLAN-4） |
+| `TestPlanRepo_NoPlanYet` | `internal/store/plan_repo_test.go` | store | 还没规划时列表返回空切片不是错，取最新返回 `ErrNotFound` |
+| `TestPlanRepo_ScopedByWork` | `internal/store/plan_repo_test.go` | store | 两个工作的计划互不干扰 |
+| `TestStartPlanning_R1_RefusesWhileRequirementIsDraft` | `internal/app/work/plan_test.go` | app | ★★ M6 U6.2.1 R1（INV-REQ-1）：需求还是草稿时拒绝规划，且**一轮都没多跑**。需求还在变时做出来的计划做完也对不上，而那时用户已经等了一整轮 |
+| `TestStartPlanning_R2R3_PlanningRunsAsThePlanArchitect` | `internal/app/work/plan_test.go` | app | ★★ R2 R3：冻结后能规划，这一轮由**计划架构师**跑；需求原文贴进 prompt（Agent 那侧没有我们的库）；**明写「每个单元都要派角色」**——不说的话 AI 会给出一份没人认领的计划 |
+| `TestSavePlanVersion_R5_EmitsPlanVersionEvent` | `internal/app/work/plan_test.go` | app | R5：落一版计划发 `plan_version` 事件，带版本号与「N 子计划 · M 单元」 |
+| `TestPlan_R4_ReplanNeedsDispositions` | `internal/app/work/plan_test.go` | app | R4：重规划缺一项处置就拒——漏掉的那项会悄悄失效，而没人知道 |
+| `TestPlanOf_CarriesRoleNames` | `internal/app/work/plan_test.go` | app | ★ 视图带角色显示名，**认不出的角色留空**不编一个（编出来的名字与角色页那张表对不上，用户会以为有两个不同的角色）；进度算出来的 |
+| `TestPlan_UnconfiguredSaysSo` | `internal/app/work/plan_test.go` | app | 没装配计划存储时明确报错 |
 | `TestTurnGate_R1_SerializesTurnsOnOneSession` | `internal/acp/agent/gate_test.go` | acp | ★★ M5 U5.1.5 R1：同一条会话上五轮并发只允许一轮在跑。**真机验出来的**——两个 prompt 打进同一条会话时库里连着两条 `turn_end`，而第二句的回答一个字都没有，用户补充一句之后没有任何回应而界面看起来一切正常 |
 | `TestTurnGate_R2_QueuedTurnGetsItsChance` | `internal/acp/agent/gate_test.go` | acp | R2：排着的那一轮不丢，前一轮结束后拿得到 |
 | `TestTurnGate_R4_CancelledWhileWaitingGivesUp` | `internal/acp/agent/gate_test.go` | acp | ★★ R4：取消时等着的那一轮放弃，且**名额还回去**。用 `sync.Mutex` 这条做不到——mutex 等不了 ctx，用户明明点了停，排在后面的那几轮还是会一句句跑完 |

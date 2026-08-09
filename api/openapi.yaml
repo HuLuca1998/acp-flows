@@ -473,6 +473,78 @@ paths:
               schema: { $ref: '#/components/schemas/Requirement' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /works/{id}/plan:
+    get:
+      tags: [work]
+      operationId: getWorkPlan
+      summary: 这个工作当前的计划（子计划 DAG + 单元）
+      description: |
+        ★ 还没规划时返回 404 —— 那是新工作的常态，界面据此不显示计划面板。
+
+        ★★ 每个单元都带**由哪个角色做**（裁定三）。不带的话，
+        用户看不出「这条谁在干」，而那正是他判断「该不该信这个产出」的依据
+        （实现方审查自己的产出是 INV-ATT-8 明令禁止的）。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: startWorkPlanning
+      summary: 让计划架构师产出一版计划
+      description: |
+        ★★ **需求没冻结时拒绝**（INV-REQ-1），返回 409
+        `requirement_not_frozen`：需求还在变的时候做出来的计划，做完也对不上，
+        而那时用户已经等了一整轮还得从头再来。
+
+        返回 202 表示「收到了，正在规划」——结果通过事件流回到界面。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: 收到了，正在规划
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/plan/history:
+    get:
+      tags: [work]
+      operationId: getWorkPlanHistory
+      summary: 计划的变更历史，**从新到旧**
+      description: |
+        ★ 设计稿计划面板的「变更历史」：改过几版、每次为什么改。
+        旧版本一个字不改（INV-PLAN-4）——覆盖掉的话「上周那版拆成了什么」
+        永远没有答案。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [versions]
+                properties:
+                  versions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Plan' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /works/{id}/permission:
     post:
       tags: [work]
@@ -975,6 +1047,73 @@ components:
         frozen:
           type: boolean
           description: 冻结之后一个字都不能改，要改就出新版本
+
+    Plan:
+      type: object
+      required: [version, title, subplan_count, unit_count, subplans]
+      properties:
+        version: { type: integer, examples: [5] }
+        title: { type: string, examples: ['取消运行中的 Agent turn'] }
+        subplan_count:
+          type: integer
+          description: |
+            设计稿的「N 子计划」。★ **算出来的**，不是存的字段——
+            存的话它会和真实内容漂移，而用户看到「7 单元」时以为真有七个。
+        unit_count: { type: integer, description: 设计稿的「M 单元」，同样算出来 }
+        dispositions:
+          type: object
+          description: |
+            重规划时每一项已验收工作的处置（仍有效 / 需补充 / 需回滚 / 已废弃）。
+            ★ 缺一项就不许重规划——漏掉的那项会悄悄失效，而没人知道。
+          additionalProperties: { type: string }
+        subplans:
+          type: array
+          items: { $ref: '#/components/schemas/Subplan' }
+
+    Subplan:
+      type: object
+      required: [id, title, status, done, total, units]
+      properties:
+        id: { type: string, examples: ['subplan-01'] }
+        title: { type: string, examples: ['ACP Runtime 抽象层'] }
+        status:
+          type: string
+          description: |
+            由单元推导：全验收 `accepted`、一个都没动 `pending`、其余 `in_progress`。
+            ★ 不单独存——存的话它与进度会各说各话。
+          examples: [accepted, in_progress, pending, empty]
+        done: { type: integer, description: 设计稿 `accepted · 3/3` 的分子 }
+        total: { type: integer, description: 分母 }
+        units:
+          type: array
+          items: { $ref: '#/components/schemas/PlanUnit' }
+
+    PlanUnit:
+      type: object
+      required: [id, title, role_id, depends_on, contract_frozen, accepted]
+      properties:
+        id: { type: string, examples: ['unit-012'] }
+        title: { type: string }
+        role_id:
+          type: string
+          description: |
+            ★★ **由哪个角色做**（裁定三）。必填——不写的话到执行时才发现
+            没人认领，而那时用户已经等了几分钟。
+          examples: [implementer, unit_reviewer]
+        role_display_name:
+          type: string
+          description: |
+            角色显示名。★ 一并给出而不是让前端查表：认不出的角色
+            前端查表会显示成一个原始 id。**认不出时留空**，不编一个。
+          examples: [实现工程师]
+        depends_on:
+          type: array
+          description: 设计稿的「依赖 unit-012」
+          items: { type: string }
+        contract_frozen:
+          type: boolean
+          description: 设计稿的「契约未冻结」
+        accepted: { type: boolean }
 
     FileChange:
       type: object

@@ -26,6 +26,12 @@ type workService interface {
 	RequirementOf(ctx context.Context, workID string) (work.RequirementView, error)
 	// FreezeRequirement 冻结当前这一版需求。**由用户点，不由 AI 判断。**
 	FreezeRequirement(ctx context.Context, workID string) error
+	// PlanOf 读出当前计划。没有时返回 model.ErrNotFound。
+	PlanOf(ctx context.Context, workID string) (work.PlanView, error)
+	// PlanHistoryOf 列出全部计划版本，从新到旧。
+	PlanHistoryOf(ctx context.Context, workID string) ([]work.PlanView, error)
+	// StartPlanning 让计划架构师产出一版计划。需求没冻结时拒绝。
+	StartPlanning(ctx context.Context, workID string) error
 	// Prepare 返回开工前的仓库状态。**一个字节都不写。**
 	Prepare(ctx context.Context, project string) (port.RepoStatus, error)
 	// WorktreeOf 返回一个工作的 git 现场，右栏照它渲染。

@@ -205,6 +205,8 @@ func run() error {
 	workSvc.SetCanceller(agentRunner)
 	// ★ 需求快照：没有它工作照建，只是消息头上没有 `requirement vN` 那枚标签。
 	workSvc.SetRequirements(db.Requirements())
+	// ★ 计划：没有它工作照建，只是产不出计划面板要显示的东西。
+	workSvc.SetPlans(db.Plans())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

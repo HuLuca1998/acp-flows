@@ -49,6 +49,8 @@ type Service struct {
 	// requirements 存需求快照。可以为 nil（只跑 API 冒烟时），
 	// 那时工作照建，只是没有需求版本——**不是让整轮对话失败**。
 	requirements port.Requirements
+	// plans 存计划版本。可以为 nil，那时产不出计划但工作照建。
+	plans port.Plans
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。

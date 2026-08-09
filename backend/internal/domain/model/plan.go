@@ -72,6 +72,40 @@ type PlanVersion struct {
 	version      int
 	title        string
 	dispositions map[string]Disposition
+	// subplans 是这一版拆出来的子计划与单元。
+	//
+	// ★ 设计稿的「N 子计划 · M 单元」两个数都从这里算，**不单独存**：
+	// 存的话它会和真实内容漂移，而用户看到「7 单元」时以为真有七个。
+	subplans []Subplan
+}
+
+// WithSubplans 造一个带上子计划的**新版本值**。
+//
+// ★★ 值接收者 + 返回新值 = 仍然不可变：调用方拿到的是另一个 PlanVersion，
+// 原来那个一个字没变。在原值上追加的话，「v3 当时拆成了什么」会随时间变化。
+//
+// ★ 这里就把 DAG 校验做掉（角色存在、依赖存在、不成环）——
+// 留到调度时才发现的话，用户已经等了几分钟。
+func (v PlanVersion) WithSubplans(subplans []Subplan) (PlanVersion, error) {
+	if err := ValidateSubplans(subplans); err != nil {
+		return PlanVersion{}, err
+	}
+	v.subplans = append([]Subplan(nil), subplans...)
+	return v, nil
+}
+
+// Subplans 返回子计划。★ 副本。
+func (v PlanVersion) Subplans() []Subplan { return append([]Subplan(nil), v.subplans...) }
+
+// Counts 返回「N 子计划 · M 单元」这两个数。
+//
+// ★★ **算出来的**，不是存的：存的话它会和真实内容漂移，
+// 而用户看到「7 单元」时以为真有七个。
+func (v PlanVersion) Counts() (subplans, units int) {
+	for _, sp := range v.subplans {
+		units += len(sp.units)
+	}
+	return len(v.subplans), units
 }
 
 // NewPlanVersion 造第一版。第一版没有已验收工作，所以不需要处置。

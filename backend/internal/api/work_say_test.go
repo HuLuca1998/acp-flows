@@ -46,6 +46,13 @@ func (s *sayStub) RequirementOf(context.Context, string) (work.RequirementView, 
 	return work.RequirementView{}, nil
 }
 func (s *sayStub) FreezeRequirement(context.Context, string) error { return nil }
+func (s *sayStub) PlanOf(context.Context, string) (work.PlanView, error) {
+	return work.PlanView{}, nil
+}
+func (s *sayStub) PlanHistoryOf(context.Context, string) ([]work.PlanView, error) {
+	return nil, nil
+}
+func (s *sayStub) StartPlanning(context.Context, string) error { return nil }
 func (s *sayStub) Prepare(context.Context, string) (port.RepoStatus, error) {
 	return port.RepoStatus{}, nil
 }

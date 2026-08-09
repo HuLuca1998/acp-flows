@@ -49,6 +49,13 @@ func (s *stubWorkSvc) RequirementOf(context.Context, string) (work.RequirementVi
 	return work.RequirementView{}, nil
 }
 func (s *stubWorkSvc) FreezeRequirement(context.Context, string) error { return nil }
+func (s *stubWorkSvc) PlanOf(context.Context, string) (work.PlanView, error) {
+	return work.PlanView{}, nil
+}
+func (s *stubWorkSvc) PlanHistoryOf(context.Context, string) ([]work.PlanView, error) {
+	return nil, nil
+}
+func (s *stubWorkSvc) StartPlanning(context.Context, string) error { return nil }
 
 type workBody struct {
 	ID       string `json:"id"`
@@ -186,6 +193,13 @@ func (c *cancelStub) RequirementOf(context.Context, string) (work.RequirementVie
 	return work.RequirementView{}, nil
 }
 func (c *cancelStub) FreezeRequirement(context.Context, string) error { return nil }
+func (c *cancelStub) PlanOf(context.Context, string) (work.PlanView, error) {
+	return work.PlanView{}, nil
+}
+func (c *cancelStub) PlanHistoryOf(context.Context, string) ([]work.PlanView, error) {
+	return nil, nil
+}
+func (c *cancelStub) StartPlanning(context.Context, string) error { return nil }
 
 func (c *cancelStub) count() int {
 	c.mu.Lock()
