@@ -218,6 +218,8 @@ func run() error {
 	// ★ 契约：边界判定要靠它。没装配时权限卡片一律显示「说不清」，
 	// **不是**「没问题」。
 	workSvc.SetContracts(db.Contracts())
+	// ★ 证据：没有它采集照跑但不落盘，而用户重开应用证据就没了。
+	workSvc.SetEvidence(db.Evidence())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

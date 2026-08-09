@@ -103,6 +103,9 @@ func (s *Store) Plans() *PlanRepo { return &PlanRepo{db: s.db, clk: s.clk} }
 // Contracts 返回契约仓储。★ 没有 Update/Delete：冻结后改不动。
 func (s *Store) Contracts() *ContractRepo { return &ContractRepo{db: s.db, clk: s.clk} }
 
+// Evidence 返回证据仓储。★ 没有 Update/Delete：证据改写过就不是证据了。
+func (s *Store) Evidence() *EvidenceRepo { return &EvidenceRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 

@@ -577,6 +577,11 @@
 | `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
 | `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
 | `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
+| `TestEvidenceRepo_RoundTrip` | `internal/store/evidence_repo_test.go` | store | ★★ M8：**原始输出一个字节都不少**过库（截断过的输出在排查时等于没有）；来源与「支持哪几条标准」也过库——关系丢了的话它在「标准 ✓ ev-441」里不会出现，用户以为它没派上用场 |
+| `TestEvidenceRepo_KeepsAgentSource` | `internal/store/evidence_repo_test.go` | store | ★★ AI 转述的过库之后**还是 agent**——那正好是这一层最不该弄错的一件事 |
+| `TestEvidenceRepo_HasNoRewriteMethods` | `internal/store/evidence_repo_test.go` | store | ★★ 反射断言没有 Update/Delete——证据改写过就不是证据了 |
+| `TestEvidenceRepo_NoEvidenceYet` | `internal/store/evidence_repo_test.go` | store | 还没有证据时返回空切片不是错 |
+| `TestEvidenceRepo_ScopedByUnit` | `internal/store/evidence_repo_test.go` | store | 两个单元的证据互不干扰 |
 | `TestCollectDiffEvidence_R1R4_ComesFromGitAndIsMarkedAsApp` | `internal/app/work/evidence_test.go` | app | ★★ M8 U8.1.2 R1 R4：diff 证据从**真 git** 读出来（真仓库真文件，不塞假探针——假的返回什么都行，而这个单元测的正是「读出来的与仓库里的一致」），且标着 `source=app` |
 | `TestCollectDiffEvidence_R2_DoesNotTouchTheWorktree` | `internal/app/work/evidence_test.go` | app | R2：采集**只读**，采集前后工作区快照一致 |
 | `TestCollectDiffEvidence_R3_NoProbeSaysSo` | `internal/app/work/evidence_test.go` | app | ★★ R3：没装配 git 探针时报错，**不留一条空证据**——空证据会让「验收证据 1 条」变成假的，用户点开是空的，而他不会再信这个数 |
