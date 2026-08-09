@@ -90,3 +90,18 @@
   font-size: 12.5px;
   line-height: 1.6;
 }
+
+/* 角色标签。设计稿形态：`Claude · 需求分析师`。 */
+.role {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  color: var(--color-neutral-300);
+  font-size: 11px;
+}
+
+.runtime {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}

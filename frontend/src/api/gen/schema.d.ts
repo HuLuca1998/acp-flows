@@ -956,6 +956,29 @@ export interface components {
             /** Format: date-time */
             ts: string;
             /**
+             * @description 这一条是**哪个角色**说的（`implementer` / `requirement_analyst` …）。
+             *
+             *     ★★ 由后端给，**前端不许按 Runtime 名猜**：
+             *     一个 Runtime 可以承担多个角色（`claude` 同时是需求分析师和审查员），
+             *     按名字猜的话，界面上两个角色会长得一模一样——
+             *     而用户正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。
+             * @example requirement_analyst
+             * @example implementer
+             */
+            role?: string;
+            /**
+             * @description 角色的显示名（`需求分析师`）。★ 一并给出而不是让前端查表：
+             *     前端查表的话，认不出的角色会显示成一个原始 id。
+             * @example 需求分析师
+             */
+            role_display_name?: string;
+            /**
+             * @description 承担这一条的 Runtime，与 role 一起构成设计稿的 `Claude · 需求分析师`
+             * @example claude
+             * @example codex
+             */
+            runtime?: string;
+            /**
              * @description 按 `type` 变化的载荷。**开放形状**（`additionalProperties: true`）——
              *     ACP 的原始字段原样带上，前端认得的自己取，认不得的排查时也能看到全貌。
              *

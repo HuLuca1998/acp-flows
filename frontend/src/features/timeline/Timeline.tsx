@@ -31,6 +31,17 @@ type Segment = {
   /** 段内最后一条事件的序号，用来做 key 与调试 */
   lastSeq: number;
   count: number;
+  /**
+   * 这一段是**谁说的**。
+   *
+   * ★★ 来自事件载荷，**不在前端按 Runtime 名猜**：一个 Runtime 可以
+   * 承担多个角色（`claude` 同时是需求分析师和审查员），按名字猜的话
+   * 界面上两个角色会长得一模一样——而用户正是靠这个标签判断
+   * 「现在是谁在说话、他能不能动我的文件」。
+   */
+  role: string;
+  roleName: string;
+  runtime: string;
 };
 
 /**
@@ -60,6 +71,20 @@ export function Timeline({ events, hidden }: TimelineProps) {
             data-shape={renderer.shape}
             data-status={seg.status === "" ? undefined : seg.status}
           >
+            {/*
+              ★ 角色标签在最前面，形态照设计稿：`Claude · 需求分析师`。
+              没有角色的事件（state_change、checkpoint 这些应用自己发的）
+              **不显示这一块**——填个「系统」上去会让用户以为
+              有个叫「系统」的角色在干活。
+            */}
+            {seg.roleName !== "" && (
+              <span className={styles.role} data-role={seg.role}>
+                {seg.runtime !== "" && (
+                  <span className={styles.runtime}>{seg.runtime}</span>
+                )}
+                {seg.roleName}
+              </span>
+            )}
             <span className={styles.label}>{t(renderer.labelKey)}</span>
             {seg.detail !== "" && (
               <span className={styles.detail}>{seg.detail}</span>
@@ -128,9 +153,18 @@ function mergeEvents(
       }
     }
 
-    // 连续同类的文本流并进同一个气泡（流式消息）
+    // 连续同类的文本流并进同一个气泡（流式消息）。
+    //
+    // ★★ **角色不同就不能并**：那是两个人在说话。并进去的话，
+    // 需求分析师和实现工程师的话会挤在同一个气泡里，
+    // 而标签只剩一个——用户分不清哪句是谁说的。
     const last = out[out.length - 1];
-    if (renderer.merge === true && last !== undefined && last.type === type) {
+    if (
+      renderer.merge === true &&
+      last !== undefined &&
+      last.type === type &&
+      last.role === (e.role ?? "")
+    ) {
       last.text += text;
       last.lastSeq = e.seq ?? last.lastSeq;
       last.count += 1;
@@ -144,6 +178,9 @@ function mergeEvents(
       detail,
       detailRank,
       status,
+      role: e.role ?? "",
+      roleName: e.role_display_name ?? "",
+      runtime: e.runtime ?? "",
       lastSeq: e.seq ?? 0,
       count: 1,
     };

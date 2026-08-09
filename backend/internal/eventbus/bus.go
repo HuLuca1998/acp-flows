@@ -33,6 +33,14 @@ type Event struct {
 	Type    string          `json:"type"`
 	TS      time.Time       `json:"ts"`
 	Payload json.RawMessage `json:"payload,omitempty"`
+	// Role / RoleDisplayName / Runtime 说明**这一条是谁说的**。
+	//
+	// ★ 三个都可能为空：应用自己发的事件（state_change、checkpoint）
+	// 没有角色。**空就是空**，别填「系统」——那会让用户以为
+	// 有个叫「系统」的角色在干活。
+	Role            string `json:"role,omitempty"`
+	RoleDisplayName string `json:"role_display_name,omitempty"`
+	Runtime         string `json:"runtime,omitempty"`
 }
 
 // Store 是事件的持久化抽象。接口定义在使用方（Go 的惯例）。

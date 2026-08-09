@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
@@ -48,4 +50,19 @@ func modeIDFor(roleID, runtimeName string) (string, error) {
 			role.ID(), role.DisplayName(), role.SessionMode(), runtimeName, err)
 	}
 	return modeID, nil
+}
+
+// sinkFor 造一个会给事件盖上角色的 Sink。
+//
+// ★ 角色的显示名从角色库查——查不到就只带 id。
+// **不编一个显示名**：编出来的名字与角色页上那张表对不上，
+// 用户会以为有两个不同的角色。
+func (r *ProcessRunner) sinkFor(
+	ctx context.Context, log *slog.Logger, roleID, runtimeName string,
+) busSink {
+	sink := busSink{bus: r.Bus, ctx: ctx, log: log, role: roleID, runtime: runtimeName}
+	if role, err := model.RoleByID(roleID); err == nil {
+		sink.roleName = role.DisplayName()
+	}
+	return sink
 }

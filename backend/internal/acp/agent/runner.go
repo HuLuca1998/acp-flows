@@ -174,7 +174,7 @@ func (r *ProcessRunner) RunTurn(ctx context.Context, turn port.AgentTurn) error 
 		WorkID:       turn.WorkID,
 		Prompt:       turn.Prompt,
 		SystemPrompt: r.SystemPrompt,
-		Sink:         busSink{bus: r.Bus, ctx: ctx, log: log},
+		Sink:         r.sinkFor(ctx, log, roleID, ls.spec.Name),
 		Log:          log,
 	})
 
@@ -342,6 +342,13 @@ type busSink struct {
 	bus port.WorkEventBus
 	ctx context.Context
 	log *slog.Logger
+	// role / roleName / runtime 盖在**每一条**从这条会话发出去的事件上。
+	//
+	// ★★ 在这里盖而不是让每个 emit 点自己填：漏填一处的话，
+	// 界面上那条消息就没有角色标签，而用户会以为它是「系统」说的。
+	role     string
+	roleName string
+	runtime  string
 }
 
 // Emit 实现 Sink。
@@ -352,6 +359,11 @@ type busSink struct {
 func (s busSink) Emit(e WorkEvent) {
 	if s.bus == nil {
 		return
+	}
+	// ★ 只在事件自己没带角色时盖——将来某个事件想说明「这是另一个角色
+	// 产出的」时，不该被这里覆盖掉。
+	if e.Role == "" {
+		e.Role, e.RoleDisplayName, e.Runtime = s.role, s.roleName, s.runtime
 	}
 	if err := s.bus.PublishWorkEvent(s.ctx, e); err != nil {
 		s.log.Warn("事件发不到总线", "type", e.Type, "work_id", e.WorkID, "err", err)

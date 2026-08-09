@@ -527,3 +527,4 @@
 | `TestNewRequirement_DropsBlankItems` | `internal/domain/model/requirement_test.go` | domain | ★ 空白条目丢掉——留着的话「需求 6 · 已映射 6」会变成假的，那个 6 里有一条没内容 |
 | `TestRequirement_ResolveUnknownFactErrs` | `internal/domain/model/requirement_test.go` | domain | 划掉不存在的待确认事实要报错，否则用户以为自己确认过了 |
 | `TestRequirement_ReturnsCopies` | `internal/domain/model/requirement_test.go` | domain | `Items()` / `OpenFacts()` 返回副本 |
+| `TestRunTurn_StampsRoleOnEveryEvent` | `internal/acp/agent/role_test.go` | acp | M5 U5.3.1：★★ **每条事件都盖着是谁说的**（role + 显示名 + runtime）。漏盖的话界面上那条消息没有角色标签，用户会以为它是「系统」说的——而他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。★ 显示名一并给出，让前端查表的话认不出的角色会显示成原始 id |

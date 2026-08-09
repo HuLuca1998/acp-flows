@@ -89,7 +89,22 @@ type WorkEvent struct {
 	// Source 取值 acp | app，与 api/openapi.yaml 的 Event.source 一致。
 	Source string
 	// Type 是 13 类之一，见契约的 Event.type。
-	Type    string
+	Type string
+
+	// Role / RoleDisplayName / Runtime 说明**这一条是谁说的**。
+	//
+	// ★★ 由后端填，**前端不许按 Runtime 名猜**：一个 Runtime 可以承担
+	// 多个角色（`claude` 同时是需求分析师和审查员），按名字猜的话
+	// 界面上两个角色会长得一模一样——而用户正是靠这个标签判断
+	// 「现在是谁在说话、他能不能动我的文件」。
+	//
+	// ★ 三个都可能为空：应用自己发的事件（state_change、checkpoint）
+	// 没有角色。**空就是空**，别填一个「系统」上去——那会让用户
+	// 以为有个叫「系统」的角色在干活。
+	Role            string
+	RoleDisplayName string
+	Runtime         string
+
 	Payload map[string]any
 }
 

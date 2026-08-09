@@ -198,3 +198,72 @@ func readLog(t *testing.T, path string) string {
 	}
 	return string(b)
 }
+
+// ★★ 每条事件都盖着**是谁说的**。
+//
+// 漏盖的话，界面上那条消息没有角色标签，而用户会以为它是「系统」说的——
+// 他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。
+func TestRunTurn_StampsRoleOnEveryEvent(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "frames.ndjson")
+	bin := recordingAgentTalking(t, "claude-agent-acp", log)
+
+	bus := &busRecorder{}
+	r := &agent.ProcessRunner{
+		Specs: []runtime.Spec{{Name: "claude", Bin: bin, VersionArgs: []string{"--version"}}},
+		Bus:   bus,
+	}
+	if err := r.RunTurn(context.Background(), port.AgentTurn{
+		WorkID: "work-01", Cwd: t.TempDir(), Prompt: "做点事", RoleID: "unit_reviewer",
+	}); err != nil {
+		t.Fatalf("跑一轮: %v", err)
+	}
+
+	events := bus.snapshot()
+	if len(events) == 0 {
+		t.Fatal("一条事件都没发出去")
+	}
+	for _, e := range events {
+		if e.Role != "unit_reviewer" {
+			t.Errorf("事件 %q 的角色 = %q，想要 unit_reviewer——"+
+				"没有角色标签的话，用户会以为这条是「系统」说的", e.Type, e.Role)
+		}
+		// ★ 显示名一并给出：让前端查表的话，认不出的角色会显示成原始 id
+		if e.RoleDisplayName != "实现审查员" {
+			t.Errorf("事件 %q 的显示名 = %q", e.Type, e.RoleDisplayName)
+		}
+		if e.Runtime != "claude" {
+			t.Errorf("事件 %q 的 runtime = %q", e.Type, e.Runtime)
+		}
+	}
+}
+
+// recordingAgentTalking 是一个会说一句话再结束的假 Agent。
+func recordingAgentTalking(t *testing.T, name, logPath string) string {
+	t.Helper()
+	body := `
+case "$1" in
+  --version) echo "0.63.0"; exit 0 ;;
+esac
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "` + logPath + `"
+  id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+  case "$line" in
+    *'"initialize"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
+    *'"session/new"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan"}]}}\n' "$id" ;;
+    *'"session/prompt"'*)
+      printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"我看看"}}}}\n'
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
+  esac
+done
+`
+	dir := t.TempDir()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}

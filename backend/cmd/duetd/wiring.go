@@ -150,6 +150,9 @@ func (b workBus) PublishWorkEvent(ctx context.Context, e port.WorkEvent) error {
 	return b.bus.Publish(ctx, eventbus.Event{
 		ID: "evt_" + e.WorkID, WorkID: e.WorkID,
 		Source: e.Source, Type: e.Type, Payload: payload,
+		// ★ 角色一路穿到界面：断在这里的话，前端只能按 Runtime 名猜，
+		// 而一个 Runtime 承担多个角色时那两个角色会长得一模一样。
+		Role: e.Role, RoleDisplayName: e.RoleDisplayName, Runtime: e.Runtime,
 	})
 }
 

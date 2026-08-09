@@ -19,6 +19,27 @@ function ev(type: string, text?: string): TimelineEvent {
   }
 }
 
+/**
+ * 带角色的事件。
+ *
+ * ★ 复用 `ev()` 而不是另写一份：另写的话，将来契约加一个必填字段时
+ * 会有两处要改，而漏掉一处只有 tsc 会红。
+ */
+function roleEv(
+  type: string,
+  role: string,
+  roleName: string,
+  text?: string,
+  runtime?: string,
+): TimelineEvent {
+  return {
+    ...ev(type, text),
+    role,
+    role_display_name: roleName,
+    ...(runtime === undefined ? {} : { runtime }),
+  }
+}
+
 describe('时间线', () => {
   // ★ R4：文字流式追加**不闪烁**。
   //
@@ -271,5 +292,88 @@ describe('工具调用', () => {
     render(<Timeline events={[toolEv({})]} />)
 
     expect(screen.getByText(/工具调用/)).toBeInTheDocument()
+  })
+})
+
+// M5 U5.3.1 · 消息按角色分栏
+//
+// ★★ 用户正是靠角色标签判断「现在是谁在说话、他能不能动我的文件」。
+
+describe('角色标签', () => {
+  // ★ 标签形态照设计稿：`Claude · 需求分析师`。
+  it('显示角色与它用的 Runtime', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题', 'claude'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('需求分析师')).toBeInTheDocument()
+    expect(screen.getByText('claude')).toBeInTheDocument()
+  })
+
+  // ★★ **角色不同就不合并**：那是两个人在说话。
+  //
+  // 并进去的话，需求分析师和实现工程师的话会挤在同一个气泡里，
+  // 而标签只剩一个——用户分不清哪句是谁说的。
+  it('不同角色的连续消息不合并', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '问题问完了。'),
+          roleEv('message_chunk', 'implementer', '实现工程师', '我开始写。'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('需求分析师')).toBeInTheDocument()
+    expect(
+      screen.getByText('实现工程师'),
+      '两个角色的话被并进同一个气泡了——用户分不清哪句是谁说的',
+    ).toBeInTheDocument()
+  })
+
+  // 同一个角色的连续片段照常合并（那是流式文本，不合并会疯狂重排）。
+  it('同角色的连续片段仍然合并', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'implementer', '实现工程师', '前半句'),
+          roleEv('message_chunk', 'implementer', '实现工程师', '后半句'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('前半句后半句')).toBeInTheDocument()
+    expect(screen.getAllByText('实现工程师').length).toBe(1)
+  })
+
+  // ★★ 没有角色的事件**不显示这一块**。
+  //
+  // 填个「系统」上去，会让用户以为有个叫「系统」的角色在干活。
+  it('应用自己发的事件不显示角色', () => {
+    render(
+      <Timeline events={[{ ...ev('state_change'), payload: { to: 'executing' } }]} />,
+    )
+
+    expect(screen.queryByText(/系统/)).not.toBeInTheDocument()
+    // 消息本身照常显示
+    expect(document.querySelector('[data-event-type="state_change"]')).not.toBeNull()
+  })
+
+  // ★ 认不出的角色**照常显示消息**，只是标签退化成后端给的原文。
+  it('认不出的角色不吞掉消息', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'some_future_role', '某个新角色', '重要的话'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('重要的话')).toBeInTheDocument()
+    expect(screen.getByText('某个新角色')).toBeInTheDocument()
   })
 })
