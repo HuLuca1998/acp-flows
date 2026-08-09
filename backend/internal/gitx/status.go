@@ -222,6 +222,16 @@ func ProbeWorktree(ctx context.Context, path, base string) (WorktreeState, error
 		st.Changes = parseNumstat(out)
 	}
 
+	// ★★ **未跟踪的新文件也算改动。**
+	//
+	// `git diff` 不认识它们——而 AI 干活时新建文件是常态。不算的话，
+	// 一个新写了三个文件的单元，右栏与验收证据都显示「改了 0 个文件」，
+	// 而用户会以为它什么都没做。
+	//
+	// ★ 增删行数按「全是新增」算：它对 git 来说还不存在，
+	// 所以每一行都是新的。
+	st.Changes = append(st.Changes, untrackedChanges(ctx, path)...)
+
 	if base == "" {
 		// ★ 早返回守的是「**不依赖 git 对空 ref 的解释**」。
 		//
@@ -293,6 +303,44 @@ func atoiSafe(s string) int {
 	n, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil {
 		return 0
+	}
+	return n
+}
+
+// untrackedChanges 把未跟踪的新文件也变成改动条目。
+//
+// ★ `--others --exclude-standard` 是「未跟踪且没被 .gitignore 忽略的」——
+// 带上被忽略的话，`node_modules` 会把证据淹掉。
+func untrackedChanges(ctx context.Context, path string) []FileChange {
+	out, err := run(ctx, path, "ls-files", "--others", "--exclude-standard")
+	if err != nil {
+		return nil
+	}
+
+	var changes []FileChange
+	for _, name := range strings.Split(strings.TrimSpace(out), "\n") {
+		if name = strings.TrimSpace(name); name == "" {
+			continue
+		}
+		changes = append(changes, FileChange{Path: name, Added: countLines(path, name)})
+	}
+	return changes
+}
+
+// countLines 数一个新文件有多少行。读不出来时返回 0——
+// ★ 二进制文件、权限不足都会走到这里，而**报 0 行比报错更合适**：
+// 那个文件确实在改动列表里，只是行数说不清。
+func countLines(repo, name string) int {
+	data, err := os.ReadFile(filepath.Join(repo, name))
+	if err != nil {
+		return 0
+	}
+	if len(data) == 0 {
+		return 0
+	}
+	n := strings.Count(string(data), "\n")
+	if !strings.HasSuffix(string(data), "\n") {
+		n++ // 最后一行没有换行符
 	}
 	return n
 }

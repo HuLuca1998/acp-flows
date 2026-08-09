@@ -46,6 +46,15 @@ type Contracts interface {
 	ContractVersions(ctx context.Context, unitID string) ([]*model.UnitContract, error)
 }
 
+// Evidence 是证据的持久化抽象。
+//
+// ★★ **没有 Update，也没有 Delete**：证据被改写过就不再是证据了——
+// 「当时到底跑出了什么」没有第二个地方可查。
+type Evidence interface {
+	SaveEvidence(ctx context.Context, workID string, e model.Evidence) error
+	EvidenceOf(ctx context.Context, workID, unitID string) ([]model.Evidence, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，

@@ -5,9 +5,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
+	"github.com/HuLuca1998/acp-flows/backend/tests/testutil"
 )
 
 // M4 U4.1.1 · 开工前的仓库状态
@@ -365,5 +367,64 @@ func TestProbeWorktree_CleanTreeIsFine(t *testing.T) {
 func TestProbeWorktree_NonRepoErrs(t *testing.T) {
 	if _, err := gitx.ProbeWorktree(context.Background(), t.TempDir(), ""); err == nil {
 		t.Error("非仓库却没报错")
+	}
+}
+
+// ★★ **未跟踪的新文件也算改动**（M8 U8.1.2 发现的）。
+//
+// `git diff` 不认识它们——而 AI 干活时新建文件是常态。不算的话，
+// 一个新写了三个文件的单元，右栏与验收证据都显示「改了 0 个文件」，
+// 而用户会以为它什么都没做。
+func TestProbeWorktree_CountsUntrackedFiles(t *testing.T) {
+	repo := testutil.NewGitRepo(t)
+	writeInRepo(t, repo, "brand-new.go", "package main\n\nfunc main() {}\n")
+
+	st, err := gitx.ProbeWorktree(context.Background(), repo, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var found bool
+	for _, c := range st.Changes {
+		if c.Path != "brand-new.go" {
+			continue
+		}
+		found = true
+		// ★ 按「全是新增」算：它对 git 来说还不存在，所以每一行都是新的
+		if c.Added != 3 {
+			t.Errorf("新文件的增行 = %d，想要 3", c.Added)
+		}
+	}
+	if !found {
+		t.Error("新建的文件不在改动列表里——用户会以为 AI 什么都没做")
+	}
+}
+
+// ★ 被 .gitignore 忽略的**不算**：带上的话 `node_modules` 会把证据淹掉。
+func TestProbeWorktree_SkipsIgnoredFiles(t *testing.T) {
+	repo := testutil.NewGitRepo(t)
+	writeInRepo(t, repo, ".gitignore", "junk/\n")
+	writeInRepo(t, repo, "junk/big.txt", "x\n")
+
+	st, err := gitx.ProbeWorktree(context.Background(), repo, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range st.Changes {
+		if strings.HasPrefix(c.Path, "junk/") {
+			t.Errorf("被忽略的文件混进了改动列表：%s——node_modules 会把证据淹掉", c.Path)
+		}
+	}
+}
+
+// writeInRepo 在仓库里真的写一个文件（必要时建目录）。
+func writeInRepo(t *testing.T, repo, name, content string) {
+	t.Helper()
+	full := filepath.Join(repo, name)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

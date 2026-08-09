@@ -577,6 +577,12 @@
 | `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
 | `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
 | `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
+| `TestCollectDiffEvidence_R1R4_ComesFromGitAndIsMarkedAsApp` | `internal/app/work/evidence_test.go` | app | ★★ M8 U8.1.2 R1 R4：diff 证据从**真 git** 读出来（真仓库真文件，不塞假探针——假的返回什么都行，而这个单元测的正是「读出来的与仓库里的一致」），且标着 `source=app` |
+| `TestCollectDiffEvidence_R2_DoesNotTouchTheWorktree` | `internal/app/work/evidence_test.go` | app | R2：采集**只读**，采集前后工作区快照一致 |
+| `TestCollectDiffEvidence_R3_NoProbeSaysSo` | `internal/app/work/evidence_test.go` | app | ★★ R3：没装配 git 探针时报错，**不留一条空证据**——空证据会让「验收证据 1 条」变成假的，用户点开是空的，而他不会再信这个数 |
+| `TestAcceptanceOf_MarksCriteriaWithoutEvidence` | `internal/app/work/evidence_test.go` | app | ★★ 没证据的标准**留在表里且为空**，不是「通过」——把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。★ 顺序照契约不照 map（用户是照着契约那张表一条条核对的） |
+| `TestProbeWorktree_CountsUntrackedFiles` | `internal/gitx/status_test.go` | git | ★★ **未跟踪的新文件也算改动**（M8 采集时发现的）：`git diff` 不认识它们，而 AI 干活时新建文件是常态。不算的话，新写了三个文件的单元显示「改了 0 个文件」，用户会以为它什么都没做 |
+| `TestProbeWorktree_SkipsIgnoredFiles` | `internal/gitx/status_test.go` | git | ★ 被 `.gitignore` 忽略的不算——带上的话 `node_modules` 会把证据淹掉 |
 | `TestEvidence_R1_KindIsClosed` | `internal/domain/model/evidence_test.go` | domain | M8 U8.1.1 R1：证据四类封闭（diff / test / command / review），第五类被拒 |
 | `TestEvidence_R3_SourceIsRequired` | `internal/domain/model/evidence_test.go` | domain | ★★ R3：来源**必填**。留空的话一条 AI 转述会和一份应用采集的 diff 长得一样——而用户判断「该不该信」全靠这一个字段 |
 | `TestEvidence_R4_AgentReportsAreMarked` | `internal/domain/model/evidence_test.go` | domain | ★★ R4：AI 转述的与应用采集的分得开。让 AI 报告自己干了什么，等于让被考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次 |

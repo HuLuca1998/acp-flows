@@ -54,6 +54,9 @@ type Service struct {
 	// contracts 存单元契约。边界判定要靠它——为 nil 时一律判「说不清」，
 	// **不是**「没问题」。
 	contracts port.Contracts
+	// evidence 存证据。为 nil 时采集照跑但不落盘——
+	// 那时用户重开应用证据就没了，所以装配必须给它。
+	evidence port.Evidence
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
