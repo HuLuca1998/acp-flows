@@ -577,6 +577,13 @@
 | `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
 | `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
 | `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
+| `TestEvidence_R1_KindIsClosed` | `internal/domain/model/evidence_test.go` | domain | M8 U8.1.1 R1：证据四类封闭（diff / test / command / review），第五类被拒 |
+| `TestEvidence_R3_SourceIsRequired` | `internal/domain/model/evidence_test.go` | domain | ★★ R3：来源**必填**。留空的话一条 AI 转述会和一份应用采集的 diff 长得一样——而用户判断「该不该信」全靠这一个字段 |
+| `TestEvidence_R4_AgentReportsAreMarked` | `internal/domain/model/evidence_test.go` | domain | ★★ R4：AI 转述的与应用采集的分得开。让 AI 报告自己干了什么，等于让被考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次 |
+| `TestEvidence_R2_IsImmutable` | `internal/domain/model/evidence_test.go` | domain | R2：反射断言只有读方法；证据被改写过就不再是证据了——「当时到底跑出了什么」没有第二个地方可查 |
+| `TestEvidence_KeepsTheRawBody` | `internal/domain/model/evidence_test.go` | domain | ★ 原始输出**原样存**不截断不美化——截断过的输出在排查时等于没有 |
+| `TestEvidence_R5_ManyToMany` | `internal/domain/model/evidence_test.go` | domain | ★★ R5：一条证据支持多条标准、一条标准可有多条证据；**没有证据的那条留在结果里**（值是空切片）——去掉的话调用方会以为所有标准都有证据 |
+| `TestCriteriaCoverage_IgnoresUnknownCriteria` | `internal/domain/model/evidence_test.go` | domain | ★★ 证据指向契约里没有的标准时不计入——静静收下的话「已覆盖 5 条」里会有一条根本不在契约里 |
 | `TestWriteBoundary_R1_MatchesByPathSegment` | `internal/domain/model/write_boundary_test.go` | domain | ★★ M7 U7.1.1 R1：边界按**路径段**比不是字符串前缀——`internal/acp/` 不该匹配 `internal/acpx/foo.go`，那是用户从没同意过的目录。**负例验过**：退回朴素前缀当场红 |
 | `TestWriteBoundary_R2_ForbiddenWins` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R2：禁止项压过允许项。反过来的话「允许 internal/、禁止 internal/api/gen/」会让生成物被放行——而它正是被单独拎出来禁止的那一个 |
 | `TestWriteBoundary_R3_EmptyIsUnknownNotAllowed` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R3：空边界判 `unknown` **不是** `in_boundary`。把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |

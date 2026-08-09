@@ -61,6 +61,21 @@ EXEMPT = {
     #
     # **什么时候该重新考虑**：某个资源族自己长到三四个文件（那时它自成一包，
     # 比如 api/work/），或总数超过 22。到那时分法也会自然清楚。
+    # ★ 领域模型：一个文件 = 一个聚合或值对象（work / plan / subplan /
+    # requirement / unit_contract / evidence / memory / skill / role / project…），
+    # 「新聚合放哪」有唯一答案——新建一个同名文件。
+    #
+    # **分不动的原因是它们互相引用**：`Unit` 校验角色要 `RoleByID`，
+    # `CriteriaCoverage` 要 `Criterion`，`PlanVersion` 装 `Subplan`。
+    # 拆成「一个包一个聚合」会立刻循环依赖；拆成「聚合包 + 共享包」的话，
+    # 那个共享包会装下所有互相引用的类型——也就是大部分，
+    # 而剩下的几个孤岛不值得一个新包。
+    #
+    # **什么时候该重新考虑**：出现一族**互不引用**的类型（比如将来的
+    # 报表统计值对象），或总数超过 25。
+    "backend/internal/domain/model": "一个文件 = 一个聚合或值对象，「新聚合放哪」有唯一答案；"
+                                     "它们互相引用（Unit→RoleByID、Coverage→Criterion），"
+                                     "分包会立刻循环依赖。出现互不引用的一族、或超过 25 个时重新考虑",
     "backend/internal/api": "一个文件 = openapi 的一个资源族，「新端点放哪」有唯一答案；"
                             "分子目录要先把 Problem/JSON/Config 提成一个没有身份的公共包。"
                             "某个资源族长到三四个文件、或总数超过 22 时重新考虑",
