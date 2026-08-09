@@ -18,6 +18,7 @@ describe('事件注册表', () => {
     'request_permission',
     'turn_end',
     // 来自应用控制层
+    'user_message',
     'plan_version',
     'unit_contract',
     'state_change',
@@ -28,8 +29,8 @@ describe('事件注册表', () => {
     'checkpoint',
   ] as const
 
-  it('契约里的 13 类事件每一类都有渲染器', () => {
-    expect(CONTRACT_TYPES).toHaveLength(13)
+  it('契约里的 14 类事件每一类都有渲染器', () => {
+    expect(CONTRACT_TYPES).toHaveLength(14)
 
     for (const type of CONTRACT_TYPES) {
       const renderer = rendererFor(type)
@@ -84,8 +85,20 @@ describe('事件注册表', () => {
       }
     }
 
-    // 每一类都能被某个过滤项管到——管不到的那类，用户没办法把它关掉
+    // ★★ **用户自己说的话故意不进过滤器**——别的都能关掉，唯独它不该消失。
+    //
+    // 把它关掉之后时间线上只剩 AI 的独白，而「它有没有听懂我」
+    // 正是靠两句话对照看出来的。这不是漏登记，是裁定。
+    const ALWAYS_ON = new Set(['user_message'])
+
+    // 其余每一类都能被某个过滤项管到——管不到的那类，用户没办法把它关掉
     for (const type of CONTRACT_TYPES) {
+      if (ALWAYS_ON.has(type)) {
+        expect(covered, `${type} 被登记进过滤器了——用户自己说的话不该能被关掉`).not.toContain(
+          type,
+        )
+        continue
+      }
       expect(covered, `事件 ${type} 不属于任何过滤项，用户关不掉它`).toContain(type)
     }
   })
@@ -94,9 +107,9 @@ describe('事件注册表', () => {
   //
   // 这条用「注册表是数据」来保证：EVENT_KINDS 由注册表推导，
   // 没有任何地方写 switch。真有人改成 switch 的话，
-  // 上面「13 类都有渲染器」那条会在他漏掉一个 case 时红。
+  // 上面「14 类都有渲染器」那条会在他漏掉一个 case 时红。
   it('注册表是数据，事件类型由它推导而不是各处硬编码', () => {
-    expect(EVENT_KINDS.length).toBe(13)
+    expect(EVENT_KINDS.length).toBe(14)
     // 顺序无所谓，但内容必须与契约一致
     expect([...EVENT_KINDS].sort()).toEqual([...CONTRACT_TYPES].sort())
   })

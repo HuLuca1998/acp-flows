@@ -210,9 +210,42 @@ func TestStart_TransitionsThroughInitializing(t *testing.T) {
 	if len(types) == 0 {
 		t.Fatal("一个事件都没发——界面不会知道有新工作")
 	}
-	if types[0] != "state_change" {
-		t.Errorf("第一个事件是 %q，想要 state_change", types[0])
+	// ★ 用户自己说的那句话排在最前——那是**最先发生的事**
+	if types[0] != "user_message" {
+		t.Errorf("第一个事件是 %q，想要 user_message", types[0])
 	}
+	if len(types) < 2 || types[1] != "state_change" {
+		t.Errorf("事件序列 = %v，第二条想要 state_change", types)
+	}
+}
+
+// ★★ 用户自己说的那句话**要进时间线**（U5.3.1 R2）。
+//
+// 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么。
+// 而「它有没有听懂我」正是靠两句话对照着看出来的：
+// 他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据。
+func TestStart_PutsTheUsersOwnWordsOnTheTimeline(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newService(t, &memWorks{}, bus)
+
+	const said = "用户能取消正在运行的 turn，取消后现场证据要保留。先别写代码。"
+	if _, err := svc.Start(context.Background(), project, said, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, e := range bus.snapshot() {
+		if e.Type != "user_message" {
+			continue
+		}
+		// ★ 判据是**原话一个字不少**：截断或改写的话，
+		// 用户回头核对「我当时到底怎么说的」会核对到一句不是他说的话。
+		if got, _ := e.Payload["text"].(string); got != said {
+			t.Fatalf("载荷里的原话 = %q，想要 %q", got, said)
+		}
+		return
+	}
+	t.Fatal("时间线上没有用户自己说的那句话——他只看得到 AI 的独白")
 }
 
 // ★ worktree 切失败时进 initializing_failed（**终态，不可恢复**），

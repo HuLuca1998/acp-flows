@@ -952,7 +952,7 @@ export interface components {
             /** @enum {string} */
             source: "acp" | "app";
             /** @enum {string} */
-            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
+            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "user_message" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
             /** Format: date-time */
             ts: string;
             /**
@@ -978,6 +978,26 @@ export interface components {
              * @example codex
              */
             runtime?: string;
+            /**
+             * @description 说这句话的时候，需求是**第几版**。0 表示这个工作还没有需求快照。
+             *
+             *     ★★ 与 `role` 同样由后端盖上，**前端不许自己去查**：
+             *     前端另查一次的话，拿到的是「现在」的版本，
+             *     而用户看的是一条历史消息——他会以为当时就已经是 v3 了。
+             *
+             *     设计稿把它画成角色名旁边的一枚等宽小标签（`requirement v2 已冻结`），
+             *     不是一条独立的时间线记录。
+             * @example 1
+             * @example 2
+             */
+            requirement_version?: number;
+            /**
+             * @description 说这句话的时候，那一版需求冻结了没有。
+             *
+             *     ★ 冻结与否决定用户下一步能不能做（没冻结就不能进计划），
+             *     所以它和版本号一样要跟着消息走。
+             */
+            requirement_frozen?: boolean;
             /**
              * @description 按 `type` 变化的载荷。**开放形状**（`additionalProperties: true`）——
              *     ACP 的原始字段原样带上，前端认得的自己取，认不得的排查时也能看到全貌。

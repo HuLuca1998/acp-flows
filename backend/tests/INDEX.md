@@ -538,4 +538,5 @@
 | `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
 | `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
 | `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
+| `TestStart_PutsTheUsersOwnWordsOnTheTimeline` | `internal/app/work/service_test.go` | app | M5 U5.3.1 R2：★★ 用户自己说的那句话要进时间线，且**原话一个字不少**。不发的话对话页上只有 AI 的独白——而「它有没有听懂我」正是靠两句话对照看出来的：他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据 |
 | `TestRunTurn_StampsRoleOnEveryEvent` | `internal/acp/agent/role_test.go` | acp | M5 U5.3.1：★★ **每条事件都盖着是谁说的**（role + 显示名 + runtime）。漏盖的话界面上那条消息没有角色标签，用户会以为它是「系统」说的——而他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。★ 显示名一并给出，让前端查表的话认不出的角色会显示成原始 id |

@@ -88,6 +88,14 @@ func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (V
 	if err := s.repo.SaveWork(ctx, w); err != nil {
 		return View{}, fmt.Errorf("保存工作 %s: %w", id, err)
 	}
+	// ★★ **先把用户自己说的那句话记下来**，排在一切之前。
+	//
+	// 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么。
+	// 而「它有没有听懂我」正是靠两句话对照着看出来的：
+	// 他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据。
+	//
+	// ★ 排在 state_change 之前：那句话是**最先发生的事**。
+	s.emit(ctx, id, "user_message", map[string]any{"text": prompt})
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
 
 	wt, err := s.worktrees.CreateWorktree(ctx, project, id, baseRef)

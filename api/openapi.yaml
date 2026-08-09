@@ -1191,6 +1191,11 @@ components:
             - request_permission
             - turn_end
             # 来自应用控制层（这些永远可点开到对应的结构化产物）
+            #
+            # ★★ user_message 是**用户自己说的那句话**。
+            # 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么，
+            # 而「它有没有听懂我」正是靠两句话对照着看出来的。
+            - user_message
             - plan_version
             - unit_contract
             - state_change
@@ -1220,6 +1225,25 @@ components:
           type: string
           description: 承担这一条的 Runtime，与 role 一起构成设计稿的 `Claude · 需求分析师`
           examples: [claude, codex]
+        requirement_version:
+          type: integer
+          description: |
+            说这句话的时候，需求是**第几版**。0 表示这个工作还没有需求快照。
+
+            ★★ 与 `role` 同样由后端盖上，**前端不许自己去查**：
+            前端另查一次的话，拿到的是「现在」的版本，
+            而用户看的是一条历史消息——他会以为当时就已经是 v3 了。
+
+            设计稿把它画成角色名旁边的一枚等宽小标签（`requirement v2 已冻结`），
+            不是一条独立的时间线记录。
+          examples: [1, 2]
+        requirement_frozen:
+          type: boolean
+          description: |
+            说这句话的时候，那一版需求冻结了没有。
+
+            ★ 冻结与否决定用户下一步能不能做（没冻结就不能进计划），
+            所以它和版本号一样要跟着消息走。
         payload:
           type: object
           description: |

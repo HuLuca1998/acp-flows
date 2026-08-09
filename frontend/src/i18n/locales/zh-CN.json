@@ -200,6 +200,7 @@
   "timeline.event.turnEnd": "本轮结束",
   "timeline.event.unitContract": "契约",
   "timeline.event.unknown": "这条记录来自更新过的 AI，当前版本还不认识它",
+  "timeline.event.userMessage": "我说的",
   "timeline.filter.all": "全选",
   "timeline.filter.contract": "契约冻结 / 修订",
   "timeline.filter.decision": "决策与证据",

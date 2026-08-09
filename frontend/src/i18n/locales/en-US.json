@@ -200,6 +200,7 @@
   "timeline.event.turnEnd": "Turn ended",
   "timeline.event.unitContract": "Contract",
   "timeline.event.unknown": "This came from a newer AI — this version doesn't know it yet",
+  "timeline.event.userMessage": "You said",
   "timeline.filter.all": "All",
   "timeline.filter.contract": "Contract freeze / revision",
   "timeline.filter.decision": "Decisions and evidence",

@@ -69,6 +69,7 @@ export function Timeline({ events, hidden }: TimelineProps) {
             className={`${styles.item} ${styles[renderer.shape]}`}
             data-event-type={seg.type}
             data-shape={renderer.shape}
+            data-align={renderer.align ?? "start"}
             data-status={seg.status === "" ? undefined : seg.status}
           >
             {/*

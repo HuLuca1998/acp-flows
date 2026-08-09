@@ -377,3 +377,45 @@ describe('角色标签', () => {
     expect(screen.getByText('某个新角色')).toBeInTheDocument()
   })
 })
+
+// M5 U5.3.1 R2 · 用户消息右对齐气泡
+//
+// ★★ 挤在同一侧的话，一屏滚下来「哪句是我说的、哪句是它说的」
+// 要逐条读文字才分得清。
+
+describe('用户自己说的话', () => {
+  it('和 AI 的话分列两侧', () => {
+    render(
+      <Timeline
+        events={[
+          ev('user_message', '先别写代码，先把范围说清楚。'),
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '好，我先问几个问题。'),
+        ]}
+      />,
+    )
+
+    const mine = document.querySelector('[data-event-type="user_message"]')
+    const theirs = document.querySelector('[data-event-type="message_chunk"]')
+    expect(mine?.getAttribute('data-align')).toBe('end')
+    expect(
+      theirs?.getAttribute('data-align'),
+      'AI 的话也排到了右边——两侧分不开，用户要逐条读文字才知道哪句是自己说的',
+    ).toBe('start')
+  })
+
+  // ★ 内容照常显示——对齐方式变了而话没了是更糟的结果。
+  it('原话一个字不少', () => {
+    render(<Timeline events={[ev('user_message', '取消后现场证据要保留')]} />)
+    expect(screen.getByText('取消后现场证据要保留')).toBeInTheDocument()
+  })
+
+  // ★★ 用户消息**没有角色标签**：照设计稿，那一侧不画头像也不写名字。
+  //
+  // 给它安一个「用户 · 你」之类的标签，会让他以为自己也是被编排的一个角色。
+  it('不带角色标签', () => {
+    render(<Timeline events={[ev('user_message', '我说的话')]} />)
+
+    const mine = document.querySelector('[data-event-type="user_message"]')
+    expect(mine?.querySelector('[data-role]')).toBeNull()
+  })
+})
