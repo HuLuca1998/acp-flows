@@ -99,6 +99,29 @@ type Work struct {
 	worktreePath string
 	baseCommit   string
 	branch       string
+	// currentUnitID 是**现在在做哪个单元**。
+	//
+	// ★★ 有它才谈得上「这次写入在不在边界内」——边界写在单元的契约里，
+	// 不知道是哪个单元就查不到契约，而那时权限卡片只能说「不知道」。
+	//
+	// ★ 空表示还没开始做任何单元（澄清、规划阶段都是空的）。
+	currentUnitID string
+}
+
+// CurrentUnitID 返回现在在做的单元；空表示还没开始做任何单元。
+func (w *Work) CurrentUnitID() string { return w.currentUnitID }
+
+// StartUnit 把「现在在做哪个单元」切到 unitID。
+//
+// ★ 终态的工作切不动：一个已经完成的工作又「开始做某个单元」说不清是什么
+// 意思，而它会让边界判定拿到一份过期的契约。
+func (w *Work) StartUnit(unitID string) error {
+	if IsTerminal(w.state) {
+		return fmt.Errorf("work %s: %s 状态下不能开始单元: %w",
+			w.id, w.state, ErrTerminalState)
+	}
+	w.currentUnitID = unitID
+	return nil
 }
 
 // WorktreePath 返回工作区路径；还没切时为空。

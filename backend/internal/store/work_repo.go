@@ -21,7 +21,8 @@ type WorkRepo struct {
 }
 
 // 查询时显式列出列，不用 SELECT *：加列时不会静默改变返回结构。
-const workColumns = "id, project_id, state, branch, worktree, base_commit, created_at, updated_at"
+const workColumns = "id, project_id, state, branch, worktree, base_commit, " +
+	"current_unit_id, created_at, updated_at"
 
 // CreateWork 新增一条工作记录。
 func (r *WorkRepo) CreateWork(ctx context.Context, w *model.Work) error {

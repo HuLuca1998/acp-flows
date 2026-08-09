@@ -334,3 +334,152 @@ func TestStartPlanning_UnparseableReplySaysWhy(t *testing.T) {
 		return
 	}
 }
+
+// ★★ M7 U7.2.1 · 边界判定接到真实数据上。
+//
+// 「说不清」有四种，每一种都必须返回 `unknown` 而不是 `in_boundary`——
+// 把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默。
+func TestBoundaryFor_UnknownWhenItCannotTell(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	ctx := context.Background()
+
+	// ① 没装配契约存储
+	bare := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+	view, err := bare.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bare.BoundaryFor(ctx, view.ID, "internal/acp/x.go"); got != model.BoundaryUnknown {
+		t.Errorf("没装配契约存储时 = %q，想要 unknown", got)
+	}
+
+	// ② 工作查不到
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+	svc.SetContracts(newMemContracts())
+	if got := svc.BoundaryFor(ctx, "work-nope", "x.go"); got != model.BoundaryUnknown {
+		t.Errorf("工作查不到时 = %q，想要 unknown", got)
+	}
+
+	// ③ 还没开始做任何单元（澄清、规划阶段）
+	// ★ 另开一个项目：同一个项目下 workID 会撞上已经存在的分支
+	v2, err := svc.Start(ctx, testutil.NewGitRepo(t), "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := svc.BoundaryFor(ctx, v2.ID, "internal/acp/x.go"); got != model.BoundaryUnknown {
+		t.Errorf("还没开始做单元时 = %q，想要 unknown——"+
+			"契约还没冻结时用户正好最需要看清楚 AI 要动什么", got)
+	}
+
+	// ④ 路径为空（执行命令这类请求给不出路径）
+	if got := svc.BoundaryFor(ctx, v2.ID, ""); got != model.BoundaryUnknown {
+		t.Errorf("没有路径时 = %q，想要 unknown", got)
+	}
+}
+
+// ★★ 有契约时**真的判得出来**——不然上面那些 unknown 就只是永远说不清。
+func TestBoundaryFor_JudgesAgainstTheCurrentUnitsContract(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	repo := &memWorks{}
+	contracts := newMemContracts()
+	svc := newServiceWithRunner(t, repo, &recordingBus{}, &fakeRunner{})
+	svc.SetContracts(contracts)
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 契约：允许 internal/acp/，禁止里面的生成物
+	c := model.NewUnitContract("unit-012", 1)
+	if err := c.SetBoundary(model.WriteBoundary{
+		Allowed:   []string{"internal/acp/"},
+		Forbidden: []string{"internal/acp/gen/"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := contracts.SaveContract(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+
+	// 把工作切到那个单元
+	w, err := repo.FindWork(ctx, view.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.StartUnit("unit-012"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SaveWork(ctx, w); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		path string
+		want model.BoundaryVerdict
+	}{
+		{"internal/acp/session.go", model.BoundaryInside},
+		{"internal/acp/gen/x.go", model.BoundaryOutside},
+		{"README.md", model.BoundaryOutside},
+	} {
+		if got := svc.BoundaryFor(ctx, view.ID, tc.path); got != tc.want {
+			t.Errorf("BoundaryFor(%q) = %q，想要 %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+// memContracts 是内存版契约仓储。
+type memContracts struct {
+	mu    sync.Mutex
+	items map[string][]*model.UnitContract
+}
+
+func newMemContracts() *memContracts {
+	return &memContracts{items: map[string][]*model.UnitContract{}}
+}
+
+func (m *memContracts) SaveContract(_ context.Context, c *model.UnitContract) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	list := m.items[c.UnitID()]
+	for i, existing := range list {
+		if existing.Version() == c.Version() {
+			if existing.IsFrozen() {
+				return model.ErrContractFrozen
+			}
+			list[i] = c
+			return nil
+		}
+	}
+	m.items[c.UnitID()] = append(list, c)
+	return nil
+}
+
+func (m *memContracts) LatestContract(
+	_ context.Context, unitID string,
+) (*model.UnitContract, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	list := m.items[unitID]
+	if len(list) == 0 {
+		return nil, model.ErrNotFound
+	}
+	best := list[0]
+	for _, c := range list {
+		if c.Version() > best.Version() {
+			best = c
+		}
+	}
+	return best, nil
+}
+
+func (m *memContracts) ContractVersions(
+	_ context.Context, unitID string,
+) ([]*model.UnitContract, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]*model.UnitContract(nil), m.items[unitID]...), nil
+}
+
+var _ port.Contracts = (*memContracts)(nil)

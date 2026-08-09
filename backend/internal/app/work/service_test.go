@@ -80,6 +80,9 @@ func (r *memWorks) FindWork(_ context.Context, id string) (*model.Work, error) {
 			// 而那是生产里不会发生的情况。`Say` 的测试撞到过——
 			// 它被「工作区还没准备好」拒了，而真实路径上工作区明明切好了。
 			out.SetWorktree(w.WorktreePath(), w.Branch(), w.BaseCommit())
+			// ★ 当前单元也要还原——真 mapper 就是这么做的。
+			// 不还原的话边界判定永远说「不知道」，而契约明明就在库里。
+			_ = out.StartUnit(w.CurrentUnitID())
 			return out, nil
 		}
 	}

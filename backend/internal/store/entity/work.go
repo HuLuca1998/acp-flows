@@ -25,6 +25,9 @@ type Work struct {
 	// 不记的话，「AI 到底干了什么」只能靠猜，而猜出来的答案
 	// 会随着仓库变化而漂移。
 	BaseCommit string `gorm:"column:base_commit;size:64;not null;default:''"`
+	// CurrentUnitID 是现在在做哪个单元——边界判定要靠它找到契约。
+	// ★ 允许为空：澄清、规划阶段都还没开始做任何单元。
+	CurrentUnitID string `gorm:"column:current_unit_id;size:64;not null;default:''"`
 }
 
 // TableName 显式指定表名，不依赖 GORM 的自动推导——

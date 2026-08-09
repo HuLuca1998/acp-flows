@@ -36,6 +36,16 @@ type Plans interface {
 	PlanVersions(ctx context.Context, workID string) ([]model.PlanVersion, error)
 }
 
+// Contracts 是单元契约的持久化抽象。
+//
+// ★★ **没有 Update，也没有 Delete**（INV-UC-2）：契约冻结后改不动。
+type Contracts interface {
+	SaveContract(ctx context.Context, c *model.UnitContract) error
+	// LatestContract 查不到时返回 model.ErrNotFound。
+	LatestContract(ctx context.Context, unitID string) (*model.UnitContract, error)
+	ContractVersions(ctx context.Context, unitID string) ([]*model.UnitContract, error)
+}
+
 // Worktrees 管理每个工作的独立工作区。
 //
 // ★ 实现必须把工作区建在**用户项目之外**（`~/.acpflows/worktrees`，

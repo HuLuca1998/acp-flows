@@ -241,3 +241,31 @@ func toPlanView(v model.PlanVersion) PlanView {
 	}
 	return view
 }
+
+// SetContracts 装上契约存储。
+func (s *Service) SetContracts(c port.Contracts) { s.contracts = c }
+
+// BoundaryFor 判定「这次写入在不在当前单元的写入边界内」。
+//
+// ★★ **说不清就说不清**（返回 `unknown`），不返回 `in_boundary`。
+// 把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默：
+// 契约还没冻结时，用户正好最需要看清楚 AI 要动什么。
+//
+// 四种「说不清」：没装配契约存储、工作查不到、还没开始做单元、
+// 那个单元还没有契约。
+func (s *Service) BoundaryFor(
+	ctx context.Context, workID, path string,
+) model.BoundaryVerdict {
+	if s.contracts == nil || path == "" {
+		return model.BoundaryUnknown
+	}
+	w, err := s.repo.FindWork(ctx, workID)
+	if err != nil || w.CurrentUnitID() == "" {
+		return model.BoundaryUnknown
+	}
+	c, err := s.contracts.LatestContract(ctx, w.CurrentUnitID())
+	if err != nil {
+		return model.BoundaryUnknown
+	}
+	return c.Judge(path)
+}

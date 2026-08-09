@@ -174,6 +174,11 @@ func run() error {
 	// （depguard 挡着），装配只能在 cmd 做。
 	perms := permission.New(workBus{bus}, ids)
 
+	// ★ 提前声明：下面的 AskUser 回调要用它判边界，而它自己又要拿
+	// agentRunner 才建得出来——先有鸡还是先有蛋。闭包捕获的是**变量**，
+	// 回调真正被调用时它早就赋好值了。
+	var workSvc *work.Service
+
 	// ★ Agent 真的会被拉起来。这里传的是**内置注册表**（claude / codex）：
 	// 用哪一个由检测结果决定，上层不认识任何品牌名。
 	agentRunner := &agent.ProcessRunner{
@@ -189,7 +194,10 @@ func run() error {
 				Runtime:    runtimeNameOf(ask),
 				Kind:       string(ask.Kind),
 				Path:       ask.Path,
-				Options:    toBrokerOptions(ask.Options),
+				// ★★ 边界判定：用户一眼看出 AI 有没有动不该动的东西。
+				// 查不到时是「说不清」，**不是**「没问题」。
+				Boundary: workSvc.BoundaryFor(ctx, workID, ask.Path),
+				Options:  toBrokerOptions(ask.Options),
 			})
 			if err != nil {
 				return session.Answer{}, err
@@ -197,7 +205,7 @@ func run() error {
 			return session.Answer{OptionID: optionID}, nil
 		},
 	}
-	workSvc := work.New(
+	workSvc = work.New(
 		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner).
 		WithStatusProbe(repoStatus{})
 	// ★ ProcessRunner 同时是取消能力的实现——它记着「哪个工作对应哪个进程」，
@@ -207,6 +215,9 @@ func run() error {
 	workSvc.SetRequirements(db.Requirements())
 	// ★ 计划：没有它工作照建，只是产不出计划面板要显示的东西。
 	workSvc.SetPlans(db.Plans())
+	// ★ 契约：边界判定要靠它。没装配时权限卡片一律显示「说不清」，
+	// **不是**「没问题」。
+	workSvc.SetContracts(db.Contracts())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。
