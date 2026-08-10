@@ -71,6 +71,20 @@ func TestDecide_R1_AutoAllowReadonlyOnlyCoversReadKinds(t *testing.T) {
 				return
 			}
 
+			// ★★ switch_mode 是**唯一的例外**：它一律自动拒绝（`U7.5.1`）。
+			// 换权限档不是「这次要不要动这个文件」，而是「以后要不要都不用问」，
+			// 摆到用户面前等于让它变成一个他随手会点「是」的按钮。
+			if kind == protocol.ToolKindSwitchMode {
+				if got.Deferred || got.OptionID != "r1" {
+					t.Errorf("switch_mode 该被自动拒绝，却 deferred=%v optionID=%q",
+						got.Deferred, got.OptionID)
+				}
+				return
+			}
+
+			// ★ 判据是「没有被自动**允许**」，不是「没有被自动裁决」——
+			// 自动拒绝不是放过。写成后者的话，一条更严的规矩会让这条测试
+			// 红在一个更安全的行为上。
 			if !got.Deferred {
 				t.Errorf("%s 不是只读类，却被自动放过了（选了 %q）——\n"+
 					"用户以为自己开的是「让它随便看」，实际开的是「让它随便改」，"+
@@ -135,6 +149,11 @@ func TestDecide_R2_NeverGuessesAnOptionID(t *testing.T) {
 // ★ 「每次都问」就是每次都问，不因为是只读就放过。
 func TestDecide_AskAlwaysDefers(t *testing.T) {
 	for _, kind := range protocol.AllToolKinds() {
+		// ★★ switch_mode 是**唯一的例外**（`U7.5.1`）：连「每次都问」也不问它。
+		// 档位是开会话时按角色定死的契约，不是一件可以临时商量的事。
+		if kind == protocol.ToolKindSwitchMode {
+			continue
+		}
 		got := session.Decide(session.PolicyAsk, ask(kind, fullOptions()...))
 		if !got.Deferred {
 			t.Errorf("策略是「每次都问」，%s 却被自动放过了（选了 %q）", kind, got.OptionID)
@@ -593,4 +612,84 @@ func newFakeAskWithToolCall(t *testing.T, extra map[string]any) *fake.Runtime {
 			StopReason: protocol.StopReasonEndTurn,
 		}},
 	})
+}
+
+// ── U7.5.1 · 只读就是只读 ─────────────────────────────────────
+//
+// ★★ 真机 `work-05` 撞出来的：澄清阶段的只读会话收到 `switch_mode`
+// 请求，五个选项里**四个能让它写**，而我们把它原样转给了用户。
+
+// 真机上那次请求的选项，一个字没改。
+func modeSwitchRequest() protocol.RequestPermissionRequest {
+	return protocol.RequestPermissionRequest{
+		ToolCall: protocol.ToolCallUpdate{Kind: protocol.ToolKindSwitchMode},
+		Options: []protocol.PermissionOption{
+			{OptionID: "bypassPermissions", Name: "Yes, and bypass permissions",
+				Kind: protocol.PermissionAllowAlways},
+			{OptionID: "auto", Name: `Yes, and use "auto" mode`,
+				Kind: protocol.PermissionAllowAlways},
+			{OptionID: "acceptEdits", Name: "Yes, and auto-accept edits",
+				Kind: protocol.PermissionAllowAlways},
+			{OptionID: "default", Name: "Yes, and manually approve edits",
+				Kind: protocol.PermissionAllowOnce},
+			{OptionID: "plan", Name: "No, keep planning",
+				Kind: protocol.PermissionRejectOnce},
+		},
+	}
+}
+
+// R1 R2 ★★ 换档请求**自动拒绝**，选的是 reject_once 那个。
+func TestDecide_ModeSwitchIsRefusedNotAsked(t *testing.T) {
+	for _, policy := range session.AllPolicies() {
+		d := session.Decide(policy, modeSwitchRequest())
+
+		if d.Deferred {
+			t.Fatalf("策略 %s 下把换档请求交给了用户——"+
+				"他看到的是一句「Yes, and…」，而不是「你正在把只读会话变成可写的」", policy)
+		}
+		if d.OptionID != "plan" {
+			t.Fatalf("策略 %s 下选了 %q，想要 plan（那个 reject_once 的）", policy, d.OptionID)
+		}
+		if d.Reason != session.ReasonModeSwitchRefused {
+			t.Errorf("理由码是 %q，想要 %q——排查时要能按它过滤",
+				d.Reason, session.ReasonModeSwitchRefused)
+		}
+	}
+}
+
+// R3 ★ 别的请求**照常**按策略走，没被这条规矩误伤。
+func TestDecide_OtherKindsStillFollowPolicy(t *testing.T) {
+	req := protocol.RequestPermissionRequest{
+		ToolCall: protocol.ToolCallUpdate{Kind: protocol.ToolKindEdit},
+		Options: []protocol.PermissionOption{
+			{OptionID: "yes", Kind: protocol.PermissionAllowOnce},
+			{OptionID: "no", Kind: protocol.PermissionRejectOnce},
+		},
+	}
+
+	if d := session.Decide(session.PolicyAsk, req); !d.Deferred {
+		t.Error("普通的编辑请求该交给用户，却被自动裁了")
+	}
+}
+
+// R5 ★★ 认不出拒绝选项时**交给用户**，绝不乱选一个。
+//
+// 乱选的后果是我们替他点了「永久允许绕过权限」。
+func TestDecide_ModeSwitchWithoutRejectOptionAsksUser(t *testing.T) {
+	req := protocol.RequestPermissionRequest{
+		ToolCall: protocol.ToolCallUpdate{Kind: protocol.ToolKindSwitchMode},
+		// 只给了能让它写的那些
+		Options: []protocol.PermissionOption{
+			{OptionID: "bypassPermissions", Kind: protocol.PermissionAllowAlways},
+		},
+	}
+
+	d := session.Decide(session.PolicyAsk, req)
+
+	if !d.Deferred {
+		t.Fatalf("没有拒绝选项时选了 %q——那是替用户点了「永久允许绕过权限」", d.OptionID)
+	}
+	if d.OptionID != "" {
+		t.Error("Deferred 时带着 OptionID，调用方可能顺手把它发出去")
+	}
 }
