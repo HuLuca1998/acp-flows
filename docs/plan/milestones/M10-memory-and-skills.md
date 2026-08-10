@@ -304,7 +304,7 @@ M10 第 5 条（注入行里看得到刚收的记忆）。
 | | |
 |---|---|
 | `goal` | 记忆页照设计稿两栏：左条目卡，右详情——点开一条看得到正文全文与结构化字段 |
-| `allowed_changes` | `frontend/src/features/memory/**` · `frontend/src/ui/**` · `frontend/src/models/**` |
+| `allowed_changes` | `frontend/src/features/memory/**` · `frontend/src/ui/**` · `frontend/src/models/**` · `frontend/src/i18n/**` |
 | `forbidden_changes` | 正文进数据库（INV-MEM-8）；字段值在前端拼（后端给什么显示什么） |
 | `stop_conditions` | 详情要显示的字段接口里没有 —— 先补契约再做界面 |
 
@@ -323,7 +323,7 @@ M10 第 5 条（注入行里看得到刚收的记忆）。
 | | |
 |---|---|
 | `goal` | Skill 页照设计稿两栏：左列表，右侧 SKILL.md 详情——frontmatter 与正文都看得到 |
-| `allowed_changes` | `api/openapi.yaml` · `backend/internal/api/**` · `backend/internal/app/**` · `backend/internal/fsstore/skill/**` · `frontend/src/features/skill/**` · `frontend/src/ui/**` |
+| `allowed_changes` | `api/openapi.yaml` · `backend/internal/api/**` · `backend/internal/app/**` · `backend/internal/fsstore/skill/**` · `backend/cmd/duetd/**`（装配）· `frontend/src/features/skill/**` · `frontend/src/ui/**` · `frontend/src/api/**` · `frontend/src/models/**` · `frontend/src/i18n/**` |
 | `forbidden_changes` | SKILL.md 正文进数据库（Skill 是扫盘产物，不留副本）；绕过 `make gen` 手写契约类型 |
 | `stop_conditions` | frontmatter 解析失败的文件，详情该显示什么没有定义 —— 先定再做 |
 

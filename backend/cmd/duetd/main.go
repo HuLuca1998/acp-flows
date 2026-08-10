@@ -270,6 +270,8 @@ func run() error {
 		// Skill 库：只扫全局（`~/.acpflows/skills`）。
 		// 项目级的在创建项目时初始化（M3），那时才有项目。
 		Skills: skillstore.Store{Home: paths.DataDir()},
+		// ★ Skill 正文：详情栏要显示 SKILL.md，从磁盘现读（用户随时会改它）。
+		SkillBodies: skillstore.Store{Home: paths.DataDir()},
 		// ★ 记忆正文：审核候选时用户要读到它才决定得了收不收。
 		MemoryBodies: newMemoryBodies(paths.DataDir()),
 		// ★ 命中计数：不接的话 Skill 页那一列永远是 0，而契约里那个字段

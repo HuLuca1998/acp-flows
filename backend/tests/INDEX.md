@@ -418,6 +418,13 @@
 | `TestScan_R3_OneBrokenDoesNotHideOthers` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R3：★★ 一条 frontmatter 坏的不让整个库列不出来——整批失败的话用户连修它的入口都找不到 |
 | `TestScan_R5_DoesNotTouchUserFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R5（**红线 3** / INV-SKL-6）：★★ 判据是**全目录内容哈希 + 文件清单**，不是「没写 O_WRONLY」——前者才管得住「顺手补个默认 frontmatter」这种好意 |
 | `TestScan_R4_DoesNotFollowSymlinks` | `internal/fsstore/skill/scan_test.go` | fsstore | 符号链接不跟出去。★ 两道防线各自独立有效（显式判 ModeSymlink + ReadDir 的 Lstat 语义），造负例分别验过 |
+| `TestStore_ReadGlobalBody_R2_MatchesDiskFile` | `internal/fsstore/skill/body_test.go` | fsstore | M10 U10.7.2 R2：读回来的就是盘上那份——frontmatter 是围栏内原文，正文是围栏之后的全部（从磁盘现读，不留副本：Skill 是用户的产物，他随时会用编辑器改它） |
+| `TestStore_ReadGlobalBody_NoFrontmatterKeepsWholeText` | `internal/fsstore/skill/body_test.go` | fsstore | 没有 frontmatter 的文件正文是整个文件——不能因为头上没围栏就把人家的正文丢一截 |
+| `TestStore_ReadGlobalBody_R4_MissingSaysPath` | `internal/fsstore/skill/body_test.go` | fsstore | M10 U10.7.2 R4：文件不在要**带路径**说清楚——「空正文」和「文件丢了」是两回事 |
+| `TestStore_ReadGlobalBody_RejectsPathEscape` | `internal/fsstore/skill/body_test.go` | fsstore | ★★ 目录名不许逃出 skills 根（`..` / 分隔符一律拒），skills 根之外放诱饵文件验过读不到 |
+| `TestGetSkillBody_ReadsFromDisk` | `internal/api/skill_body_test.go` | api | M10 U10.7.2 R1/R2：盘上的 SKILL.md 原样到详情端点，frontmatter 与正文分开给、互不混入 |
+| `TestGetSkillBody_MissingCarriesPath` | `internal/api/skill_body_test.go` | api | M10 U10.7.2 R4：404 且 detail 里带路径 |
+| `TestGetSkillBody_UnconfiguredIsNotEmpty` | `internal/api/skill_body_test.go` | api | 没装配读取器 → 503 明说，不装作「这条 Skill 没正文」（没接线的端点不许假装接了） |
 | `TestScan_R6_MissingDirIsEmptyNotError` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R6：目录不存在 = 空列表不是错误。绝大多数项目没有 `.claude/skills`，当错误的话创建项目的预演会因一个正常状态而失败 |
 | `TestScan_R6b_EmptyDirIsEmpty` | `internal/fsstore/skill/scan_test.go` | fsstore | 空目录返回空列表 |
 | `TestScan_IgnoresLooseFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | 散装文件不算 skill——skill 是目录不是文件 |

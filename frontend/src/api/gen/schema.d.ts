@@ -695,6 +695,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/skills/{dir}/body": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个 Skill 的 SKILL.md 正文
+         * @description ★ 单独一个端点，不塞进列表（与记忆正文同理）：列表逐条读文件是
+         *     N 次磁盘 IO。正文**从磁盘现读**，不留副本——Skill 是用户的产物，
+         *     他随时可能用编辑器改它。
+         */
+        get: operations["getSkillBody"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/memories": {
         parameters: {
             query?: never;
@@ -2443,6 +2465,39 @@ export interface operations {
                 content: {
                     "application/json": {
                         skills: components["schemas"]["Skill"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSkillBody: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Skill 的目录名（列表接口的 `dir` 字段） */
+                dir: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dir: string;
+                        /**
+                         * @description frontmatter 原文（不含 `---` 围栏），没有时为空串。
+                         *     ★ 原样返回——解析失败时用户要看得到自己到底写了什么。
+                         */
+                        frontmatter: string;
+                        /** @description 去掉 frontmatter 之后的正文 */
+                        text: string;
                     };
                 };
             };

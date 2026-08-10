@@ -1,0 +1,114 @@
+/* Markdown：§7.8。标题 15/500、正文 13/1.7、行内 code 芯片、引用竖条。 */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toggle {
+  padding: 3px 9px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-400);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--color-surface);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 1px;
+}
+
+/* 源码态：等宽原文，一字不动。 */
+.source {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rendered {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.rendered h3,
+.rendered h4,
+.rendered h5,
+.rendered h6 {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.rendered h4 {
+  font-size: 13.5px;
+}
+
+.rendered h5,
+.rendered h6 {
+  font-size: 12.5px;
+}
+
+.rendered p {
+  margin: 6px 0;
+}
+
+.rendered ul,
+.rendered ol {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+
+.rendered li {
+  margin: 3px 0;
+}
+
+.rendered code {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--s-raised);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.rendered pre {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rendered blockquote {
+  margin: 8px 0;
+  padding: 2px 0 2px 11px;
+  border-left: 2px solid var(--color-accent-700);
+  color: var(--color-neutral-400);
+}

@@ -57,6 +57,9 @@ type Config struct {
 	// SkillHits 读 Skill 的命中计数。可以为 nil，那时一律显示 0——
 	// **不是**把这一列藏起来：藏起来的话用户以为这个功能没做。
 	SkillHits SkillHitsReader
+	// SkillBodies 读 Skill 的 SKILL.md 正文。为 nil 时正文端点明确报错——
+	// **不是**返回空正文：空正文看起来像「这个 Skill 没写内容」。
+	SkillBodies skillBodyReader
 	// Memories 是记忆用例。为 nil 时端点返回 memory_service_unavailable。
 	Memories memoryService
 	// MemoryBodies 读记忆正文（md 文件）。为 nil 时正文端点明确报错——
@@ -101,6 +104,7 @@ func NewRouter(cfg Config) (http.Handler, error) {
 
 	mux.HandleFunc("GET /v1/roles", handleListRoles(cfg.Roles))
 	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills, cfg.SkillHits))
+	mux.HandleFunc("GET /v1/skills/{dir}/body", handleGetSkillBody(cfg.SkillBodies))
 
 	// 记忆：列表只读；★ candidate → active 只有 review 这一条路（INV-MEM-2），
 	// 且必须带 actor——AI 没有任何路径能自己把候选变成生效。
