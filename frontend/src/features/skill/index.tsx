@@ -71,6 +71,14 @@ export function SkillPage() {
               <div className={styles.row}>
                 <span className={styles.name}>{s.name}</span>
                 {s.version && <span className={styles.version}>v{s.version}</span>}
+                {/*
+                  ★★ 命中计数：这个 Skill 被注入过几次。**0 也要显示**——
+                  空白会让用户以为这个数字坏了，而「从没被用过」正是他
+                  判断「该不该留着它」最需要的一条信息。
+                */}
+                <span className={styles.hits} data-hits={s.hit_count ?? 0}>
+                  {t('skill.hits', { count: s.hit_count ?? 0 })}
+                </span>
                 <span className={styles.status} data-ok={s.validation_ok}>
                   {t(STATUS_KEY[s.status] ?? 'skill.status.draft')}
                 </span>

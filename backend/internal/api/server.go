@@ -54,6 +54,9 @@ type Config struct {
 	Roles roleLister
 	// Skills 是 Skill 库。为 nil 时端点返回 skills_unavailable。
 	Skills port.SkillScanner
+	// SkillHits 读 Skill 的命中计数。可以为 nil，那时一律显示 0——
+	// **不是**把这一列藏起来：藏起来的话用户以为这个功能没做。
+	SkillHits SkillHitsReader
 	// Memories 是记忆用例。为 nil 时端点返回 memory_service_unavailable。
 	Memories memoryService
 }
@@ -94,7 +97,7 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("POST /v1/projects/preview", handlePreviewProject(cfg.Projects))
 
 	mux.HandleFunc("GET /v1/roles", handleListRoles(cfg.Roles))
-	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills))
+	mux.HandleFunc("GET /v1/skills", handleListSkills(cfg.Skills, cfg.SkillHits))
 
 	// 记忆：列表只读；★ candidate → active 只有 review 这一条路（INV-MEM-2），
 	// 且必须带 actor——AI 没有任何路径能自己把候选变成生效。

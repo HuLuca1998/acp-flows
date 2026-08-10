@@ -117,3 +117,32 @@ describe('Skill 页', () => {
     expect(screen.getByText(/SKILL\.md/)).toBeInTheDocument()
   })
 })
+
+// ── U10.4.1 · 命中计数 ──────────────────────────────────────
+
+// R4 ★★ 从没用过显示 **0**，不是空白。
+//
+// 空白会让用户以为这个数字坏了，而「从没被用过」正是他判断
+// 「该不该留着这个 Skill」最需要的一条信息。
+it('从没用过的 Skill 显示 0，不是空白', async () => {
+  listSkills.mockResolvedValue([
+    { name: 'go-unit-testing', dir: 'go-unit-testing', version: '1.2.0',
+      scope: 'global', source: '/s', status: 'draft', validation_ok: true, hit_count: 0 },
+  ])
+  render(<SkillPage />)
+
+  const item = await screen.findByText('go-unit-testing')
+  const row = item.closest('[data-skill]')
+  expect(row?.textContent, '计数是空白——用户会以为这个数字坏了').toContain('0')
+})
+
+// ★ 用过的显示真实次数。
+it('用过的 Skill 显示真实次数', async () => {
+  listSkills.mockResolvedValue([
+    { name: 'go-unit-testing', dir: 'go-unit-testing', version: '1.2.0',
+      scope: 'global', source: '/s', status: 'active', validation_ok: true, hit_count: 7 },
+  ])
+  render(<SkillPage />)
+
+  expect(await screen.findByText(/7/)).toBeInTheDocument()
+})

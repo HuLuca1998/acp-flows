@@ -231,6 +231,7 @@
   "skill.empty": "全局库里还没有 Skill。往上面那个目录里放一个含 SKILL.md 的文件夹即可。",
   "skill.failed": "扫不动 Skill 目录",
   "skill.globalScope": "全局",
+  "skill.hits": "用过 {{count}} 次",
   "skill.loading": "正在扫描 Skill…",
   "skill.status.active": "active",
   "skill.status.deprecated": "deprecated",

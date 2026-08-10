@@ -231,6 +231,7 @@
   "skill.empty": "No skills in the global library yet. Drop a folder containing SKILL.md into the directory above.",
   "skill.failed": "Cannot scan the skill directory",
   "skill.globalScope": "Global",
+  "skill.hits": "used {{count}}×",
   "skill.loading": "Scanning skills…",
   "skill.status.active": "active",
   "skill.status.deprecated": "deprecated",

@@ -128,3 +128,16 @@
 .meta code {
   font-family: var(--font-mono);
 }
+
+/* 命中计数。★ 0 也显示——空白会让用户以为这个数字坏了。 */
+.hits {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+/* 被用过的比没用过的亮一点：用户扫一眼就知道哪几个真在起作用。 */
+.hits:not([data-hits='0']) {
+  color: var(--color-accent-300);
+}
