@@ -38,8 +38,8 @@ pnpm tsc --noEmit                      # 类型检查
 
 ## 改这里之前必读
 
-- [`design/PARITY.md`](../../../../design/PARITY.md) 的对话页一节 —— 计划面板欠了哪几块、归谁
-- [`M6 施工图`](../../../../docs/plan/milestones/M6-plan-and-units.md)
+- `design/PARITY.md` 的对话页一节 —— 计划面板欠了哪几块、归谁
+- `M6 施工图`
 - 术语表（根 `AGENTS.md` §8）—— **状态词不翻译**
 
 ## 本域特有的坑

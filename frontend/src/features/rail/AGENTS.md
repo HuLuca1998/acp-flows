@@ -7,7 +7,7 @@
 **左栏**。5 项导航 + 项目树 + 最近工作 + Runtime 状态。**左栏回答「你在哪个项目的哪个工作里」**，不是「你要去哪个功能页」。
 
 对应验收点 **V0 V4**，施工图见
-[`M3-project-onboarding.md`](../../../../docs/plan/milestones/M3-project-onboarding.md)。
+`M3-project-onboarding.md`。
 
 ## 不负责什么
 

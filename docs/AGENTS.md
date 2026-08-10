@@ -18,7 +18,7 @@
 | [`git-workflow.md`](rules/git-workflow.md) | 分支、提交、PR、worktree、发版触发 |
 | [`release-and-update.md`](spec/release-and-update.md) | CI/CD、签名、客户端自动更新 |
 | [`ai-workflow.md`](rules/ai-workflow.md) | Claude × Codex 分工与交接 |
-| [`roadmap.md`](plan/roadmap.md) | 里程碑 |
+| `roadmap.md` | 里程碑 |
 | [`adr/`](adr/) | 架构决策记录 |
 | [`templates/`](templates/) | `AGENTS.md` / `CLAUDE.md` 骨架模板 |
 

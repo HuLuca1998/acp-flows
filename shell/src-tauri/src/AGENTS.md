@@ -40,7 +40,7 @@ cd shell && APPLE_SIGNING_IDENTITY='-' \
 
 - [`docs/spec/architecture.md`](../../../docs/spec/architecture.md) §1 —— 进程模型与那条 IPC 红线
 - [`docs/spec/release-and-update.md`](../../../docs/spec/release-and-update.md) —— 签名与发布链路
-- [`docs/plan/milestones/M1-install-and-update.md`](../../../docs/plan/milestones/M1-install-and-update.md)
+- `docs/plan/milestones/M1-install-and-update.md`
 
 ## 本域特有的坑
 

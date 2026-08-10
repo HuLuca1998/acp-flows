@@ -3,7 +3,7 @@ package protocol_test
 // protocol 线格式包 —— 枚举穷举（原 U0.2.3，编号已废弃）
 //
 // 取值全集来自 @agentclientprotocol/sdk@1.3.0 的 dist/schema/types.gen.d.ts。
-// 原单元编号 U0.2.3（已废弃）。能力归属见 docs/plan/roadmap.md 的「已经就绪的地基」。
+// 原单元编号 U0.2.3（已废弃）。能力归属见 旧计划文档（已随重设计移除） 的「已经就绪的地基」。
 
 import (
 	"encoding/json"

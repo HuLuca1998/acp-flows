@@ -1,0 +1,107 @@
+/* 下拉选择器：§7.6。 */
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 触发器：5px 11px，inset 底 + accent-700 描边。 */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 1px;
+}
+
+.label {
+  font-size: 10px;
+  color: var(--color-neutral-600);
+}
+
+.value {
+  font-size: 11.5px;
+  font-family: var(--font-mono);
+  color: var(--color-accent-300);
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--color-neutral-600);
+}
+
+/* 面板：rail 底 + shadow-lg，7px 内衬，条目 1px 间隔。 */
+.panel {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  z-index: var(--z-dropdown);
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px;
+  border-radius: var(--radius-md);
+  background: var(--s-rail);
+  box-shadow: var(--shadow-lg);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-neutral-300);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-surface);
+}
+
+.option[data-selected='true'] {
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+}
+
+.optionLabel {
+  flex: 1;
+}
+
+/* 右侧计数/说明：10px 等宽。 */
+.meta {
+  color: var(--color-neutral-700);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* 尾部动作：上分隔线，11.5px 次要色。 */
+.footer {
+  margin-top: 4px;
+  padding: 7px 9px;
+  border: 0;
+  border-top: 1px solid var(--color-neutral-900);
+  background: transparent;
+  color: var(--color-neutral-500);
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}

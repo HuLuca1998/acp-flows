@@ -59,7 +59,7 @@ cd backend && go test -tags=integration ./tests/integration/... -run ACP
 ## 改这里之前必读
 
 - [`../../../docs/spec/acp-integration.md`](../../../docs/spec/acp-integration.md) —— 规格，含 §2.2 的 13 条设计稿冲突与 §16 的 10 条待验证假设
-- [`../../../docs/plan/open-questions.md`](../../../docs/plan/open-questions.md) Q4 系列 —— **设计稿里有已核实的事实性错误，别照抄**
+- `../../../docs/plan/open-questions.md` Q4 系列 —— **设计稿里有已核实的事实性错误，别照抄**
 - [`../../../docs/rules/design-principles.md`](../../../docs/rules/design-principles.md) §4
 
 ## 本域特有的坑

@@ -1,9 +1,9 @@
 # 前端实现指南
 
 > 本文是 `frontend/` 的**实现规格**，写任何组件前必读；设计真源是
-> [`design/Duet Spec.dc.html`](../../design/Duet%20Spec.dc.html)，**本文与它冲突时以设计稿为准**。
+> `design/Duet Spec.dc.html`，**本文与它冲突时以设计稿为准**。
 >
-> 界面原型（真实文案与结构）在 [`design/ACP Duet 1a.dc.html`](../../design/ACP%20Duet%201a.dc.html)。
+> 界面原型（真实文案与结构）在 `design/ACP Duet 1a.dc.html`。
 > `design/` 是**只读**的，不要改；发现缺口按 §14 走登记流程。
 
 > **读法**：本文 ~17k token，**不要整篇读**。写一个组件通常只需要

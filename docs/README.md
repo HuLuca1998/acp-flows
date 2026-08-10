@@ -10,7 +10,6 @@
 | [`rules/`](rules/) | **必须怎么做** —— 编码、测试、数据库、Git、CI、日志 | 发现问题就补 |
 | [`notes/`](notes/) | **真机上实际是什么** —— 实测记录、踩过的坑 | 只增不删 |
 | [`adr/`](adr/) | **为什么这么定** —— 已关闭的决策 | ★ **不改，只新增** |
-| [`plan/`](plan/) | **接下来做什么** —— 路线图、里程碑、待拍板问题 | 随进度更新 |
 
 **`spec/` 与 `notes/` 冲突时，以 `notes/` 为准** —— 前者写「应该怎样」，后者写「真机上实际怎样」。
 
@@ -24,8 +23,8 @@
 |---|---|---|
 | 1 | 根 [`AGENTS.md`](../AGENTS.md) | 5 分钟，**必读** |
 | 2 | [`spec/architecture.md`](spec/architecture.md) §1–3 | 10 分钟，看清进程模型 |
-| 3 | [`plan/acceptance.md`](plan/acceptance.md) | ★ 3 分钟，看**用户能验收什么**——技术单元都要能对上其中一条 |
-| 4 | [`plan/roadmap.md`](plan/roadmap.md) | 3 分钟，看现在做到哪 |
+| 3 | `plan/acceptance.md` | ★ 3 分钟，看**用户能验收什么**——技术单元都要能对上其中一条 |
+| 4 | `plan/roadmap.md` | 3 分钟，看现在做到哪 |
 | 4 | [`adr/0001-tech-stack.md`](adr/0001-tech-stack.md) | 3 分钟，知道为什么是 Go+Tauri |
 
 **不要一上来通读 `spec/`** —— 那三份加起来 60k token。
@@ -40,7 +39,7 @@
 
 ### 我想看某个功能什么时候做
 
-→ [`plan/roadmap.md`](plan/roadmap.md) 看阶段，[`plan/milestones/`](plan/milestones/) 看单元级拆解
+→ `plan/roadmap.md` 看阶段，`plan/milestones/` 看单元级拆解
 
 ---
 
@@ -101,10 +100,10 @@
 
 | 文档 | 内容 |
 |---|---|
-| [`acceptance.md`](plan/acceptance.md) | ★ **验收清单（用户视角）** —— V0–V15，每条是使用者能自己操作、自己判断成败的一件事。**不含任何技术名词** |
-| [`roadmap.md`](plan/roadmap.md) | **M0–M12 总览、当前进度指针、三条用户裁定** —— 接手先读这份 |
-| [`open-questions.md`](plan/open-questions.md) | **仍需人拍板的问题** —— 卡住时先查这里 |
-| [`milestones/README.md`](plan/milestones/README.md) | 里程碑体系与编号规则 |
+| `acceptance.md` | ★ **验收清单（用户视角）** —— V0–V15，每条是使用者能自己操作、自己判断成败的一件事。**不含任何技术名词** |
+| `roadmap.md` | **M0–M12 总览、当前进度指针、三条用户裁定** —— 接手先读这份 |
+| `open-questions.md` | **仍需人拍板的问题** —— 卡住时先查这里 |
+| `milestones/README.md` | 里程碑体系与编号规则 |
 
 里程碑分章（每章是子计划的菜单，**只读你要做的那一个 S**）。
 2026-08-08 按引用关系重排。**施工图等快做到时才建**——
@@ -112,28 +111,28 @@
 
 | 章 | 做什么 | 状态 |
 |---|---|---|
-| [`M0`](plan/milestones/M0-foundation.md) | 基础框架：窗口布局、七页导航、多语言、骨架占位 | ✓ 完成 |
-| [`M1`](plan/milestones/M1-install-and-update.md) | 装得上，能一直更新 | 进行中 |
-| [`M2`](plan/milestones/M2-roles-skills-memory.md) | **它有了角色、技能和记性**（后面全部的地基） | ✓ 完成 |
-| [`M3`](plan/milestones/M3-project-onboarding.md) | 把我的项目交给它：创建项目弹层、扫已有 skill | ✓ 完成 |
-| [`M4`](plan/milestones/M4-start-a-work.md) | 开一个工作：新建工作弹层、worktree、右栏工作区 | ✓ 完成 |
-| [`M5`](plan/milestones/M5-clarify-and-freeze.md) | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | 主体完成 |
-| [`M6`](plan/milestones/M6-plan-and-units.md) | 它给出计划，每条都派好了人（子计划 DAG · **单元分配角色**） | 主体完成 |
-| [`M7`](plan/milestones/M7-contract-and-execution.md) | 它按契约干活（契约冻结 · **写入边界** · 注入 · 权限） | 主体完成 |
-| [`M8`](plan/milestones/M8-evidence-and-acceptance.md) | 它说做完了，我能验（**证据由应用采集** · 验收 · 检查点） | 已完成 |
-| [`M9`](plan/milestones/M9-decisions.md) | 拿不准的它来问我（D1–D3 决策 · **决定权在用户手里**） | 已完成 |
-| [`M10`](plan/milestones/M10-memory-and-skills.md) | 它越用越懂我的项目（记忆候选 · 注入 · 命中计数） | **现在做** |
+| `M0` | 基础框架：窗口布局、七页导航、多语言、骨架占位 | ✓ 完成 |
+| `M1` | 装得上，能一直更新 | 进行中 |
+| `M2` | **它有了角色、技能和记性**（后面全部的地基） | ✓ 完成 |
+| `M3` | 把我的项目交给它：创建项目弹层、扫已有 skill | ✓ 完成 |
+| `M4` | 开一个工作：新建工作弹层、worktree、右栏工作区 | ✓ 完成 |
+| `M5` | 说一句需求，它追问清楚并冻结（**常驻只读会话**） | 主体完成 |
+| `M6` | 它给出计划，每条都派好了人（子计划 DAG · **单元分配角色**） | 主体完成 |
+| `M7` | 它按契约干活（契约冻结 · **写入边界** · 注入 · 权限） | 主体完成 |
+| `M8` | 它说做完了，我能验（**证据由应用采集** · 验收 · 检查点） | 已完成 |
+| `M9` | 拿不准的它来问我（D1–D3 决策 · **决定权在用户手里**） | 已完成 |
+| `M10` | 它越用越懂我的项目（记忆候选 · 注入 · 命中计数） | **现在做** |
 | `M6`–`M12` | 计划 → 契约 → 证据 → 决策 → 记忆 → 调教 → 报表 | 验收条件见 `roadmap.md` |
 
 **重排前的里程碑**（旧 `U2.*`–`U5.*` 编号，只作历史查阅，不要照着干活）：
 
 | 文档 | 什么时候看它 |
 |---|---|
-| [`archive/README.md`](plan/milestones/archive/README.md) | 想知道旧编号的成果落到新里程碑哪一格 |
-| [`archive/M2-talk-and-observe.md`](plan/milestones/archive/M2-talk-and-observe.md) | 查对话流 / 时间线 / SSE 当时怎么做的 |
-| [`archive/M3-control.md`](plan/milestones/archive/M3-control.md) | 查权限卡片与两段式取消的设计取舍 |
-| [`archive/M4-trust.md`](plan/milestones/archive/M4-trust.md) | 查会话恢复、检查点、计划模型的验收标准 |
-| [`archive/M5-polish.md`](plan/milestones/archive/M5-polish.md) | 查记忆 / 报表 / i18n 的原始构想 |
+| `archive/README.md` | 想知道旧编号的成果落到新里程碑哪一格 |
+| `archive/M2-talk-and-observe.md` | 查对话流 / 时间线 / SSE 当时怎么做的 |
+| `archive/M3-control.md` | 查权限卡片与两段式取消的设计取舍 |
+| `archive/M4-trust.md` | 查会话恢复、检查点、计划模型的验收标准 |
+| `archive/M5-polish.md` | 查记忆 / 报表 / i18n 的原始构想 |
 
 ### 顶层三份
 

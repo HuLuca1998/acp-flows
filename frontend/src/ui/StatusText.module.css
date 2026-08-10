@@ -1,0 +1,18 @@
+/* 状态文字：§7.3。10.5px 等宽，无底色，只着色。 */
+.status {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.status[data-tone='pass'] {
+  color: var(--color-pass);
+}
+
+.status[data-tone='fail'] {
+  color: var(--color-fail);
+}
+
+.status[data-tone='muted'] {
+  color: var(--color-neutral-600);
+}

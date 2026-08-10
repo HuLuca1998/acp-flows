@@ -267,10 +267,11 @@ export async function freezeRequirement(workID: string): Promise<Requirement> {
  *
  * ★ 抛出的 Error 的 message 是**机器可读的错误码**，界面按它查 i18n 词条。
  */
-export async function sayInWork(workID: string, text: string): Promise<void> {
+export async function sayInWork(workID: string, text: string, refs?: string[]): Promise<void> {
   const result = await api.POST('/works/{id}/messages', {
     params: { path: { id: workID } },
-    body: { text },
+    // ★ 引用只在有的时候带：refs 空数组也不发，后端与时间线都不用管空壳
+    body: refs !== undefined && refs.length > 0 ? { text, refs } : { text },
   })
   // 202 没有响应体，unwrap 会因为 data === undefined 而抛「empty_response」，
   // 所以这里只把错误挑出来。

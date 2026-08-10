@@ -28,9 +28,24 @@ export async function listRoles(): Promise<Role[]> {
  * ★ 扫不动时后端返回错误而不是空列表——装作「一个都没有」的话，
  * 用户以为自己的 skill 丢了，而实际是目录读不了。
  */
-export async function listSkills(): Promise<Skill[]> {
-  const body = unwrap(await api.GET('/skills'))
+export async function listSkills(params?: { project?: string }): Promise<Skill[]> {
+  // ★ 项目级要带 scope=project + 项目路径；全局一个参数都不带。
+  const query = params?.project ? { scope: 'project' as const, project: params.project } : {}
+  const body = unwrap(await api.GET('/skills', { params: { query } }))
   return body.skills
+}
+
+/**
+ * 读一个 Skill 的 SKILL.md 正文（frontmatter 与正文分开给）。
+ *
+ * ★ 后端**从磁盘现读**——Skill 是用户的产物，他随时可能用编辑器改它。
+ * 读不到时后端报错并带路径，不返回空正文（空正文看起来像「没写内容」）。
+ */
+export async function getSkillBody(
+  dir: string,
+): Promise<{ dir: string; frontmatter: string; text: string }> {
+  const body = unwrap(await api.GET('/skills/{dir}/body', { params: { path: { dir } } }))
+  return { dir: body.dir, frontmatter: body.frontmatter, text: body.text }
 }
 
 /**

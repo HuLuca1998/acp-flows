@@ -19,7 +19,7 @@
 | 仓库 | `HuLuca1998/acp-flows`（公开） |
 | 形态 | macOS 桌面应用（Tauri 壳 + Go sidecar），同一份代码可作为纯 Web 运行 |
 | 数据目录 | `~/.acpflows`（用户真实）· `~/.duet-dev`（开发态，测试只许碰这个） |
-| 设计真源 | `design/Duet Spec.dc.html`（规范）· `design/ACP Duet 1a.dc.html`（原型） |
+| 设计真源 | **重新设计中**——旧设计稿已移除，新真源建立前 UI 只修缺陷不做新页面 |
 
 ```
 Tauri v2 (Rust 壳) ──sidecar──▶ duetd (Go, HTTP+SSE) ──stdio──▶ ACP Runtime 子进程
@@ -78,7 +78,7 @@ Tauri v2 (Rust 壳) ──sidecar──▶ duetd (Go, HTTP+SSE) ──stdio─�
 
 **触发以下任一条立刻停，不要自行扩大范围**：需要改公开接口 / schema / OpenAPI 而未授权 ·
 需要改边界外的文件 · 发现架构假设错误 · 需要新第三方依赖 · 撞上
-[`open-questions.md`](docs/plan/open-questions.md) 里的未决项。
+`open-questions.md` 里的未决项。
 
 ### 撞上烂代码：不要在屎山上堆屎
 
@@ -105,8 +105,8 @@ acp-flows/
 │   └── tests/                跨包测试 + testutil（★ 与 internal/util 不是一回事）
 ├── frontend/src/             React（models/ constants/ utils/ i18n/ platform/）
 ├── shell/                    Tauri v2
-├── design/                   ★ 只读，不要改
-└── docs/                     规范 · adr/ · milestones/
+├── design/                   图标构建源（设计稿已移除，待重建）
+└── docs/                     规范 · adr/ · notes/
 ```
 
 **依赖方向单向，反向一律拒绝**（由 `depguard` 强制，见 `backend/.golangci.yml`）：
@@ -196,6 +196,6 @@ make tidy           # ★ 合并 PR 后：清理分支 / worktree / 远端残留
 
 ## 10. 当前阶段
 
-**M0 进行中**，脚手架四件套已跑通。剩余关键路径是 **Fake ACP Runtime**（S0.4）。
-
-进度见 [`plan/roadmap.md`](docs/plan/roadmap.md)，单元级拆解见 [`plan/milestones/`](docs/plan/milestones/)。
+**重新设计中（2026-08-10 起）**：里程碑、路线图与旧设计稿已整体移除，
+只保留规范类文档（`docs/spec` `docs/rules` `docs/adr` `docs/notes`）。
+新的设计真源与计划体系待重建。

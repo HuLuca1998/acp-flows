@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,10 +11,18 @@ import { MemoryPage } from './index'
 
 const listMemories = vi.fn()
 const reviewMemory = vi.fn()
+const getMemoryBody = vi.fn()
 
 vi.mock('@/api/library', () => ({
   listMemories: (...a: unknown[]): unknown => listMemories(...a),
   reviewMemory: (...a: unknown[]): unknown => reviewMemory(...a),
+  getMemoryBody: (...a: unknown[]): unknown => getMemoryBody(...a),
+}))
+
+const listProjects = vi.fn()
+
+vi.mock('@/api/system', () => ({
+  listProjects: (...a: unknown[]): unknown => listProjects(...a),
 }))
 
 const active = {
@@ -48,8 +56,15 @@ const retired = {
 }
 
 beforeEach(() => {
+  listProjects.mockReset().mockResolvedValue([
+    { id: 'proj-01', name: 'acp-flows', path: '/Users/luca/work/acp-flows' },
+  ])
   listMemories.mockReset().mockResolvedValue([active, candidate, retired])
   reviewMemory.mockReset().mockResolvedValue({ ...candidate, status: 'active', injectable: true })
+  getMemoryBody.mockReset().mockResolvedValue({
+    title: 'codex 会话建立后必须收权',
+    text: '\ncodex runtime 默认权限档为 `agent`（不询问），必须在 session/new 之后立刻收权。\n',
+  })
 })
 
 afterEach(() => {
@@ -163,5 +178,92 @@ describe('记忆页', () => {
 
     await waitFor(() => screen.getByText('mem-203'))
     expect(screen.getByText(/（无）/)).toBeInTheDocument()
+  })
+})
+
+// ── U10.7.1 · 两栏详情 ──────────────────────────────────────
+//
+// 用户裁定（2026-08-10）：「记忆页面和设计图纸完全偏离」——
+// 设计稿的主体是右侧详情栏（正文 + 系统数据库记录），这里还账。
+
+describe('记忆页 · 详情栏（U10.7.1）', () => {
+  // R1：点一条 → 详情显示**正文全文**（标题 + 内容）。
+  it('点一条记忆显示正文全文', async () => {
+    render(<MemoryPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /mem-203/ }))
+
+    const detail = await screen.findByRole('region', { name: /记忆详情/ })
+    expect(
+      await within(detail).findByText(/codex 会话建立后必须收权/),
+    ).toBeInTheDocument()
+    expect(within(detail).getByText(/必须在 session\/new 之后立刻收权/)).toBeInTheDocument()
+    expect(getMemoryBody).toHaveBeenCalledWith('mem-203')
+  })
+
+  // R2：结构化字段表的值**来自接口**，不在前端拼。
+  it('详情里显示数据库记录的字段', async () => {
+    render(<MemoryPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /mem-203/ }))
+
+    const detail = await screen.findByRole('region', { name: /记忆详情/ })
+    await within(detail).findByText(/codex 会话建立后必须收权/)
+    expect(within(detail).getByText('acp-engine')).toBeInTheDocument()
+    expect(within(detail).getByText('memory_curator')).toBeInTheDocument()
+    expect(within(detail).getByText(/ev-412/)).toBeInTheDocument()
+    expect(within(detail).getByText(/由 luca 确认/)).toBeInTheDocument()
+  })
+
+  // R3：候选条目在详情里能「收下 / 不要」，**都不预选中**。
+  // ★ 「全部」不含候选（Q25），先切到候选档才看得到 cand-07。
+  it('候选的详情里能当场拍板', async () => {
+    render(<MemoryPage />)
+
+    await userEvent.click(await screen.findByRole('tab', { name: /候选/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /cand-07/ }))
+
+    const detail = await screen.findByRole('region', { name: /记忆详情/ })
+    const confirm = await within(detail).findByRole('button', { name: /收下/ })
+    within(detail).getByRole('button', { name: /不要/ })
+    expect(detail.querySelector('button[aria-pressed="true"]')).toBeNull()
+
+    await userEvent.click(confirm)
+    expect(reviewMemory).toHaveBeenCalledWith('cand-07', 'confirm', 'user')
+  })
+
+  // R4：正文读不到时**明说**（带路径），不显示成空白。
+  it('正文读不到时明说，不显示成空白', async () => {
+    getMemoryBody.mockRejectedValue(new Error('读不到 /data/memory/mem-203.md'))
+    render(<MemoryPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /mem-203/ }))
+
+    const detail = await screen.findByRole('region', { name: /记忆详情/ })
+    expect(
+      await within(detail).findByText(/读不到 \/data\/memory\/mem-203\.md/),
+    ).toBeInTheDocument()
+  })
+
+  // 没选中时的空态：告诉用户点左边，不是一片空白。
+  it('没选中时详情栏说明怎么用', async () => {
+    render(<MemoryPage />)
+
+    await screen.findByText('mem-203')
+    const detail = screen.getByRole('region', { name: /记忆详情/ })
+    expect(within(detail).getByText(/选一条/)).toBeInTheDocument()
+  })
+
+  // ★ 范围选择器（设计稿页头，§7.6）——切到「跨项目」后**按范围拉取**。
+  it('范围选择器切到跨项目后按范围拉取', async () => {
+    render(<MemoryPage />)
+
+    await screen.findByText('mem-203')
+    await userEvent.click(screen.getByRole('button', { name: /范围/ }))
+    await userEvent.click(await screen.findByRole('option', { name: /跨项目/ }))
+
+    await waitFor(() => {
+      expect(listMemories).toHaveBeenCalledWith({ scope: '*' })
+    })
   })
 })

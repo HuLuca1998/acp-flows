@@ -21,7 +21,7 @@ type workService interface {
 	// Cancel 停掉一个工作正在跑的那一轮。
 	Cancel(ctx context.Context, workID string) error
 	// Say 在一个已有的工作里接着说一句——同一个工作、同一条会话。
-	Say(ctx context.Context, workID, text string) error
+	Say(ctx context.Context, workID, text string, refs ...string) error
 	// RequirementOf 读出这个工作当前的需求快照。没有时返回 model.ErrNotFound。
 	RequirementOf(ctx context.Context, workID string) (work.RequirementView, error)
 	// FreezeRequirement 冻结当前这一版需求。**由用户点，不由 AI 判断。**

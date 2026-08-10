@@ -320,3 +320,55 @@ it('把整个工作交给外面，不只是 id', async () => {
     )
   })
 })
+
+// ── U10.7.3 · 引用文件 ──────────────────────────────────────
+//
+// ★★ forbidden_changes 第一条是「引用只显示不注入（界面说谎）」——
+// 这里断言的是发送时 refs 真的跟着请求走，移除后真的不走。
+describe('引用文件（U10.7.3）', () => {
+  it('加引用后发送带 refs，发完清空', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    await user.type(await screen.findByRole('textbox'), '用户能取消正在运行的 turn')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+    await waitFor(() => expect(startWork).toHaveBeenCalledTimes(1))
+
+    await user.click(screen.getByRole('button', { name: /引用/ }))
+    await user.type(screen.getByLabelText(/引用文件路径/), 'notes/cancel.md{Enter}')
+    expect(screen.getByText('notes/cancel.md')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('补充说明'), '照这份笔记核对实现')
+    await user.click(screen.getByRole('button', { name: /发送/ }))
+
+    await waitFor(() => {
+      expect(sayInWork).toHaveBeenCalledWith('work-01', '照这份笔记核对实现', ['notes/cancel.md'])
+    })
+    // ★ 发完 chips 清空——上一句的引用不该悄悄跟着下一句
+    await waitFor(() => {
+      expect(screen.queryByText('notes/cancel.md')).not.toBeInTheDocument()
+    })
+  })
+
+  // R2 · 移除 chip 之后发送**不带**它。
+  it('移除引用后发送不带 refs', async () => {
+    const user = userEvent.setup()
+    render(<ChatPage intent={null} intentSeq={0} />)
+
+    await user.type(await screen.findByRole('textbox'), '用户能取消正在运行的 turn')
+    await user.click(screen.getByRole('button', { name: /开始/ }))
+    await waitFor(() => expect(startWork).toHaveBeenCalledTimes(1))
+
+    await user.click(screen.getByRole('button', { name: /引用/ }))
+    await user.type(screen.getByLabelText(/引用文件路径/), 'notes/other.md{Enter}')
+    await user.click(screen.getByRole('button', { name: /移除引用 notes\/other.md/ }))
+    expect(screen.queryByText('notes/other.md')).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('补充说明'), '再看一眼')
+    await user.click(screen.getByRole('button', { name: /发送/ }))
+
+    await waitFor(() => {
+      expect(sayInWork).toHaveBeenCalledWith('work-01', '再看一眼')
+    })
+  })
+})

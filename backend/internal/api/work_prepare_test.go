@@ -32,9 +32,9 @@ func (s *prepStub) Start(_ context.Context, project, prompt, baseRef string) (wo
 	s.started = append(s.started, project+"|"+prompt+"|"+baseRef)
 	return work.View{ID: "work-01", Project: project, Prompt: prompt}, nil
 }
-func (s *prepStub) List(context.Context) ([]work.View, error) { return nil, nil }
-func (s *prepStub) Cancel(context.Context, string) error      { return nil }
-func (s *prepStub) Say(context.Context, string, string) error { return nil }
+func (s *prepStub) List(context.Context) ([]work.View, error)            { return nil, nil }
+func (s *prepStub) Cancel(context.Context, string) error                 { return nil }
+func (s *prepStub) Say(context.Context, string, string, ...string) error { return nil }
 func (s *prepStub) RequirementOf(context.Context, string) (work.RequirementView, error) {
 	return work.RequirementView{}, nil
 }

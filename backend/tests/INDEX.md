@@ -418,6 +418,13 @@
 | `TestScan_R3_OneBrokenDoesNotHideOthers` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R3：★★ 一条 frontmatter 坏的不让整个库列不出来——整批失败的话用户连修它的入口都找不到 |
 | `TestScan_R5_DoesNotTouchUserFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R5（**红线 3** / INV-SKL-6）：★★ 判据是**全目录内容哈希 + 文件清单**，不是「没写 O_WRONLY」——前者才管得住「顺手补个默认 frontmatter」这种好意 |
 | `TestScan_R4_DoesNotFollowSymlinks` | `internal/fsstore/skill/scan_test.go` | fsstore | 符号链接不跟出去。★ 两道防线各自独立有效（显式判 ModeSymlink + ReadDir 的 Lstat 语义），造负例分别验过 |
+| `TestStore_ReadGlobalBody_R2_MatchesDiskFile` | `internal/fsstore/skill/body_test.go` | fsstore | M10 U10.7.2 R2：读回来的就是盘上那份——frontmatter 是围栏内原文，正文是围栏之后的全部（从磁盘现读，不留副本：Skill 是用户的产物，他随时会用编辑器改它） |
+| `TestStore_ReadGlobalBody_NoFrontmatterKeepsWholeText` | `internal/fsstore/skill/body_test.go` | fsstore | 没有 frontmatter 的文件正文是整个文件——不能因为头上没围栏就把人家的正文丢一截 |
+| `TestStore_ReadGlobalBody_R4_MissingSaysPath` | `internal/fsstore/skill/body_test.go` | fsstore | M10 U10.7.2 R4：文件不在要**带路径**说清楚——「空正文」和「文件丢了」是两回事 |
+| `TestStore_ReadGlobalBody_RejectsPathEscape` | `internal/fsstore/skill/body_test.go` | fsstore | ★★ 目录名不许逃出 skills 根（`..` / 分隔符一律拒），skills 根之外放诱饵文件验过读不到 |
+| `TestGetSkillBody_ReadsFromDisk` | `internal/api/skill_body_test.go` | api | M10 U10.7.2 R1/R2：盘上的 SKILL.md 原样到详情端点，frontmatter 与正文分开给、互不混入 |
+| `TestGetSkillBody_MissingCarriesPath` | `internal/api/skill_body_test.go` | api | M10 U10.7.2 R4：404 且 detail 里带路径 |
+| `TestGetSkillBody_UnconfiguredIsNotEmpty` | `internal/api/skill_body_test.go` | api | 没装配读取器 → 503 明说，不装作「这条 Skill 没正文」（没接线的端点不许假装接了） |
 | `TestScan_R6_MissingDirIsEmptyNotError` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R6：目录不存在 = 空列表不是错误。绝大多数项目没有 `.claude/skills`，当错误的话创建项目的预演会因一个正常状态而失败 |
 | `TestScan_R6b_EmptyDirIsEmpty` | `internal/fsstore/skill/scan_test.go` | fsstore | 空目录返回空列表 |
 | `TestScan_IgnoresLooseFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | 散装文件不算 skill——skill 是目录不是文件 |
@@ -452,7 +459,8 @@
 | `TestListRoles_BrokenBindingStillListsTheRole` | `internal/api/roles_test.go` | api | ★ 绑定坏掉的角色照样列出来并带原因；跳过的话用户看到七个角色而不知少了哪个 |
 | `TestListSkills_CarriesValidationReasonToTheUI` | `internal/api/skills_test.go` | api | M2 U2.4.1：真目录真文件 → 版本/描述/兼容性原样到界面；**校验没过的带原因**；扫出来一律 `draft`；来源必须标出 |
 | `TestListSkills_EmptyIsArrayNotNull` | `internal/api/skills_test.go` | api | ★ 空集合序列化成 `[]` 不是 `null`——null 会让前端崩在 `.map` 上，而「一个都没有」正是新用户的常态 |
-| `TestListSkills_ProjectScopeSaysNotReady` | `internal/api/skills_test.go` | api | ★ 项目级 Skill 还没做（要等创建项目）→ 回 501 **明说没有**，而不是回空列表让用户以为自己的 skill 没被认出来 |
+| `TestListSkills_ProjectScopeListsProjectSkills` | `internal/api/skills_test.go` | api | U3.1.2（用户提前要的）：`scope=project&project=<路径>` 用真项目目录（`.claude/skills` 约定）扫出项目级 Skill，scope 标 project |
+| `TestListSkills_ProjectScopeNeedsPath` | `internal/api/skills_test.go` | api | ★ `scope=project` 不给路径 → 400 `project_path_required` **明确报错**，而不是回一个永远的空列表让用户以为自己的 skill 没被认出来 |
 | `TestListSkills_UnconfiguredIsNotAnEmptyList` | `internal/api/skills_test.go` | api | 没装配回 503 并给出可查的错误码 |
 | `TestListSkills_ScanFailureIsReported` | `internal/api/skills_test.go` | api | ★ 扫不动要说出来，不装作「一个都没有」——装作没有的话用户以为自己的 skill 丢了 |
 | `TestMemoryRepo_SaveAndFindRoundTrip` | `internal/store/memory_repo_test.go` | store | M2 U2.3.1：真 SQLite 存取往返，状态/类型/依据/确认人都不丢。`source_refs` 是溯源信息，丢了就查不到这条记忆凭什么成立 |
@@ -715,6 +723,9 @@
 | `TestSay_R4_TerminalWorkRefusesAndSaysWhy` | `internal/app/work/say_test.go` | app | ★★ R4：终态工作拒收，且给出机器可读的 `work_not_accepting_messages`。静默收下的话用户对着一个永远不动的时间线干等，以为 AI 在想事情 |
 | `TestSay_R4_RefusedMeansNothingHappened` | `internal/app/work/say_test.go` | app | ★ 被拒之后**一轮没跑、时间线上也不留那句话**——留下的话会有一句「用户说了什么」而永远没有下文 |
 | `TestSay_RefusesBeforeTheWorktreeIsReady` | `internal/app/work/say_test.go` | app | ★ 工作区还没切好时拒绝：用空 cwd 跑一轮的话，Agent 会在 **duetd 自己的当前目录**里干活 |
+| `TestSay_R1Ref_InjectsReferencedFileIntoPrompt` | `internal/app/work/say_test.go` | app | M10 U10.7.3 R1：引用文件的**内容与路径**真的进这一轮的 prompt（真 worktree 真文件）——「只显示不注入」是 forbidden 第一条 |
+| `TestSay_R3Ref_UnreadableRejectsWholeMessage` | `internal/app/work/say_test.go` | app | ★★ U10.7.3 R3：任何一个引用读不到 → **整句拒绝**（错误带路径），user_message 不发、轮不跑——静默丢弃的话用户以为 AI 看过那个文件了 |
+| `TestSay_RefRejectsEscapingPaths` | `internal/app/work/say_test.go` | app | 引用路径不许逃出 worktree：绝对路径 / `..` / 空串一律拒（一个 `..` 就能把家目录任何文件塞进 prompt 发给模型） |
 | `TestSay_RejectsBlank` | `internal/app/work/say_test.go` | app | 空话不发——发出去的话 Agent 会为一句空白跑一整轮 |
 | `TestSay_UnknownWorkIsNotFound` | `internal/app/work/say_test.go` | app | 工作不存在时能判定成 `ErrNotFound`（上层据此回 404） |
 | `TestSay_WithoutRunnerDoesNotPanic` | `internal/app/work/say_test.go` | app | 没装配 runner 时不崩（只跑 API 冒烟的场景） |

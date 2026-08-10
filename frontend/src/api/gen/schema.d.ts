@@ -200,7 +200,7 @@ export interface paths {
          * @description 切一个独立 worktree、建 ACP 会话、开始澄清需求。
          *
          *     ★ worktree 建在 `~/.acpflows/worktrees`，**不在用户的项目目录里**
-         *     （见 docs/plan/open-questions.md Q30）。用户把代码目录交给 Duet 时，
+         *     （见 旧计划文档（已随重设计移除） Q30）。用户把代码目录交给 Duet 时，
          *     并没有同意我们在他的仓库里造一堆分支和目录。
          */
         post: operations["startWork"];
@@ -687,6 +687,28 @@ export interface paths {
         };
         /** Skill 库 */
         get: operations["listSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills/{dir}/body": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个 Skill 的 SKILL.md 正文
+         * @description ★ 单独一个端点，不塞进列表（与记忆正文同理）：列表逐条读文件是
+         *     N 次磁盘 IO。正文**从磁盘现读**，不留副本——Skill 是用户的产物，
+         *     他随时可能用编辑器改它。
+         */
+        get: operations["getSkillBody"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1967,6 +1989,12 @@ export interface operations {
                 "application/json": {
                     /** @description 用户说的那句话，**原样**转发给 Agent 并进时间线 */
                     text: string;
+                    /**
+                     * @description 引用的文件（相对 worktree 的路径）。内容会拼进这一轮的
+                     *     prompt；**正文不进事件载荷**，时间线上只留路径。
+                     *     读不到任何一个 → 整句拒绝（400），不静默丢弃。
+                     */
+                    refs?: string[];
                 };
             };
         };
@@ -2428,6 +2456,11 @@ export interface operations {
             query?: {
                 /** @description 不传时返回全局库 */
                 scope?: "project" | "global";
+                /**
+                 * @description 项目路径（`GET /v1/projects` 的 `path`）。`scope=project` 时**必填**——
+                 *     不给的话不知道扫哪个项目，明确报错而不是返回一个永远的空列表。
+                 */
+                project?: string;
             };
             header?: never;
             path?: never;
@@ -2443,6 +2476,39 @@ export interface operations {
                 content: {
                     "application/json": {
                         skills: components["schemas"]["Skill"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSkillBody: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Skill 的目录名（列表接口的 `dir` 字段） */
+                dir: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dir: string;
+                        /**
+                         * @description frontmatter 原文（不含 `---` 围栏），没有时为空串。
+                         *     ★ 原样返回——解析失败时用户要看得到自己到底写了什么。
+                         */
+                        frontmatter: string;
+                        /** @description 去掉 frontmatter 之后的正文 */
+                        text: string;
                     };
                 };
             };

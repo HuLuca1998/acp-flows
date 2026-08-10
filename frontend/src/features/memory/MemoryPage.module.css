@@ -1,16 +1,29 @@
-/* 记忆页。照设计稿 §九：四档筛选 + 条目带类型与状态。 */
+/* 记忆页。照设计稿 §九：四档筛选 + 条目带类型与状态。
+   ★ 页框照设计稿原值：flex 撑满 · min-height:0 · padding 22/28 · gap 14 ·
+   overflow:hidden——滚动发生在列内部（§8.2 规则⑥），页面不留大片空白。 */
 .page {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: calc(var(--space-3) + var(--space-2));
+  padding: var(--space-8) calc(var(--space-8) + var(--space-2));
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* 选择器行：§7.6——页头标题行下方第一行，两页同位。 */
+.toolbar {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .eyebrow {
@@ -82,19 +95,100 @@
   list-style: none;
 }
 
+/* 卡片形态由 ui/ListItem 出（§7.4 三态）；这里只留列表项的内部排版。 */
 .item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   min-width: 0;
 }
 
+.item > * {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 /* ★ 等人拍板的那条要**跳出来**——它是这一页唯一需要用户动手的东西。 */
-.item[data-status='candidate'] {
-  border-color: var(--color-accent-500);
+.item[data-status='candidate'] > [role='button'] {
+  box-shadow: inset 0 0 0 1px var(--color-accent-500);
+}
+
+/* 两栏：左条目卡 + 右详情（设计稿 §九的主体，U10.7.1）。
+   两列各自内部滚动（§8.2 规则⑥），列高与页框同高。 */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.detailHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.detailId {
+  color: var(--color-neutral-100);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.detailTitle {
+  margin: 0;
+  color: var(--color-neutral-100);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.record {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recordTitle {
+  margin: 6px 0 0;
+  color: var(--color-neutral-600);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* 字段表：标签一列 + 值一列，值一律等宽（它们是系统原值）。 */
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.fields dt {
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.fields dd {
+  margin: 0;
+  color: var(--color-neutral-300);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .row {

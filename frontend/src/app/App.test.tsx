@@ -26,7 +26,7 @@ beforeEach(() => {
 
 // M0 U0.1.1 / U0.1.2 · 窗口布局与左栏导航
 //
-// 验收标准见 docs/plan/milestones/M0-foundation.md S0.1。
+// 验收标准见 旧计划文档（已随重设计移除） S0.1。
 // 结构严格照 design/ACP Duet 1a.dc.html —— 布局跟着设计稿做，不自由发挥。
 
 describe('导航注册表', () => {

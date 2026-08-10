@@ -7,7 +7,7 @@
 **设置页**。五个分区：环境检测 / 应用更新 / 项目管理 / GitHub 账号 / 通用。
 
 对应验收点 **V0.2 V0.3 V2 V3**，施工图见
-[`M1-install-and-update.md`](../../../../docs/plan/milestones/M1-install-and-update.md)。
+`M1-install-and-update.md`。
 
 ## 不负责什么
 

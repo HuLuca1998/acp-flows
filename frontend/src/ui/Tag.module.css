@@ -1,0 +1,20 @@
+/* 标签芯片：§7.3。10px 等宽，1px 6px，radius-sm。 */
+.tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.tag[data-tone='accent'] {
+  background: var(--color-accent-900);
+  color: var(--color-accent-300);
+}
+
+.tag[data-tone='neutral'] {
+  background: var(--color-surface);
+  color: var(--color-neutral-400);
+}

@@ -106,10 +106,6 @@ jobs:
       - name: 目录扇出（平铺文件过多要分包）
         run: bash scripts/check/check-dir-fanout.sh
 
-      # 里程碑是另一个 AI 的施工图，缺一个字段它就会改不该改的
-      - name: 里程碑单元四要素与验收断言齐备
-        run: bash scripts/check/check-milestones.sh
-
       - name: 提交信息格式（含「先红的测试」）
         if: github.event_name == 'pull_request'
         run: bash scripts/check/check-commit-msg.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

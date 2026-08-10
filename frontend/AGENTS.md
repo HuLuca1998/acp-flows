@@ -64,7 +64,7 @@ make -C .. dev-web            # duetd + vite，浏览器打开 http://localhost:
 
 | 改什么 | 读什么 |
 |---|---|
-| **任何组件** | [`../docs/spec/frontend-guide.md`](../docs/spec/frontend-guide.md) + [`../design/Duet Spec.dc.html`](../design/Duet%20Spec.dc.html) |
+| **任何组件** | [`../docs/spec/frontend-guide.md`](../docs/spec/frontend-guide.md) + `../design/Duet Spec.dc.html` |
 | 命名、文件组织 | [`../docs/rules/coding-standards.md`](../docs/rules/coding-standards.md) §4 |
 | 抽象与复用 | [`../docs/rules/design-principles.md`](../docs/rules/design-principles.md) §6 |
 | 事件流 | [`../docs/spec/architecture.md`](../docs/spec/architecture.md) §4（13 类封闭枚举） |

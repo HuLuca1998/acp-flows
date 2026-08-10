@@ -47,7 +47,7 @@
 ## 2. 用了哪些令牌
 
 **每个颜色字面量都能在 Nocturne / Duet 令牌里找到出处，没有新造色。**
-令牌真值来自 [`../_ds/`](../_ds/) 下的 `nocturne-<hash>/styles.css`（Nocturne 基础层）——
+令牌真值来自 `_ds/`（设计系统源，已随设计稿移除） 下的 `nocturne-<hash>/styles.css`（Nocturne 基础层）——
 目录名带哈希且每次同步设计稿都会变，所以这里指到目录而不是具体文件
 与 [`../../docs/spec/frontend-guide.md`](../../docs/spec/frontend-guide.md) §1.3（Duet 产品层）。
 

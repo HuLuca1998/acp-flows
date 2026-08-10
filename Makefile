@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-ci-parity check-naming check-unfilled-fields check-endpoint-reach check-spec check-gen check-design-parity check-milestone-evidence check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
+check: check-ci-parity check-naming check-unfilled-fields check-endpoint-reach check-spec check-gen check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-ci-parity
@@ -46,14 +46,6 @@ check-endpoint-reach: ## 后端有端点前端够不着（只报告——有些�
 .PHONY: check-spec
 check-spec: ## 校验 api/openapi.yaml 自身规范（CI 的 contract job 跑的就是它）
 	@npx --yes @redocly/cli@1.34.5 lint api/openapi.yaml
-
-.PHONY: check-design-parity
-check-design-parity: ## 设计稿里的每个界面区块都在 design/PARITY.md 里表过态
-	@python3 scripts/check/lib/design_parity.py .
-
-.PHONY: check-milestone-evidence
-check-milestone-evidence: ## 标了完成的里程碑，完成标志都留了实操证据
-	@python3 scripts/check/lib/milestone_evidence.py .
 
 .PHONY: check-license
 check-license: ## 检查 LICENSE.md 没被裁过、版权人填实、README 说法一致
@@ -78,10 +70,6 @@ check-doc-budget: ## 文档的上下文预算：L0 常驻 / L1 阶段 / L2 大�
 .PHONY: check-fanout
 check-fanout: ## 目录扇出：平铺文件过多时逼着分包
 	@bash scripts/check/check-dir-fanout.sh
-
-.PHONY: check-milestones
-check-milestones: ## 里程碑单元的四要素与验收标准断言是否齐备
-	@bash scripts/check/check-milestones.sh
 
 .PHONY: check-commits
 check-commits: ## ★ 本分支相对 main 的提交信息格式（含「先红的测试」）

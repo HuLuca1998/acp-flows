@@ -144,17 +144,43 @@ func TestListSkills_EmptyIsArrayNotNull(t *testing.T) {
 	}
 }
 
-// ★ 项目级 Skill 还没有（要等创建项目），**明说没有而不是回空列表**。
+// 项目级 Skill：给项目路径就扫那个项目（U3.1.2 被用户提前要了）。
 //
-// 回空列表的话，用户以为自己的项目 skill 没被认出来，
-// 而实际是这个功能还没做。
-func TestListSkills_ProjectScopeSaysNotReady(t *testing.T) {
-	rec, _ := getSkills(t, api.Config{Skills: skillstore.Store{Home: t.TempDir()}}, "?scope=project")
-	if rec.Code == http.StatusOK {
-		t.Fatalf("项目级还没做却回了 200：%s", rec.Body.String())
+// ★ 用**真的**项目目录（`.claude/skills` 约定），不 mock 扫描器。
+func TestListSkills_ProjectScopeListsProjectSkills(t *testing.T) {
+	project := t.TempDir()
+	dir := filepath.Join(project, ".claude", "skills", "repo-conventions")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	if rec.Code != http.StatusNotImplemented {
-		t.Errorf("状态码 %d，想要 501", rec.Code)
+	skillMD := "---\nname: repo-conventions\ndescription: 本仓库的提交规范\nversion: \"1.0\"\n---\n"
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(skillMD), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rec, body := getSkills(t, api.Config{Skills: skillstore.Store{Home: t.TempDir()}},
+		"?scope=project&project="+project)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("状态码 %d，想要 200：%s", rec.Code, rec.Body.String())
+	}
+	if len(body.Skills) != 1 {
+		t.Fatalf("想要 1 条项目级 Skill，得到 %d：%s", len(body.Skills), rec.Body.String())
+	}
+	got := body.Skills[0]
+	if got.Name != "repo-conventions" || got.Scope != "project" {
+		t.Fatalf("条目不对：%+v", got)
+	}
+}
+
+// ★ `scope=project` 不给 project 路径 → 明确报错——
+// 回一个永远的空列表的话，用户以为自己的项目 skill 没被认出来。
+func TestListSkills_ProjectScopeNeedsPath(t *testing.T) {
+	rec, _ := getSkills(t, api.Config{Skills: skillstore.Store{Home: t.TempDir()}}, "?scope=project")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("状态码 %d，想要 400：%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "project_path_required") {
+		t.Errorf("没给出可查的错误码：%s", rec.Body.String())
 	}
 }
 

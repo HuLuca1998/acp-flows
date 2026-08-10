@@ -1,10 +1,15 @@
-/* Skill 页。照设计稿 §十：条目 = 名字 + 版本 + 状态 + 校验原因。 */
+/* Skill 页。照设计稿 §十：条目 = 名字 + 版本 + 状态 + 校验原因。
+   ★ 页框照设计稿原值：flex 撑满 · min-height:0 · padding 22/28 · gap 14 ·
+   overflow:hidden——滚动发生在列内部（§8.2 规则⑥），页面不留大片空白。 */
 .page {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: calc(var(--space-3) + var(--space-2));
+  padding: var(--space-8) calc(var(--space-8) + var(--space-2));
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -13,11 +18,28 @@
   gap: 4px;
 }
 
+/* kicker：设计稿页头小标（10px 大写间隔字）。 */
+.eyebrow {
+  margin: 0;
+  color: var(--color-neutral-700);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
 .title {
   margin: 0;
   color: var(--color-neutral-100);
   font-size: 15px;
   font-weight: 600;
+}
+
+/* 选择器行：§7.6——页头标题行下方第一行，两页同位。 */
+.toolbar {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .subtitle {
@@ -56,16 +78,67 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-.item {
+/* 两栏：左列表 + 右详情（设计稿 §十的主体，U10.7.2）。
+   两列各自内部滚动（§8.2 规则⑥），列高与页框同高。 */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.detail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  gap: 10px;
+  padding: 14px 16px;
   border-radius: var(--radius-lg);
+  background: var(--s-inset);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.detailHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.detailName {
+  color: var(--color-neutral-100);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.detailPath {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  overflow-wrap: anywhere;
+}
+
+/* frontmatter 原文块：等宽、与正文分开。 */
+.frontmatter {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  color: var(--color-neutral-400);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .row {
@@ -81,25 +154,11 @@
   font-size: 12.5px;
 }
 
-.version {
-  color: var(--color-neutral-500);
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
-
+/* 状态词的宿主：样式在 ui/StatusText（10.5 等宽只着色），
+   这里只留 data-ok 供「校验没过要看得出不一样」的行为契约用。 */
 .status {
-  padding: 2px 7px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-neutral-500);
-  font-size: 11px;
-}
-
-/* ★ 校验没过的要**看得出不一样**——它是需要用户动手的那一条。
-   用设计系统已有的 `--color-fail`（失败/失效），不新造 warning 一档。 */
-.status[data-ok='false'] {
-  border-color: var(--color-fail);
-  color: var(--color-fail);
+  display: inline-flex;
+  margin-left: auto;
 }
 
 .desc {

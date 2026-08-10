@@ -3,7 +3,7 @@ package fake_test
 // Fake Runtime 脚本回放与时序控制
 //
 // 原单元编号 U0.4.1，2026-08-07 里程碑重建后废弃。
-// Fake 是 M2/M3 全部测试的地基，见 docs/plan/roadmap.md 的「已经就绪的地基」，
+// Fake 是 M2/M3 全部测试的地基，见 旧计划文档（已随重设计移除） 的「已经就绪的地基」，
 // 详细设计见 docs/spec/acp-integration.md §12。
 //
 // ★ Fake 是所有上层测试的地基。它自己必须自证 —— 地基歪了上面全歪。

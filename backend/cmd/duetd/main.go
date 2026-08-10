@@ -37,6 +37,7 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
 	projectstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/project"
 	skillstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/skill"
+	workspacestore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/workspace"
 	"github.com/HuLuca1998/acp-flows/backend/internal/ghx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
@@ -242,6 +243,8 @@ func run() error {
 	// ★★ Skill 注入与计数：不装的话 Skill 页那一列永远是 0，
 	// 而用户看这个数字是为了判断哪些 Skill 真在起作用。
 	workSvc.SetSkills(skillstore.Store{Home: paths.DataDir()}, db.SkillHits())
+	// ★ 引用注入（U10.7.3）：不装的话带引用的消息会明确报错，不静默丢弃。
+	workSvc.SetWorkspaceFiles(workspacestore.Store{})
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。
@@ -270,6 +273,8 @@ func run() error {
 		// Skill 库：只扫全局（`~/.acpflows/skills`）。
 		// 项目级的在创建项目时初始化（M3），那时才有项目。
 		Skills: skillstore.Store{Home: paths.DataDir()},
+		// ★ Skill 正文：详情栏要显示 SKILL.md，从磁盘现读（用户随时会改它）。
+		SkillBodies: skillstore.Store{Home: paths.DataDir()},
 		// ★ 记忆正文：审核候选时用户要读到它才决定得了收不收。
 		MemoryBodies: newMemoryBodies(paths.DataDir()),
 		// ★ 命中计数：不接的话 Skill 页那一列永远是 0，而契约里那个字段
