@@ -4,8 +4,10 @@
 // 改一个域要在四百行里翻——而这三个库本来就各自演化。
 
 import type { Memory, MemoryStatus } from '@/models/memory'
+import type { ResumableWork } from '@/models/resume'
 import type { Role } from '@/models/role'
 import type { Skill } from '@/models/skill'
+
 
 import { api, unwrap } from './client'
 
@@ -78,3 +80,13 @@ export async function reviewMemory(
   )
 }
 
+/**
+ * 列出能接着做的工作。
+ *
+ * ★★ 后端这条链路早就通了，而界面上一直没有入口——用户打开应用
+ * 永远看不到「有 2 个工作可以接着做」，那整套检查点代码等于没用。
+ */
+export async function listResumable(): Promise<ResumableWork[]> {
+  const body = unwrap(await api.GET('/system/resume', {}))
+  return body.resumable
+}

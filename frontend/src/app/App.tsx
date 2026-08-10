@@ -5,6 +5,7 @@ import { listProjects } from '@/api/system'
 import { ChatPage, type ChatIntent } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
+import { ResumeBar } from '@/features/resume/ResumeBar'
 import { NewWorkDialog } from '@/features/work/NewWorkDialog'
 import type { Project } from '@/models/project'
 import type { Work } from '@/models/work'
@@ -187,6 +188,22 @@ export function App() {
         )}
 
         <main className={styles.main}>
+          {/*
+            ★★ 「接着做」排在**最上面**：用户打开应用第一眼要看到
+            「昨天那个还没做完」。往下滚才发现的话，他多半已经开了个新工作。
+            一个都没有时整块不显示——那是绝大多数人每次打开的状态。
+          */}
+          {navPage === null && (
+            <ResumeBar
+              onResume={(workID) => {
+                // ★ 走 `open` 意图，与左栏点一个已有工作**同一条路**——
+                // 另写一条的话，两处的行为迟早会分叉。
+                setIntent({ kind: 'open', workID })
+                setIntentSeq((n) => n + 1)
+              }}
+            />
+          )}
+
           {navPage === null ? (
             <ChatPage intent={intent} intentSeq={intentSeq} onWorkChange={setCurrentWork} />
           ) : (

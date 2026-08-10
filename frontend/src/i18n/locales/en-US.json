@@ -161,6 +161,7 @@
   "requirement.frozen": "frozen",
   "requirement.itemCount": "{{count}} requirements",
   "requirement.openFacts": "{{count}} open questions",
+  "resume.title": "{{count}} to pick back up",
   "roles.col.mode": "Session mode",
   "roles.col.permission": "Permission policy",
   "roles.col.personality": "Personality and tone",

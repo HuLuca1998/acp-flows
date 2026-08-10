@@ -161,6 +161,7 @@
   "requirement.frozen": "已冻结",
   "requirement.itemCount": "{{count}} 条需求",
   "requirement.openFacts": "还有 {{count}} 条待确认",
+  "resume.title": "{{count}} 个工作可以接着做",
   "roles.col.mode": "会话模式",
   "roles.col.permission": "权限裁决",
   "roles.col.personality": "性格与提示语气",
