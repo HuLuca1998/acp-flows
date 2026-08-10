@@ -312,3 +312,57 @@ func TestListResumable_R1_CarriesPausedAt(t *testing.T) {
 		t.Errorf("暂停时间在未来：%v", got[0].PausedAt)
 	}
 }
+
+// ★★ 停在哪个单元上要带出来。
+//
+// 只有工作 id 的话，用户看到的是「work-03 · work-05」两行——那两个词
+// 对他没有任何意义。他记得的是「我在做那个取消功能」，而单元标识
+// 是唯一能把他带回那个记忆的东西。
+//
+// ★ 契约里 `unit_id` 早就有了，而这条链路一直没填——「字段在契约里、
+// 真实路径上永远是空」是最难发现的一类缺陷：类型对、测试绿，
+// 只是那个位置永远不显示东西。
+func TestListResumable_CarriesTheUnitItStoppedOn(t *testing.T) {
+	repo := &memWorks{}
+	w := model.NewWorkAt("work-07", constant.WorkStatePaused)
+	// ★ 走 StartUnit 这个**真实入口**，不手搓字段：
+	// 手搓的话，测试跑在一条真实路径产生不了的状态上。
+	if err := w.StartUnit("unit-013"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SaveWork(context.Background(), w); err != nil {
+		t.Fatal(err)
+	}
+	svc := newService(repo, stubWorktrees{paths: map[string]string{}})
+
+	got, err := svc.ListResumable(context.Background())
+	if err != nil {
+		t.Fatalf("列出失败: %v", err)
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("列出了 %d 条，想要 1 条", len(got))
+	}
+	if got[0].UnitID != "unit-013" {
+		t.Errorf("UnitID = %q，想要 unit-013——"+
+			"界面上那一行只剩一串 work-0N，用户认不出哪个是他刚才在做的", got[0].UnitID)
+	}
+}
+
+// ★ 还没开始做单元时**留空**，不编一个。
+//
+// 编出来的话，用户点进去发现根本没有那个单元。
+func TestListResumable_NoUnitYetStaysEmpty(t *testing.T) {
+	repo := &memWorks{}
+	seed(t, repo, "work-08", constant.WorkStatePaused)
+	svc := newService(repo, stubWorktrees{paths: map[string]string{}})
+
+	got, err := svc.ListResumable(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(got) != 1 || got[0].UnitID != "" {
+		t.Errorf("还没开始做单元，UnitID 却是 %q", got[0].UnitID)
+	}
+}

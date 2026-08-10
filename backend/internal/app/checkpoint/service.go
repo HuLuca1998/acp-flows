@@ -27,6 +27,12 @@ var ErrNotResumable = errors.New("checkpoint: 这个工作不是暂停状态")
 // Resumable 是一条可恢复的工作。
 type Resumable struct {
 	WorkID string
+	// UnitID 是停在哪个单元上，还没开始做单元时为空。
+	//
+	// ★★ 只有工作 id 的话，用户看到的是「work-03 · work-05」两行——
+	// 那两个词对他没有任何意义。他记得的是「我在做那个取消功能」，
+	// 而单元标识是唯一能把他带回那个记忆的东西。
+	UnitID string
 	// PausedAt 是暂停时间。用户开着三四个工作时靠它认出「哪个是刚才那个」。
 	PausedAt time.Time
 }
@@ -90,6 +96,9 @@ func (s *Service) ListResumable(ctx context.Context) ([]Resumable, error) {
 		}
 		out = append(out, Resumable{
 			WorkID: w.ID(),
+			// ★ 停在哪个单元上——契约里这个字段早就有了，
+			// 而这里一直没填，于是界面上永远只有一串 work-0N。
+			UnitID: w.CurrentUnitID(),
 			// 暂停时间暂用当前时间——落库的时间戳是 U4.1.2 后续的事，
 			// 但**字段现在就得在**，否则界面渲染不出来（列表里认不出哪个是哪个）
 			PausedAt: time.Now(),
