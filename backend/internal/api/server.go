@@ -141,6 +141,9 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	mux.HandleFunc("GET /v1/works/{id}/decisions", handleListPendingDecisions(cfg.Works))
 	mux.HandleFunc("POST /v1/works/{id}/decisions/{decisionId}", handleAnswerDecision(cfg.Works))
 	mux.HandleFunc("GET /v1/system/resume", handleListResumable(cfg.Checkpoints))
+	// ★★ 恢复本身。后端 `Resume` 早就在了，而**没有端点**——
+	// 于是界面点一条只能跳到对话页，真正的切 worktree 与脏检查从没跑过。
+	mux.HandleFunc("POST /v1/system/resume/{id}", handleResumeWork(cfg.Checkpoints))
 
 	// 未匹配到任何路由时返回 RFC 9457 的 Problem，而不是 Go 默认的纯文本 404。
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {

@@ -11,12 +11,15 @@ import { ResumeBar } from './ResumeBar'
 // 那整套检查点代码等于没用，而他不会知道自己少了什么。
 
 const listResumable = vi.fn()
+const resumeWork = vi.fn()
 
 vi.mock('@/api/library', () => ({
   listResumable: (): unknown => listResumable(),
+  resumeWork: (...a: unknown[]): unknown => resumeWork(...a),
 }))
 
 beforeEach(() => {
+  resumeWork.mockReset().mockResolvedValue(undefined)
   listResumable.mockReset().mockResolvedValue([
     { work_id: 'work-03', checkpoint_id: 'work-03', unit_id: 'unit-013', paused_at: '2026-08-10T02:00:00Z' },
   ])
@@ -49,15 +52,69 @@ describe('接着做', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  // R4 ★ 点一条回到那个工作。
-  it('点一条把工作标识交出去', async () => {
+  // R4 ★★ 点一条**先真的恢复**（切 worktree、脏检查），成功了再跳。
+  //
+  // 直接跳的话，界面看起来能用而那一整套恢复逻辑从没跑过。
+  it('点一条先恢复再跳，不是直接跳', async () => {
     const onResume = vi.fn()
     const user = userEvent.setup()
     render(<ResumeBar onResume={onResume} />)
 
     await user.click(await screen.findByText('unit-013'))
 
+    await waitFor(() => {
+      expect(resumeWork, '直接跳了——那一整套恢复逻辑从没跑过').toHaveBeenCalledWith(
+        'work-03',
+        false,
+      )
+    })
     expect(onResume).toHaveBeenCalledWith('work-03')
+  })
+
+  // R3 ★★ 工作区脏时**先告知**，不静默恢复。
+  //
+  // 他手工改过那个 worktree，而状态推回可跑之后 AI 会接着往上写。
+  it('工作区脏时问一句，不静默继续', async () => {
+    const onResume = vi.fn()
+    resumeWork.mockRejectedValueOnce(new Error('worktree_dirty'))
+    const user = userEvent.setup()
+    render(<ResumeBar onResume={onResume} />)
+
+    await user.click(await screen.findByText('unit-013'))
+
+    expect(await screen.findByText(/没提交的改动/)).toBeInTheDocument()
+    expect(onResume, '脏着就跳进去了——AI 会接着往他的改动上写').not.toHaveBeenCalled()
+  })
+
+  // ★ 他确认之后带 force 再来一次。
+  it('确认之后带 force 继续', async () => {
+    const onResume = vi.fn()
+    resumeWork.mockRejectedValueOnce(new Error('worktree_dirty')).mockResolvedValueOnce(undefined)
+    const user = userEvent.setup()
+    render(<ResumeBar onResume={onResume} />)
+
+    await user.click(await screen.findByText('unit-013'))
+    await user.click(await screen.findByText('我知道了，继续'))
+
+    await waitFor(() => {
+      expect(resumeWork).toHaveBeenLastCalledWith('work-03', true)
+    })
+    expect(onResume).toHaveBeenCalledWith('work-03')
+  })
+
+  // ★ 恢复失败（不是脏）时**不跳**：跳过去他会对着一个没恢复的工作接着说话。
+  it('恢复失败时不跳过去', async () => {
+    const onResume = vi.fn()
+    resumeWork.mockRejectedValue(new Error('resume_failed'))
+    const user = userEvent.setup()
+    render(<ResumeBar onResume={onResume} />)
+
+    await user.click(await screen.findByText('unit-013'))
+
+    await waitFor(() => {
+      expect(resumeWork).toHaveBeenCalled()
+    })
+    expect(onResume, '没恢复成却跳过去了——他会对着一个没恢复的工作接着说话').not.toHaveBeenCalled()
   })
 
   // ★★ **不自动恢复**：接着做是用户的决定。

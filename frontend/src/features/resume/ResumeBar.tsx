@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listResumable } from '@/api/library'
+import { listResumable, resumeWork } from '@/api/library'
 import type { ResumableWork } from '@/models/resume'
 
 import styles from './ResumeBar.module.css'
@@ -25,6 +25,8 @@ export type ResumeBarProps = {
 export function ResumeBar({ onResume }: ResumeBarProps) {
   const { t } = useTranslation()
   const [items, setItems] = useState<ResumableWork[]>([])
+  /** 工作区脏、正在等用户确认的那一条。 */
+  const [dirty, setDirty] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -47,6 +49,28 @@ export function ResumeBar({ onResume }: ResumeBarProps) {
     }
   }, [])
 
+  const pick = useCallback(
+    async (workID: string, force: boolean) => {
+      try {
+        // ★★ **先真的恢复**（切 worktree、脏检查），成功了再跳。
+        // 直接跳的话，界面看起来能用而那一整套恢复逻辑从没跑过。
+        await resumeWork(workID, force)
+        setDirty('')
+        onResume(workID)
+      } catch (err) {
+        // ★★ 脏是一个**用户能处理的状态**：问他一句，不静默继续。
+        // 他手工改过那个 worktree，而状态推回可跑之后 AI 会接着往上写。
+        if (err instanceof Error && err.message === 'worktree_dirty') {
+          setDirty(workID)
+          return
+        }
+        // 别的失败**不跳**：跳过去他会对着一个没恢复的工作接着说话
+        setDirty('')
+      }
+    },
+    [onResume],
+  )
+
   // ★ 一个都没有时**整块不显示**——那是绝大多数人每次打开应用的状态。
   if (items.length === 0) {
     return null
@@ -63,7 +87,7 @@ export function ResumeBar({ onResume }: ResumeBarProps) {
             type="button"
             className={styles.item}
             data-work={it.work_id}
-            onClick={() => onResume(it.work_id)}
+            onClick={() => void pick(it.work_id, false)}
           >
             {/*
               ★★ 显示**停在哪个单元**。只有工作 id 的话，用户看到的是
@@ -77,6 +101,23 @@ export function ResumeBar({ onResume }: ResumeBarProps) {
           </button>
         ))}
       </div>
+
+      {/*
+        ★★ 工作区脏时**问一句再继续**。他手工改过那个 worktree，
+        而恢复之后 AI 会接着往上写——先告诉他，他才有机会去看看
+        自己改了什么。这里不擅自决定，只把选择摆出来。
+      */}
+      {dirty !== '' && (
+        <div className={styles.dirty} role="alert">
+          <span>{t('resume.dirty')}</span>
+          <button type="button" className={styles.go} onClick={() => void pick(dirty, true)}>
+            {t('resume.dirtyGo')}
+          </button>
+          <button type="button" className={styles.cancel} onClick={() => setDirty('')}>
+            {t('resume.dirtyCancel')}
+          </button>
+        </div>
+      )}
     </section>
   )
 }
