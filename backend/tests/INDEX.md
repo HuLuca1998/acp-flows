@@ -381,6 +381,9 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestDecide_ModeSwitchIsRefusedNotAsked` | `internal/acp/session/permission_test.go` | acp | ★★ M7 U7.5.1 R1 R2：`switch_mode` 请求在**每一种策略下**都被自动拒绝，且选的是 reject_once 那个。档位是开会话时按角色定死的**契约**——摆到用户面前等于让「要不要让它能写」变成一个他随手会点「是」的按钮。选项取自**真机 work-05** 的原样载荷（五个里四个能让它写）。**验过负例**：把那道判断改成恒假，立刻红 |
+| `TestDecide_OtherKindsStillFollowPolicy` | `internal/acp/session/permission_test.go` | acp | M7 U7.5.1 R3：普通的编辑请求照常按策略交给用户，没被这条规矩误伤 |
+| `TestDecide_ModeSwitchWithoutRejectOptionAsksUser` | `internal/acp/session/permission_test.go` | acp | ★★ M7 U7.5.1 R5：选项里没有拒绝类时**交给用户**，绝不乱选——乱选的后果是我们替他点了「永久允许绕过权限」 |
 | `TestTurnSummary_IgnoresWhatTheAgentClaims` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R1：AI 在回复里胡说「我已经把计划改成了 v9」，小结里没有 plan_version——跟着它的说法走的话，这四行是它自己写的，不是我们观察到的 |
 | `TestTurnSummary_OmitsWhatDidNotHappen` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R2：什么都没发生时四个键一个都不留，只有 outcome——塞「计划：无变更」进去的话四行里三行是废话，用户会开始整块跳过，那正好淹掉真正变了的那一行。**验过负例**：把 `len(memoryIDs)>0` 改成恒真，这条立刻红 |
 | `TestTurnSummary_InjectionMatchesTheEvent` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R3：小结里的 memory_ids 与 `injection` 事件**同源**——两处各数一次的话它们迟早对不上，而用户没有第三个地方去核对 |

@@ -40,6 +40,13 @@ const (
 	ReasonNotReadonly       = "not_readonly"
 	ReasonRejectAll         = "reject_all"
 	ReasonNoMatchingOption  = "no_matching_option"
+	// ReasonModeSwitchRefused：AI 请求换权限档，被直接拒了。
+	//
+	// ★★ **不问用户**：角色的权限档是**契约**，不是一件可以临时商量的事。
+	// 把它摆到他面前，等于让「要不要让它能写」变成一个他随手会点「是」
+	// 的按钮——而他点的时候，界面上没有任何东西告诉他
+	// 「你正在把只读会话变成可写的」。真机 work-05 撞到过。
+	ReasonModeSwitchRefused = "mode_switch_refused"
 	ReasonUnknownPolicy     = "unknown_policy"
 	// ReasonNoAskUser：需要问用户，但没人接这根线（装配漏了）。
 	ReasonNoAskUser = "no_ask_user"
@@ -80,6 +87,21 @@ var readonlyKinds = map[protocol.ToolKind]bool{
 // 策略想「允许」而选项里没有 allow 类的时候，唯一正确的动作是交给用户——
 // 猜一个的话，我们可能替他点了「永久允许」。
 func Decide(policy Policy, req protocol.RequestPermissionRequest) Decision {
+	// ★★ **换权限档的请求一律拒绝，任何策略下都是。**
+	//
+	// 这不是「这次要不要动这个文件」，而是「以后要不要都不用问」——
+	// 档位是**开会话时按角色定死的契约**，让 AI 靠一次请求就能升级的话，
+	// 收权那一整套（`modeIDFor` 把澄清阶段落到 plan 档）等于形同虚设。
+	//
+	// ★ 放在 switch **之前**：连 PolicyAsk 也不例外。真机上那次请求给了
+	// 五个选项，四个能让它写——用户看到的是一句「Yes, and…」，
+	// 而不是「你正在把只读会话变成可写的」。
+	if req.ToolCall.Kind == protocol.ToolKindSwitchMode {
+		return pick(req.Options,
+			protocol.PermissionRejectOnce, protocol.PermissionRejectAlways,
+			ReasonModeSwitchRefused)
+	}
+
 	switch policy {
 	case PolicyAsk:
 		return askUser(ReasonPolicyAsk)
