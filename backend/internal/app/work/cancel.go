@@ -151,3 +151,116 @@ func (s *Service) isCancelling(workID string) bool {
 	defer s.cancelMu.Unlock()
 	return s.cancelling[workID]
 }
+
+// ── 一轮的收场（U7.4.1）────────────────────────────────────
+//
+// ★ 和取消放同一个文件：**「这一轮怎么结束的」是一件事**。
+// 用户点停、跑挂了、正常跑完——三条路最后都汇到这里，
+// 而它们该给出的说法各不相同（他明明是自己点的停，界面却说「失败」）。
+
+// TurnOutcome 是一轮的收场方式。
+//
+// ★ 这是用户最先看的一行：同样是「停了」，他自己点的停与 AI 跑挂了
+// 是完全不同的两件事——分不清的话，他会对着一个正常结束的轮次找 bug。
+type TurnOutcome string
+
+const (
+	// TurnDone 是正常跑完。
+	TurnDone TurnOutcome = "done"
+	// TurnCancelled 是用户自己点的停。
+	TurnCancelled TurnOutcome = "cancelled"
+	// TurnFailed 是跑挂了。
+	TurnFailed TurnOutcome = "failed"
+	// TurnQueued 是排队没排上。
+	TurnQueued TurnOutcome = "queue_full"
+)
+
+// turnFacts 是一轮里**应用自己记下**的事实。
+//
+// ★★ 四行小结全部来自这里，**不解析 AI 的回复**。它说「我改了计划」时
+// 可能什么都没改——而用户看小结正是为了不用往回滚就知道这轮发生了什么。
+type turnFacts struct {
+	// planBefore 是这一轮开始时的计划版本，0 表示还没有计划。
+	planBefore int
+	// contractBefore 是当前单元的契约版本，0 表示还没有契约。
+	contractBefore int
+	unitID         string
+	// memoryIDs / skillRefs 是这一轮真的注入了什么。
+	memoryIDs []string
+	skillRefs []string
+}
+
+// snapshotTurn 记下这一轮开始时的现场。
+func (s *Service) snapshotTurn(ctx context.Context, workID string) turnFacts {
+	f := turnFacts{}
+	if w, err := s.repo.FindWork(ctx, workID); err == nil && w != nil {
+		f.unitID = w.CurrentUnitID()
+	}
+	if s.plans != nil {
+		if v, err := s.plans.LatestPlan(ctx, workID); err == nil {
+			f.planBefore = v.Version()
+		}
+	}
+	if s.contracts != nil && f.unitID != "" {
+		if c, err := s.contracts.LatestContract(ctx, f.unitID); err == nil && c != nil {
+			f.contractBefore = c.Version()
+		}
+	}
+	return f
+}
+
+// emitTurnSummary 发这一轮的小结。
+//
+// ★★ **没发生的那一行不发**：塞一个「计划：无变更」进去的话，四行里
+// 有三行是废话，而用户会开始整块跳过——那正好淹掉真正变了的那一行。
+func (s *Service) emitTurnSummary(ctx context.Context, workID string, f turnFacts, outcome TurnOutcome) {
+	payload := map[string]any{
+		// ★ 收场方式**总是有**：这一行是用户最先看的。
+		"outcome": string(outcome),
+	}
+
+	// ① 计划变了没有——比对版本号，不问 AI
+	if s.plans != nil {
+		if v, err := s.plans.LatestPlan(ctx, workID); err == nil && v.Version() > f.planBefore {
+			payload["plan_version"] = v.Version()
+		}
+	}
+
+	// ② 契约变了没有
+	if s.contracts != nil && f.unitID != "" {
+		if c, err := s.contracts.LatestContract(ctx, f.unitID); err == nil && c != nil &&
+			c.Version() > f.contractBefore {
+			payload["contract_version"] = c.Version()
+			payload["unit_id"] = f.unitID
+		}
+	}
+
+	// ③ 注入了什么——★ 与 `injection` 事件同源，不是另数一遍
+	if len(f.memoryIDs) > 0 {
+		payload["memory_ids"] = f.memoryIDs
+	}
+	if len(f.skillRefs) > 0 {
+		payload["skill_refs"] = f.skillRefs
+	}
+
+	s.emit(ctx, workID, "turn_summary", payload)
+}
+
+// outcomeOf 把一轮的结束方式翻成用户能读的一个词。
+//
+// ★★ **用户自己点的停不算失败**。两者都表现为 RunTurn 返回错误，
+// 但对他是完全不同的两件事——他明明是自己点的停，界面却说「失败」。
+func outcomeOf(err error, cancelling bool) TurnOutcome {
+	switch {
+	case cancelling:
+		return TurnCancelled
+	case err == nil:
+		return TurnDone
+	case errors.Is(err, port.ErrTurnQueueFull), errors.Is(err, port.ErrTurnAbandoned):
+		// ★ 排队没排上也不算失败：用户只是手快点了几下，
+		// 那几句话一句都没丢，只是没排上。
+		return TurnQueued
+	default:
+		return TurnFailed
+	}
+}

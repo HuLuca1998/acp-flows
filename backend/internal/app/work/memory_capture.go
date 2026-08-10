@@ -307,8 +307,18 @@ func (s *Service) injectFor(ctx context.Context, workID string) injection {
 //
 // ★★ **计数在这里加，不由 AI 自报**：只有这里知道「真的拼进去了」。
 // 它自报的话，会把「我读到了这条」说成「我用上了这条」。
-func (s *Service) applyInjection(ctx context.Context, workID, prompt string) string {
+// ★★ 清单同时交给 `injection` 事件与本轮小结——**同源**，不是另数一遍。
+// 两处各数一次的话它们迟早对不上，而用户没有第三个地方去核对。
+//
+// ★ facts 可以为 nil（不需要小结的调用方）。
+func (s *Service) applyInjectionInto(
+	ctx context.Context, workID, prompt string, facts *turnFacts,
+) string {
 	inj := s.injectFor(ctx, workID)
+	if facts != nil {
+		facts.memoryIDs = inj.MemoryIDs
+		facts.skillRefs = inj.SkillRefs
+	}
 	if len(inj.MemoryIDs) == 0 && len(inj.SkillRefs) == 0 {
 		// ★ 一条都没有时**什么都不发**：发一条「注入 0 条」的话，
 		// 时间线上会多出一行永远为空的噪音，而它什么也没告诉用户。

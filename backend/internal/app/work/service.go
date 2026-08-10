@@ -221,11 +221,16 @@ func (s *Service) runTurnAsWithReply(
 		defer s.clearCancelling(workID)
 
 		version, frozen := s.requirementOf(turnCtx, workID)
+		// ★★ 开轮先记下现场，收场时对比——四行小结全部来自**应用记的事实**，
+		// 不解析 AI 的回复。它说「我改了计划」时可能什么都没改。
+		facts := s.snapshotTurn(turnCtx, workID)
+		prompt2 := s.applyInjectionInto(turnCtx, workID, prompt, &facts)
+
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID, Cwd: worktree,
 			// ★★ 注入在**这里**发生，不在调用方：漏掉一条路径的话，
 			// 那条路径上的 AI 就是不带记忆干活的，而没有任何地方会报错。
-			Prompt: s.applyInjection(turnCtx, workID, prompt),
+			Prompt: prompt2,
 			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
 			RequirementVersion: version, RequirementFrozen: frozen,
 			// ★★ 每一轮都过一遍记忆提取。不套的话，`reply.ParseMemoryReply`
@@ -233,6 +238,10 @@ func (s *Service) runTurnAsWithReply(
 			// 一条候选都不会出现。这个项目已经八次栽在这上面。
 			OnReply: s.withMemoryCapture(turnCtx, workID, onReply),
 		})
+		// ★★ **每个出口都发小结**，包括用户自己点停的那次（R4）：
+		// 他点停正是因为想看看现在到哪了——那时最需要这四行。
+		s.emitTurnSummary(turnCtx, workID, facts, outcomeOf(err, s.isCancelling(workID)))
+
 		if err == nil || s.isCancelling(workID) {
 			return
 		}
@@ -264,6 +273,9 @@ func (s *Service) runTurnWith(
 		// 放在 goroutine 里而不是请求线程上：这是一次 IO，
 		// 而用户点完「发送」该立刻看到界面动起来。
 		version, frozen := s.requirementOf(turnCtx, workID)
+		// ★★ 同上：开轮记现场，收场对比。
+		facts := s.snapshotTurn(turnCtx, workID)
+		prompt2 := s.applyInjectionInto(turnCtx, workID, prompt, &facts)
 
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID,
@@ -281,10 +293,15 @@ func (s *Service) runTurnWith(
 			Cwd: worktree,
 			// ★★ 同上：对话轮也要带着记忆，它恰恰是最需要的那一类
 			// （用户的规矩多半是在对话里定下来的）。
-			Prompt:             s.applyInjection(turnCtx, workID, prompt),
+			Prompt:             prompt2,
 			RequirementVersion: version,
 			RequirementFrozen:  frozen,
 		})
+
+		// ★★ **每个出口都发小结**，包括用户自己点停的那次（R4）：
+		// 他点停正是因为想看看现在到哪了——那时最需要这四行。
+		s.emitTurnSummary(turnCtx, workID, facts, outcomeOf(err, s.isCancelling(workID)))
+
 		if err == nil {
 			return
 		}

@@ -381,6 +381,11 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestTurnSummary_IgnoresWhatTheAgentClaims` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R1：AI 在回复里胡说「我已经把计划改成了 v9」，小结里没有 plan_version——跟着它的说法走的话，这四行是它自己写的，不是我们观察到的 |
+| `TestTurnSummary_OmitsWhatDidNotHappen` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R2：什么都没发生时四个键一个都不留，只有 outcome——塞「计划：无变更」进去的话四行里三行是废话，用户会开始整块跳过，那正好淹掉真正变了的那一行。**验过负例**：把 `len(memoryIDs)>0` 改成恒真，这条立刻红 |
+| `TestTurnSummary_InjectionMatchesTheEvent` | `internal/app/work/summary_test.go` | app | ★★ M7 U7.4.1 R3：小结里的 memory_ids 与 `injection` 事件**同源**——两处各数一次的话它们迟早对不上，而用户没有第三个地方去核对 |
+| `TestTurnSummary_AlsoOnCancel` | `internal/app/work/summary_test.go` | app | M7 U7.4.1 R4：跑挂了也出小结，outcome 是 failed——他点停正是因为想看看现在到哪了，那时最需要这四行 |
+| `TestTurnSummary_QueueFullIsNotAFailure` | `internal/app/work/summary_test.go` | app | ★ M7 U7.4.1：排队没排上是 `queue_full` 不是 failed——用户只是手快点了几下，那几句话一句都没丢 |
 | `TestService_SkillHits_CountsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.4.1 R1：跑两轮 Skill 命中计数是 2（ref 用 `<scope>:<dir>`，不用 name——name 来自 frontmatter，用户改一次名计数就断了） |
 | `TestService_SkillHits_IgnoresWhatTheAgentClaims` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R2：AI 在回复里说「我用了 tdd-unit」，那个 ref 的计数仍是 0——跟着它的说法记的话，这个数字是它自己写的，不是我们观察到的 |
 | `TestService_SkillHits_DraftIsNeitherInjectedNorCounted` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R3：draft 既不注入也不计数（INV-SKL-1：扫出来的一律 draft，那是「可以发布」不是「已经发布」）——否则用户往目录里丢个半成品文件就等于让它进了每一轮 prompt。**验过负例**：把状态判断改成恒真，这条立刻红 |

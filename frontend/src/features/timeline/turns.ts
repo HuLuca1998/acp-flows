@@ -18,6 +18,14 @@ export type Segment = {
    */
   refID: string;
   /**
+   * 原始载荷。
+   *
+   * ★ 只给**自己渲染**的那几类用（本轮小结的四行各有各的意思，
+   * 压成一句的话用户读不出「哪一行变了」）。普通段一律走
+   * `detail` / `status`——在渲染层挖载荷正是注册表要挡的事。
+   */
+  payload: Record<string, unknown>;
+  /**
    * 摘要来自 detailFrom 的第几项，**越小越好**。
    *
    * ★ 归并时靠它挡住「降级覆盖」：tool_call 带 title、随后的
@@ -76,6 +84,8 @@ export type Turn = {
   tools: Segment[];
   /** 状态变化这类单行。 */
   lines: Segment[];
+  /** 本轮小结：自己渲染成几行。 */
+  summaries: Segment[];
   /**
    * 记忆候选——**要能点**的那种。
    *
@@ -132,6 +142,7 @@ export function groupIntoTurns(segments: Segment[]): Turn[] {
         tools: [],
         lines: [],
         candidates: [],
+        summaries: [],
         mine,
         firstType: seg.type,
       };
@@ -139,7 +150,9 @@ export function groupIntoTurns(segments: Segment[]): Turn[] {
     }
 
     // 按形态归位：气泡是「说的话」，卡片是「干的活」，单行是状态
-    if (seg.type === "memory_candidate") {
+    if (seg.type === "turn_summary") {
+      turn.summaries.push(seg);
+    } else if (seg.type === "memory_candidate") {
       // ★ 载荷里没有 memory_id 的（解析失败那种）**不做成卡片**：
       // 点了也没有可审的东西，而一个点不动的按钮比没有按钮更让人困惑。
       if (seg.refID !== "") {
@@ -282,6 +295,7 @@ export function mergeEvents(
       detail,
       detailRank,
       refID,
+      payload,
       status,
       role: e.role ?? "",
       roleName: e.role_display_name ?? "",

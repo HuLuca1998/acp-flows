@@ -23,14 +23,15 @@ describe('事件注册表', () => {
     'unit_contract',
     'state_change',
     'injection',
+    'turn_summary',
     'memory_candidate',
     'decision',
     'evidence',
     'checkpoint',
   ] as const
 
-  it('契约里的 14 类事件每一类都有渲染器', () => {
-    expect(CONTRACT_TYPES).toHaveLength(14)
+  it('契约里的 15 类事件每一类都有渲染器', () => {
+    expect(CONTRACT_TYPES).toHaveLength(15)
 
     for (const type of CONTRACT_TYPES) {
       const renderer = rendererFor(type)
@@ -109,7 +110,7 @@ describe('事件注册表', () => {
   // 没有任何地方写 switch。真有人改成 switch 的话，
   // 上面「14 类都有渲染器」那条会在他漏掉一个 case 时红。
   it('注册表是数据，事件类型由它推导而不是各处硬编码', () => {
-    expect(EVENT_KINDS.length).toBe(14)
+    expect(EVENT_KINDS.length).toBe(15)
     // 顺序无所谓，但内容必须与契约一致
     expect([...EVENT_KINDS].sort()).toEqual([...CONTRACT_TYPES].sort())
   })
