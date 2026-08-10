@@ -1483,7 +1483,7 @@ export interface components {
             /** @enum {string} */
             source: "acp" | "app";
             /** @enum {string} */
-            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "user_message" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
+            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "user_message" | "plan_version" | "unit_contract" | "state_change" | "injection" | "turn_summary" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
             /** Format: date-time */
             ts: string;
             /**

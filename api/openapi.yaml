@@ -1848,6 +1848,10 @@ components:
             - unit_contract
             - state_change
             - injection
+            # ★★ 本轮小结：一轮结束时的四行，全部来自**应用记的事实**——
+            # AI 说「我改了计划」时可能什么都没改，而用户看这几行正是为了
+            # 不用往回滚就知道这轮发生了什么。没发生的那一行不占位置。
+            - turn_summary
             - memory_candidate
             - decision
             - evidence

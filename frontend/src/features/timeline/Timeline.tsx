@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { MemoryCandidateCard } from "../memory/MemoryCandidateCard";
 
 import styles from "./Timeline.module.css";
+import { TurnSummary, type TurnSummaryPayload } from "./TurnSummary";
 import { rendererFor, type TimelineEvent } from "./event-registry";
 import { groupIntoTurns, initialsOf, mergeEvents, type Turn } from "./turns";
 
@@ -159,6 +160,12 @@ function TurnBlock({ turn }: { turn: Turn }) {
             )}
           </div>
         )}
+
+        {/* ★ 本轮小结：M7 完成标志第 6 条。放在这一轮的**末尾**——
+            它总结的是上面那些，摆在前面的话用户读到它时还不知道发生了什么。 */}
+        {turn.summaries.map((s) => (
+          <TurnSummary key={s.key} payload={s.payload as TurnSummaryPayload} />
+        ))}
 
         {/*
           ★★ 记忆候选**能点**。后端把它发出来了、载荷里 id 与标题都全，

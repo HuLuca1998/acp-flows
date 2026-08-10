@@ -123,6 +123,9 @@ const RENDERERS = {
     detailFrom: ['to', 'reason'],
   },
   injection: { labelKey: 'timeline.event.injection', shape: 'line' },
+  // ★ 本轮小结自己渲染成几行，不走通用的单行形态——
+  // 它的每一行都有自己的意思，压成一句的话用户读不出「哪一行变了」。
+  turn_summary: { labelKey: 'timeline.event.turnSummary', shape: 'card' },
   memory_candidate: {
     labelKey: 'timeline.event.memoryCandidate',
     shape: 'card',
@@ -192,7 +195,7 @@ export const FILTER_GROUPS: readonly FilterGroup[] = [
     items: [
       { id: 'plan', labelKey: 'timeline.filter.plan', types: ['plan_version'] },
       { id: 'contract', labelKey: 'timeline.filter.contract', types: ['unit_contract'] },
-      { id: 'state', labelKey: 'timeline.filter.state', types: ['state_change', 'checkpoint'] },
+      { id: 'state', labelKey: 'timeline.filter.state', types: ['state_change', 'checkpoint', 'turn_summary'] },
       {
         id: 'inject',
         labelKey: 'timeline.filter.inject',
