@@ -72,7 +72,7 @@ make -C ../../.. cover
 ## 改这里之前必读
 
 - [`../../../docs/spec/domain-model.md`](../../../docs/spec/domain-model.md) —— 规格，含 115 条不变量与 §18 的开放项
-- [`../../../docs/plan/open-questions.md`](../../../docs/plan/open-questions.md) —— **撞上未决问题就停，不要猜**
+- `../../../docs/plan/open-questions.md` —— **撞上未决问题就停，不要猜**
 - [`../../../docs/rules/design-principles.md`](../../../docs/rules/design-principles.md)
 - [`../../../docs/rules/coding-standards.md`](../../../docs/rules/coding-standards.md) §1.1
 

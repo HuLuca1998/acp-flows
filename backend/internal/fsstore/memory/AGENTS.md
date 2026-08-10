@@ -29,7 +29,7 @@ go test ./internal/fsstore/memory/
 
 ## 改这里之前必读
 
-- [`M10 施工图`](../../../../docs/plan/milestones/M10-memory-and-skills.md) · `U10.1.1`
+- `M10 施工图` · `U10.1.1`
 - 根 `AGENTS.md` 的 INV-MEM-8
 
 ## 本域特有的坑

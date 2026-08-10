@@ -50,7 +50,7 @@ Duet 的界面设计做在 Claude Design 项目里（Design Canvas 格式的 `.d
 ### 5. 设计缺口要登记
 
 设计稿里找不到条目、但界面上确实存在的东西 → 登记进
-[`../frontend-guide.md`](../spec/frontend-guide.md) §16 与 [`../open-questions.md`](../plan/open-questions.md)。
+[`../frontend-guide.md`](../spec/frontend-guide.md) §16 与 `../open-questions.md`。
 
 **AI 不许替这些缺口拍板补设计。** 撞上了就停，指向对应编号。
 

@@ -32,7 +32,7 @@ pnpm tsc --noEmit
 
 ## 改这里之前必读
 
-- [`M9 施工图`](../../../../docs/plan/milestones/M9-decisions.md)
+- `M9 施工图`
 - 术语表（根 `AGENTS.md` §8）—— **等级 D0–D3 不翻译**
 
 ## 本域特有的坑

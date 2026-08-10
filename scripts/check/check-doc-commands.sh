@@ -5,9 +5,8 @@
 # AI 照着文档跑，撞一鼻子灰，然后开始不信任文档——这是最坏的结果。
 #
 # 两处例外，都是「按定义会引用尚不存在的东西」：
-#   - docs/plan/milestones/**  单元是**计划**不是**声称**。单元标记改成 ✓ 的那一刻起
 #     它引用的路径就必须真的存在——本脚本对已完成的单元不放行（见文末那段检查）
-#   - docs/plan/open-questions.md  它是**已知缺口登记表**，登记「某某还不存在」正是它的职责
+#   - 旧计划文档（已随重设计移除）  它是**已知缺口登记表**，登记「某某还不存在」正是它的职责
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -32,7 +31,7 @@ docs_to_check() {
   # 结果会把几千个第三方 README 里的散文（"make an aggregate"）当成 make 目标。
   find . \
     \( -name node_modules -o -name .git -o -name .worktree -o -name dist \
-       -o -name target -o -path './docs/plan/milestones' \) -prune -o \
+       -o -name target\) -prune -o \
     -name '*.md' -not -name 'open-questions.md' -print \
     2>/dev/null || true
 }
@@ -72,7 +71,6 @@ if [[ -n $done_missing ]]; then say "已完成（✓）的里程碑单元引用�
 
 if [[ $fail -eq 1 ]]; then
   echo "修正方式：改文档指向真实存在的命令，或把命令建出来。"
-  echo "注意：docs/plan/milestones/ 里未完成（○/◐）单元的前向引用是正常的，本脚本已跳过。"
   exit 1
 fi
 echo "✓ 文档里的命令与脚本都真实存在"

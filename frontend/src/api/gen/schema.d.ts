@@ -200,7 +200,7 @@ export interface paths {
          * @description 切一个独立 worktree、建 ACP 会话、开始澄清需求。
          *
          *     ★ worktree 建在 `~/.acpflows/worktrees`，**不在用户的项目目录里**
-         *     （见 docs/plan/open-questions.md Q30）。用户把代码目录交给 Duet 时，
+         *     （见 旧计划文档（已随重设计移除） Q30）。用户把代码目录交给 Duet 时，
          *     并没有同意我们在他的仓库里造一堆分支和目录。
          */
         post: operations["startWork"];

@@ -7,7 +7,7 @@
 **角色与 Runtime 页**。八个角色的职责与 Runtime 绑定，以及引擎的能力矩阵。
 
 对应验收点 **V3**，施工图见
-[`M1-install-and-update.md`](../../../../docs/plan/milestones/M1-install-and-update.md)。
+`M1-install-and-update.md`。
 
 ## 不负责什么
 

@@ -2,7 +2,7 @@
 
 > **本文是 `backend/internal/acp/` 的规格说明，改协议层前必读。**
 
-> 读者：Claude / Codex / 人。本文描述 **M0 目标形态**；实现进度见 [`roadmap.md`](../plan/roadmap.md)。
+> 读者：Claude / Codex / 人。本文描述 **M0 目标形态**；实现进度见 `roadmap.md`。
 > 与根 [`AGENTS.md`](../../AGENTS.md) 的六条铁律冲突时以铁律为准。
 > 术语按 `AGENTS.md` §8；状态词与协议标识符一律英文原值、等宽显示，不翻译。
 

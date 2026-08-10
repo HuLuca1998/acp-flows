@@ -4,7 +4,7 @@ import { capabilities, downloadAndInstall, RELEASES_URL } from './index'
 
 // M1 U1.1.1 · 平台适配层
 //
-// 验收标准见 docs/plan/milestones/M1-install-and-update.md S1.1。
+// 验收标准见 旧计划文档（已随重设计移除） S1.1。
 
 const w = globalThis as { __TAURI_INTERNALS__?: unknown }
 
