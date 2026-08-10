@@ -99,3 +99,29 @@ func gitLog(t *testing.T, repo string) string {
 	}
 	return string(out)
 }
+
+// ★★ 没配 git 身份时给**可操作的错误**，不是 `exit status 128`。
+//
+// 他刚装完 git 就用 Duet 的话会卡在这里，而不知道要去配 user.email——
+// 那是一条一行就能解决的路。CI 上本地全绿而远端红，根因就是这个。
+func TestCommit_MissingIdentityIsExplained(t *testing.T) {
+	repo := testutil.NewGitRepo(t)
+	// ★ 用**空 ident** 来构造这个条件，而不是摘掉配置。
+	//
+	// 摘配置在 macOS 上重现不了：git 会从用户名与主机名**自动推导**
+	// 一个身份（`luca@Mini6.lan`）然后提交成功。Linux 容器里推导不出
+	// 有效地址才会拒绝——本地绿而 CI 红，根因就是这个差异。
+	// 空 ident 在两种系统上都被拒绝，所以这条测试到哪都有效。
+	t.Setenv("GIT_AUTHOR_NAME", "")
+	t.Setenv("GIT_COMMITTER_NAME", "")
+	if err := os.WriteFile(filepath.Join(repo, "NEW.md"), []byte("x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := gitx.Commit(t.Context(), repo, "试着提交")
+
+	if !errors.Is(err, gitx.ErrNoGitIdentity) {
+		t.Fatalf("错误是 %v，想要 ErrNoGitIdentity——"+
+			"用户看到 exit status 128 的话，不知道自己只差一句 git config", err)
+	}
+}

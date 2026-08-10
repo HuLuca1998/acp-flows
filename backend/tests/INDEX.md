@@ -606,6 +606,7 @@
 | `TestAcceptUnit_RefusesWithoutAnyEvidence` | `internal/app/work/accept_test.go` | app | ★★ 一条标准都没有证据时拒绝，且**一次提交都没发生**。允许的话「验收」这个动作就没有内容了——用户点通过时以为自己核对过什么 |
 | `TestAcceptUnit_RefusesToCommitNothing` | `internal/app/work/accept_test.go` | app | R5：没有改动时不造空提交 |
 | `TestAcceptUnit_NoCommitterSaysSo` | `internal/app/work/accept_test.go` | app | 没装配提交能力时明确报错——不是「通过了但什么都没提交」，那会让用户以为改动已经落进分支，而它还散在工作区里 |
+| `TestCommit_MissingIdentityIsExplained` | `internal/gitx/commit_test.go` | gitx | ★★ 没配 git 身份时报 `ErrNoGitIdentity` 而不是 `exit status 128`——用户刚装完 git 就用 Duet 会卡在这里，而他只差一句 `git config`。★ 用**空 ident** 构造条件而不是摘配置：macOS 上 git 会从用户名与主机名**自动推导**一个身份然后提交成功，Linux 容器里才拒绝——本地绿而 CI 红的根因就是这个差异，空 ident 在两种系统上都被拒绝 |
 | `TestCommit_IncludesUntrackedFiles` | `internal/gitx/commit_test.go` | git | ★★ M8 U8.2.2：提交带上**未跟踪的新文件**。AI 干活时新建文件是常态，不带的话提交里少了一半东西——而 diff 证据里明明有它们，用户会发现两处对不上。判据是「提交之后工作区干净了」 |
 | `TestCommit_RefusesToMakeAnEmptyCommit` | `internal/gitx/commit_test.go` | git | ★★ 没有改动时**不造空提交**：一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收，而不是往历史里塞一个空 commit 把问题盖过去 |
 | `TestCommit_KeepsTheMessage` | `internal/gitx/commit_test.go` | git | 提交信息原样进历史——用户日后 `git log` 要能看懂那次验收 |

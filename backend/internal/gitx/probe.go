@@ -82,9 +82,16 @@ func run(ctx context.Context, dir string, args ...string) (string, error) {
 	// 交互式凭据提示在服务进程里永远等不到人来输
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 
+	// ★★ 单独接住 stderr：`cmd.Output()` 会把它丢掉，而 **git 所有的
+	// 错误说明都在 stderr 里**——丢了之后调用方只剩一个
+	// `exit status 128`，既没法给用户可操作的下一步，也没法自己判断
+	// 是哪一类失败。这就是「用户只看到 exit status 128」的根因。
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+
 	out, err := cmd.Output()
 	if err != nil {
-		return "", err
+		return stderr.String(), err
 	}
 	return string(out), nil
 }

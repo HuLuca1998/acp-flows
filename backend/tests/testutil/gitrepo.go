@@ -37,6 +37,15 @@ func NewGitRepo(t *testing.T) string {
 	}
 
 	run("init")
+
+	// ★★ 身份要**写进仓库配置**，不能只靠上面那几个 `-c`。
+	//
+	// `-c` 只对它跟着的那一条命令生效——被测代码自己跑 `git commit` 时
+	// 仍然没有身份，在没配过全局 git 身份的机器上（CI、刚装完 git 的电脑）
+	// 直接 `exit status 128`。本地全绿而 CI 红，就是这么来的。
+	run("config", "user.email", "test@duet.local")
+	run("config", "user.name", "Duet Test")
+	run("config", "commit.gpgsign", "false")
 	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("# test\n"), 0o644); err != nil {
 		t.Fatalf("写 README 失败: %v", err)
 	}
