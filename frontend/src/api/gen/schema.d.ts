@@ -712,6 +712,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/resume/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 恢复一个工作
+         * @description ★★ **工作区脏时先告知**（409 `worktree_dirty`），不静默恢复：
+         *     他手工改过那个 worktree，而我们把状态推回可跑之后 AI 会接着往上写。
+         *     先问一句，他才有机会去看看自己改了什么。
+         *
+         *     ★ `force=true` 由用户显式带上——默认永远是「先检查」。
+         *     「跳过检查」不等于「覆盖改动」：我们本来就不动他的文件，
+         *     只是把工作的状态推回可跑。
+         */
+        post: operations["resumeWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/memories/{id}/body": {
         parameters: {
             query?: never;
@@ -2451,6 +2477,47 @@ export interface operations {
                 };
             };
             default: components["responses"]["Problem"];
+        };
+    };
+    resumeWork: {
+        parameters: {
+            query?: {
+                /** @description 用户已经知道工作区是脏的，仍然要继续。 */
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 恢复成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        work_id: string;
+                        /** @description 恢复之后的状态**原值**，不翻译（术语表）。 */
+                        state: string;
+                    };
+                };
+            };
+            /**
+             * @description 工作区有未提交的改动。★★ 这是一个**用户能处理的状态**，
+             *     不是服务器错误——前端该问他一句再带 `force=true` 回来。
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     getMemoryBody: {

@@ -4,8 +4,10 @@
 // 改一个域要在四百行里翻——而这三个库本来就各自演化。
 
 import type { Memory, MemoryStatus } from '@/models/memory'
+import type { ResumableWork } from '@/models/resume'
 import type { Role } from '@/models/role'
 import type { Skill } from '@/models/skill'
+
 
 import { api, unwrap } from './client'
 
@@ -78,3 +80,41 @@ export async function reviewMemory(
   )
 }
 
+/**
+ * 列出能接着做的工作。
+ *
+ * ★★ 后端这条链路早就通了，而界面上一直没有入口——用户打开应用
+ * 永远看不到「有 2 个工作可以接着做」，那整套检查点代码等于没用。
+ */
+export async function listResumable(): Promise<ResumableWork[]> {
+  const body = unwrap(await api.GET('/system/resume', {}))
+  return body.resumable
+}
+
+/** 恢复失败的原因，`worktree_dirty` 要问用户一句再来。 */
+export class ResumeBlocked extends Error {
+  constructor(readonly code: string) {
+    super(code)
+  }
+}
+
+/**
+ * 恢复一个工作。
+ *
+ * ★★ 工作区脏时抛 `ResumeBlocked('worktree_dirty')`——**先问用户一句**，
+ * 不静默恢复：他手工改过那个 worktree，而状态推回可跑之后 AI 会接着
+ * 往上写。先问，他才有机会去看看自己改了什么。
+ *
+ * ★ `force` 由用户显式确认后才传——默认永远是「先检查」。
+ */
+export async function resumeWork(workID: string, force = false): Promise<void> {
+  const result = await api.POST('/system/resume/{id}', {
+    params: { path: { id: workID }, query: force ? { force: true } : {} },
+  })
+  if (result.error !== undefined && result.error !== null) {
+    const problem = result.error as { type?: string }
+    throw new ResumeBlocked(
+      typeof problem.type === 'string' && problem.type !== '' ? problem.type : 'resume_failed',
+    )
+  }
+}
