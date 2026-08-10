@@ -109,6 +109,7 @@ export function SkillPage() {
               <li key={s.dir} data-skill={s.dir} data-status={s.status}>
                 <ListItem
                   state={s.dir === selected ? 'selected' : 'default'}
+                  label={s.name}
                   onSelect={() => setSelected(s.dir)}
                 >
                   <div className={styles.row}>
