@@ -24,7 +24,7 @@ help: ## 显示所有可用命令
 
 # ══ 总检查 ═════════════════════════════════════════════════════
 .PHONY: check
-check: check-ci-parity check-naming check-unfilled-fields check-spec check-gen check-design-parity check-milestone-evidence check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
+check: check-ci-parity check-naming check-unfilled-fields check-endpoint-reach check-spec check-gen check-design-parity check-milestone-evidence check-license check-docs check-doc-commands check-doc-links check-doc-budget check-fanout check-milestones check-toolchain check-index check-icons check-commits check-wip check-merge lint test cover ## 提交前必跑：文档 + 索引 + 预算 + 提交信息 + lint + 全部测试
 
 # ══ 文档完整性（根 AGENTS.md §4.1）═══════════════════════════════
 .PHONY: check-ci-parity
@@ -38,6 +38,10 @@ check-naming: ## 命名与文件组织规范（单文件行数、WaitDelay、品
 .PHONY: check-unfilled-fields
 check-unfilled-fields: ## 契约里有字段却没人填（用户看到一个永远空白的位置）
 	@bash scripts/check/check-unfilled-fields.sh
+
+.PHONY: check-endpoint-reach
+check-endpoint-reach: ## 后端有端点前端够不着（只报告——有些端点本来就不给界面用）
+	@bash scripts/check/check-endpoint-reach.sh
 
 .PHONY: check-spec
 check-spec: ## 校验 api/openapi.yaml 自身规范（CI 的 contract job 跑的就是它）
