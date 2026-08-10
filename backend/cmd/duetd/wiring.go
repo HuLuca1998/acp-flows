@@ -54,6 +54,12 @@ func (s eventStore) AppendEvent(ctx context.Context, e *eventbus.Event) error {
 	row := &store.Event{
 		ID: e.ID, WorkID: e.WorkID, Source: e.Source,
 		Type: e.Type, TS: e.TS, Payload: e.Payload,
+		// ★★ 这几个**极易漏抄**——漏了的话事件照样落库、照样能读回来，
+		// 只是角色标签没了，而所有单测都绿（它们不过这层）。
+		// 有反射测试守着「两个结构体字段数一致」。
+		Role: e.Role, RoleDisplayName: e.RoleDisplayName, Runtime: e.Runtime,
+		RequirementVersion: e.RequirementVersion,
+		RequirementFrozen:  e.RequirementFrozen,
 	}
 	if err := s.repo.AppendEvent(ctx, row); err != nil {
 		return err
@@ -76,6 +82,10 @@ func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]
 		out = append(out, eventbus.Event{
 			ID: r.ID, Seq: r.Seq, WorkID: r.WorkID,
 			Source: r.Source, Type: r.Type, TS: r.TS, Payload: r.Payload,
+			// ★ 回来的方向同样别漏——用户重开应用看到的就是这条路。
+			Role: r.Role, RoleDisplayName: r.RoleDisplayName, Runtime: r.Runtime,
+			RequirementVersion: r.RequirementVersion,
+			RequirementFrozen:  r.RequirementFrozen,
 		})
 	}
 	return out, nil
@@ -88,11 +98,34 @@ func (s eventStore) EventsAfter(ctx context.Context, after int64, limit int) ([]
 // 不让 app 层自己去拼路径（拼错了就写进用户仓库了）。
 type worktrees struct{ root string }
 
-func (w worktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
+func (w worktrees) CreateWorktree(
+	ctx context.Context, repo, workID, baseRef string,
+) (port.Worktree, error) {
 	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
-		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
+		Repo: repo, Root: w.root, WorkID: workID,
+		Branch: "duet/" + workID, BaseRef: baseRef,
 	})
-	return wt.Path, err
+	if err != nil {
+		return port.Worktree{}, err
+	}
+	return port.Worktree{Path: wt.Path, Branch: wt.Branch, BaseCommit: wt.BaseCommit}, nil
+}
+
+// repoStatus 实现 port.RepoStatusProbe。
+type repoStatus struct{}
+
+func (repoStatus) ProbeRepoStatus(ctx context.Context, path string) (port.RepoStatus, error) {
+	st, err := gitx.ProbeStatus(ctx, path)
+	if err != nil {
+		return port.RepoStatus{}, err
+	}
+	return port.RepoStatus{
+		CurrentBranch: st.CurrentBranch,
+		Branches:      st.Branches,
+		HeadCommit:    st.HeadCommit,
+		TrackedDirty:  st.TrackedDirty,
+		Untracked:     st.Untracked,
+	}, nil
 }
 
 // WorktreePath 实现 port.WorktreeLocator：算出某个工作的工作区在哪。
@@ -127,6 +160,12 @@ func (b workBus) PublishWorkEvent(ctx context.Context, e port.WorkEvent) error {
 	return b.bus.Publish(ctx, eventbus.Event{
 		ID: "evt_" + e.WorkID, WorkID: e.WorkID,
 		Source: e.Source, Type: e.Type, Payload: payload,
+		// ★ 角色一路穿到界面：断在这里的话，前端只能按 Runtime 名猜，
+		// 而一个 Runtime 承担多个角色时那两个角色会长得一模一样。
+		Role: e.Role, RoleDisplayName: e.RoleDisplayName, Runtime: e.Runtime,
+		// ★ 需求版本同理：断在这里的话，用户看不出「说这句话时需求是第几版」。
+		RequirementVersion: e.RequirementVersion,
+		RequirementFrozen:  e.RequirementFrozen,
 	})
 }
 
@@ -150,3 +189,37 @@ func toBrokerOptions(in []protocol.PermissionOption) []permission.Option {
 // 界面上宁可说「AI」，也不要写死 claude 或 codex（上层不许出现品牌名，
 // 见 check-naming 第 10 节）。真正的名字等 U4.x 的多 Runtime 并行再接。
 func runtimeNameOf(_ session.PermissionAsk) string { return "AI" }
+
+func (repoStatus) ProbeWorktreeState(
+	ctx context.Context, path, base string,
+) (port.WorktreeState, error) {
+	st, err := gitx.ProbeWorktree(ctx, path, base)
+	if err != nil {
+		return port.WorktreeState{}, err
+	}
+	out := port.WorktreeState{
+		Branch: st.Branch, BaseCommit: st.BaseCommit, Ahead: st.Ahead,
+		Changes: make([]port.FileChange, 0, len(st.Changes)),
+		Commits: make([]port.CommitInfo, 0, len(st.Commits)),
+	}
+	for _, c := range st.Changes {
+		out.Changes = append(out.Changes, port.FileChange{
+			Path: c.Path, Added: c.Added, Removed: c.Removed,
+		})
+	}
+	for _, c := range st.Commits {
+		out.Commits = append(out.Commits, port.CommitInfo{
+			SHA: c.SHA, Subject: c.Subject, When: c.When,
+		})
+	}
+	return out, nil
+}
+
+// committer 把 gitx 的提交能力接到 app 上。
+//
+// ★ app 层不许 import gitx（depguard 的分层规则），接缝落在 cmd。
+type committer struct{}
+
+func (committer) Commit(ctx context.Context, path, message string) (string, error) {
+	return gitx.Commit(ctx, path, message)
+}

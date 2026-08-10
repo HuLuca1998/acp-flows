@@ -32,11 +32,32 @@ type Service struct {
 	repo port.ProjectRepo
 	git  port.GitProbe
 	ids  port.IDGen
+
+	// 下面四个都可以为 nil——那时预演里对应的那一块是空的，
+	// 而**不是整次预演失败**。扫不到 skill、没装 gh 都是常见的正常状态。
+	init   port.ProjectInitializer
+	skills port.SkillScanner
+	remote port.RemoteProbe
+	gh     port.GhDetector
 }
 
 // New 组装用例。
 func New(repo port.ProjectRepo, git port.GitProbe, ids port.IDGen) *Service {
 	return &Service{repo: repo, git: git, ids: ids}
+}
+
+// WithInit 装上创建项目预演需要的几件东西。
+//
+// ★ 单独一个方法而不是塞进 New：`Add` / `List` / `Remove` 不需要它们，
+// 塞进 New 会让所有调用方都被迫提供四个它们用不上的参数。
+func (s *Service) WithInit(
+	init port.ProjectInitializer,
+	skills port.SkillScanner,
+	remote port.RemoteProbe,
+	gh port.GhDetector,
+) *Service {
+	s.init, s.skills, s.remote, s.gh = init, skills, remote, gh
+	return s
 }
 
 // Add 把一个本地目录加进来。

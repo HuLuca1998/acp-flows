@@ -16,7 +16,7 @@ const ask: PermissionRequest = {
   runtime: 'codex',
   kind: 'edit',
   path: 'crates/engine/src/events.rs',
-  outOfBounds: true,
+  boundary: 'out_of_boundary' as const,
   options: [
     { optionId: 'opt-allow', name: '允许一次', kind: 'allow_once' },
     { optionId: 'opt-deny', name: '拒绝', kind: 'reject_once' },
@@ -101,10 +101,25 @@ it('提交中禁用全部按钮', () => {
 // 没有越界信息时不显示那一行——**不编造**。
 //
 // 「写入边界外」是一句很重的话，没有依据就说的话，用户会对所有提示脱敏。
-it('不越界时不显示「写入边界外」', () => {
-  render(<PermissionCard ask={{ ...ask, outOfBounds: false }} onDecide={vi.fn()} />)
+it('边界内时不显示「写入边界外」', () => {
+  render(<PermissionCard ask={{ ...ask, boundary: 'in_boundary' }} onDecide={vi.fn()} />)
 
   expect(screen.queryByText(/写入边界外/)).not.toBeInTheDocument()
+  // ★ 边界内给一句轻的确认——大多数请求都在边界内，做得太重的话
+  // 用户会开始忽略这一行
+  expect(screen.getByText(/在写入边界内/)).toBeInTheDocument()
+})
+
+// ★★ **「说不清」也要说出来**。
+//
+// 只在越界时才标的话，用户分不出「边界内」与「还没有契约」——
+// 而后者正是他最该多看一眼的时候：AI 在一份没人定过边界的现场里改文件。
+it('还没有契约时明说「边界说不清」', () => {
+  render(<PermissionCard ask={{ ...ask, boundary: 'unknown' }} onDecide={vi.fn()} />)
+
+  expect(screen.getByText(/还没有契约/)).toBeInTheDocument()
+  expect(screen.queryByText(/写入边界外/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/在写入边界内/)).not.toBeInTheDocument()
 })
 
 // 不同的工具类别说不同的话：读文件说「请求读取」，执行命令说「请求执行」。

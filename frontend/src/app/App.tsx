@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { listProjects } from '@/api/system'
-import { ChatPage } from '@/features/chat'
+import { ChatPage, type ChatIntent } from '@/features/chat'
 import { ContextPanel } from '@/features/context'
 import { Rail } from '@/features/rail'
+import { NewWorkDialog } from '@/features/work/NewWorkDialog'
 import type { Project } from '@/models/project'
+import type { Work } from '@/models/work'
 import { Button } from '@/ui/Button'
 import { Resizer } from '@/ui/Resizer'
 import { STORAGE_KEYS, usePersistedState } from '@/utils/persisted'
@@ -45,6 +47,27 @@ export function App() {
 
   // 面包屑要显示**真实的**当前项目。null 表示还没查到或一个都没有。
   const [project, setProject] = useState<Project | null>(null)
+  // 左栏点「新建对话」/「打开工作」时，把意图传给对话页。
+  // ★ 用一个带序号的对象而不是裸字符串：同一个项目连点两次「新建对话」，
+  // 裸字符串不变，对话页不会有反应——而用户明明点了两下。
+  const [intent, setIntent] = useState<ChatIntent | null>(null)
+  // ★ 点了「新建对话」但还没选基线的项目路径。
+  //
+  // 中间隔一个弹层是有意的：开工要切 worktree，而用户在点之前
+  // 有权知道「从哪条分支切、我的工作区会不会被动」。
+  const [pendingProject, setPendingProject] = useState<string | null>(null)
+  // ★ 当前打开的工作 id，右栏「工作区」靠它知道该读哪个工作的 git 现场。
+  // ★ 存整个 Work 而不只是 id：面包屑第三段要显示**标题与状态**。
+  // 只存 id 的话，App 要为了显示一行标题再查一次工作列表。
+  const [currentWork, setCurrentWork] = useState<Work | null>(null)
+  const currentWorkID = currentWork?.id ?? ''
+  const [intentSeq, setIntentSeq] = useState(0)
+
+  const openIntent = (next: ChatIntent) => {
+    setIntent(next)
+    setIntentSeq((n) => n + 1)
+    setPageId(DEFAULT_PAGE) // 左栏点的是对话，就切回对话主区
+  }
 
   useEffect(() => {
     void (async () => {
@@ -103,6 +126,24 @@ export function App() {
               <span className={styles.crumbCurrent} data-tauri-drag-region>
                 {t(navPage?.titleKey ?? 'nav.chat')}
               </span>
+              {/* ★ 第三段：**当前工作**（标题 + 状态）。
+                  没有它的话，用户开着三条工作时看不出自己在哪一条里。 */}
+              {currentWork !== null && (
+                <>
+                  <span className={styles.crumbSep} aria-hidden="true" data-tauri-drag-region>
+                    /
+                  </span>
+                  <span className={styles.crumbWork} data-tauri-drag-region>
+                    {currentWork.title !== undefined && currentWork.title !== ''
+                      ? currentWork.title
+                      : currentWork.id}
+                  </span>
+                  {/* 状态词**显示英文原值**，不翻译（术语表硬要求） */}
+                  <span className={styles.crumbState} data-tauri-drag-region>
+                    {currentWork.state}
+                  </span>
+                </>
+              )}
             </>
           )}
         </nav>
@@ -131,6 +172,8 @@ export function App() {
           onNavigate={setPageId}
           collapsed={!railOpen}
           width={railWidth}
+          onNewWork={(projectPath) => setPendingProject(projectPath)}
+          onOpenWork={(workID) => openIntent({ kind: 'open', workID })}
         />
         {railOpen && (
           <Resizer
@@ -144,7 +187,11 @@ export function App() {
         )}
 
         <main className={styles.main}>
-          {navPage === null ? <ChatPage /> : <navPage.Component />}
+          {navPage === null ? (
+            <ChatPage intent={intent} intentSeq={intentSeq} onWorkChange={setCurrentWork} />
+          ) : (
+            <navPage.Component />
+          )}
         </main>
 
         {showContext && (
@@ -157,7 +204,7 @@ export function App() {
             label={t('nav.resizeContext')}
           />
         )}
-        {showContext && <ContextPanel width={contextWidth} />}
+        {showContext && <ContextPanel width={contextWidth} workID={currentWorkID} />}
       </div>
 
       {planOpen && (
@@ -169,6 +216,23 @@ export function App() {
           <p className={styles.planHint}>{t('page.plan.hint')}</p>
         </div>
       )}
+
+      {/*
+        ★★ 「新建对话」与「真的开工」之间隔着这个弹层。
+        开工要切 worktree——用户在点之前有权知道从哪条分支切、
+        以及**他的工作区不会被动**。
+      */}
+      <NewWorkDialog
+        open={pendingProject !== null}
+        projectPath={pendingProject ?? ''}
+        onClose={() => setPendingProject(null)}
+        onConfirm={(baseRef) => {
+          if (pendingProject !== null) {
+            openIntent({ kind: 'new', projectPath: pendingProject, baseRef })
+          }
+          setPendingProject(null)
+        }}
+      />
     </div>
   )
 }

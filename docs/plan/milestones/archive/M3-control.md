@@ -1,6 +1,6 @@
 # M3 · 能管住 AI
 
-> 对应验收点 **V7 · V8**（[`../acceptance.md`](../acceptance.md)）。
+> 对应验收点 **V7 · V8**（[`../acceptance.md`](../../acceptance.md)）。
 
 ## 目标
 
@@ -25,7 +25,7 @@
 1. 需要给权限请求加超时——**协议层不设超时**，挂几小时等用户回来是产品语义
 2. 需要改公开接口签名而当前单元未授权
 3. 发现取消后 Agent 仍在改文件（说明杀进程那步漏了）
-4. 撞上 [`../open-questions.md`](../open-questions.md) 未决项
+4. 撞上 [`../open-questions.md`](../../open-questions.md) 未决项
 
 ---
 

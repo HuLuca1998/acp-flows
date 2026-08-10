@@ -1,0 +1,498 @@
+package work_test
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
+	"github.com/HuLuca1998/acp-flows/backend/tests/testutil"
+)
+
+// M6 U6.2.1 · 需求冻结后产出计划
+//
+// ★★ 需求还在变的时候做出来的计划，做完也对不上——而那时用户已经等了
+// 一整轮，还得从头再来一次。
+
+// memPlans 是内存版计划仓储，**与真 store 同一套规则**：同一版存两次被拒。
+type memPlans struct {
+	mu    sync.Mutex
+	items map[string][]model.PlanVersion
+}
+
+func newMemPlans() *memPlans {
+	return &memPlans{items: map[string][]model.PlanVersion{}}
+}
+
+func (p *memPlans) SavePlan(_ context.Context, workID string, v model.PlanVersion) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, existing := range p.items[workID] {
+		if existing.Version() == v.Version() {
+			return model.ErrPlanVersionNotNext
+		}
+	}
+	p.items[workID] = append(p.items[workID], v)
+	return nil
+}
+
+func (p *memPlans) LatestPlan(_ context.Context, workID string) (model.PlanVersion, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	list := p.items[workID]
+	if len(list) == 0 {
+		return model.PlanVersion{}, model.ErrNotFound
+	}
+	best := list[0]
+	for _, v := range list {
+		if v.Version() > best.Version() {
+			best = v
+		}
+	}
+	return best, nil
+}
+
+func (p *memPlans) PlanVersions(_ context.Context, workID string) ([]model.PlanVersion, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	out := append([]model.PlanVersion(nil), p.items[workID]...)
+	// 从新到旧
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+	return out, nil
+}
+
+var _ port.Plans = (*memPlans)(nil)
+
+// planningSetup 建一个工作、冻结需求，返回它的 id。
+func planningSetup(t *testing.T, runner port.AgentRunner) (*work.Service, *memPlans, string) {
+	t.Helper()
+	project := testutil.NewGitRepo(t)
+	svc, _ := newServiceWithRequirements(t, runner)
+	plans := newMemPlans()
+	svc.SetPlans(plans)
+
+	view, err := svc.Start(context.Background(), project, "用户能取消正在运行的 turn", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return svc, plans, view.ID
+}
+
+// ★★ R1 · 需求**没冻结**时拒绝产计划（INV-REQ-1）。
+func TestStartPlanning_R1_RefusesWhileRequirementIsDraft(t *testing.T) {
+	runner := &fakeRunner{}
+	svc, _, workID := planningSetup(t, runner)
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	err := svc.StartPlanning(context.Background(), workID)
+	if !errors.Is(err, work.ErrRequirementNotFrozen) {
+		t.Fatalf("需求还是草稿却开始规划了：%v——做出来的计划做完也对不上，"+
+			"而那时用户已经等了一整轮", err)
+	}
+	// ★ 判据：**一轮都没多跑**
+	if n := len(runner.snapshot()); n != 1 {
+		t.Errorf("被拒之后还是跑了：%d 轮", n)
+	}
+}
+
+// ★★ R2 R3 · 冻结之后能规划：工作进 `planning`，且这一轮由**计划架构师**跑。
+func TestStartPlanning_R2R3_PlanningRunsAsThePlanArchitect(t *testing.T) {
+	runner := &fakeRunner{}
+	svc, _, workID := planningSetup(t, runner)
+	ctx := context.Background()
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	if err := svc.FreezeRequirement(ctx, workID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartPlanning(ctx, workID); err != nil {
+		t.Fatalf("冻结之后却规划不了：%v", err)
+	}
+	waitFor(t, "规划那一轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+
+	turn := runner.snapshot()[1]
+	if turn.RoleID != "plan_architect" {
+		t.Errorf("角色 = %q，想要 plan_architect——派错人的话，"+
+			"一个只读的需求分析师会被要求产出计划", turn.RoleID)
+	}
+	// ★ 需求原文要贴进 prompt：Agent 那侧没有我们的库，它只看得到我们发过去的字
+	if !strings.Contains(turn.Prompt, "用户能取消正在运行的 turn") {
+		t.Errorf("prompt 里没有需求原文：%s", turn.Prompt)
+	}
+	// ★★ 明写「每个单元都要派角色」：不说的话 AI 会给出一份没人认领的计划
+	if !strings.Contains(turn.Prompt, "角色") {
+		t.Errorf("prompt 没要求派角色——那要到执行时才发现没人认领：%s", turn.Prompt)
+	}
+}
+
+// ★★ R5 · 落一版计划要发 `plan_version` 事件，带版本号与两个计数。
+func TestSavePlanVersion_R5_EmitsPlanVersionEvent(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, &fakeRunner{})
+	svc.SetPlans(newMemPlans())
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u, err := model.NewUnit("unit-012", "取消协议", "implementer", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sp, err := model.NewSubplan("subplan-01", "抽象层", []model.Unit{u})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v1, err := model.NewPlanVersion(1, "取消", nil).WithSubplans([]model.Subplan{sp})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SavePlanVersion(ctx, view.ID, v1); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, e := range bus.snapshot() {
+		if e.Type != "plan_version" {
+			continue
+		}
+		if e.Payload["version"] != 1 {
+			t.Errorf("事件里的版本 = %v", e.Payload["version"])
+		}
+		// 设计稿的「N 子计划 · M 单元」
+		if e.Payload["subplans"] != 1 || e.Payload["units"] != 1 {
+			t.Errorf("计数不对：%v", e.Payload)
+		}
+		return
+	}
+	t.Fatal("没发 plan_version 事件——界面不会知道计划出来了")
+}
+
+// ★★ R4 · 重规划**必须给处置**，缺一项就拒。
+func TestPlan_R4_ReplanNeedsDispositions(t *testing.T) {
+	v1 := model.NewPlanVersion(1, "取消", nil)
+
+	// 已验收 unit-012，却没给它的处置
+	_, err := v1.Next(2, "重规划", []string{"unit-012"}, nil)
+	if !errors.Is(err, model.ErrDispositionMissing) {
+		t.Fatalf("没给处置却重规划成功了：%v——那一项会悄悄失效，而没人知道", err)
+	}
+
+	_, err = v1.Next(2, "重规划", []string{"unit-012"},
+		map[string]model.Disposition{"unit-012": model.DispositionStillValid})
+	if err != nil {
+		t.Errorf("给了处置却被拒：%v", err)
+	}
+}
+
+// 读计划：视图里带**角色显示名**，认不出的角色留空而不是编一个。
+func TestPlanOf_CarriesRoleNames(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+	plans := newMemPlans()
+	svc.SetPlans(plans)
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sp, err := model.NewSubplan("subplan-01", "抽象层", []model.Unit{
+		model.RestoreUnit("unit-012", "取消", "implementer", nil, true, true),
+		model.RestoreUnit("unit-013", "证据", "a_role_we_removed", []string{"unit-012"}, false, false),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v1, err := model.NewPlanVersion(1, "取消", nil).WithSubplans([]model.Subplan{sp})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SavePlanVersion(ctx, view.ID, v1); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := svc.PlanOf(ctx, view.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.SubplanCount != 1 || got.UnitCount != 2 {
+		t.Errorf("计数 = %d · %d，想要 1 · 2", got.SubplanCount, got.UnitCount)
+	}
+	units := got.Subplans[0].Units
+	if units[0].RoleName != "实现工程师" {
+		t.Errorf("角色显示名 = %q", units[0].RoleName)
+	}
+	// ★ 认不出的角色**留空**，不编一个——编出来的名字与角色页那张表对不上
+	if units[1].RoleName != "" {
+		t.Errorf("给认不出的角色编了个名字：%q", units[1].RoleName)
+	}
+	if units[1].RoleID != "a_role_we_removed" {
+		t.Errorf("原始 id 丢了：%q", units[1].RoleID)
+	}
+	// 进度算出来的
+	if got.Subplans[0].Done != 1 || got.Subplans[0].Total != 2 {
+		t.Errorf("进度 = %d/%d，想要 1/2", got.Subplans[0].Done, got.Subplans[0].Total)
+	}
+}
+
+// 没装配计划存储时明确报错，不静静成功。
+func TestPlan_UnconfiguredSaysSo(t *testing.T) {
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+
+	if _, err := svc.PlanOf(context.Background(), "work-01"); !errors.Is(err, work.ErrPlansUnavailable) {
+		t.Errorf("err = %v，想要 ErrPlansUnavailable", err)
+	}
+}
+
+// ★★ 端到端：AI 的回复 → **库里真的有了一版计划**。
+//
+// 只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——
+// 而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」。
+func TestStartPlanning_AbsorbsTheReplyIntoAPlan(t *testing.T) {
+	runner := &fakeRunner{reply: goodReply}
+	svc, plans, workID := planningSetup(t, runner)
+	ctx := context.Background()
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	if err := svc.FreezeRequirement(ctx, workID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartPlanning(ctx, workID); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, "计划一直没落库——AI 说了话，而没人把它变成计划", func() bool {
+		v, err := plans.LatestPlan(ctx, workID)
+		return err == nil && v.Version() == 1
+	})
+
+	v, err := plans.LatestPlan(ctx, workID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, m := v.Counts(); n != 1 || m != 2 {
+		t.Errorf("计数 = %d · %d，想要 1 · 2", n, m)
+	}
+	if v.Subplans()[0].Units()[1].RoleID() != "unit_reviewer" {
+		t.Error("角色没落进计划")
+	}
+}
+
+// ★★ 解析不出来时**说清楚**，而不是静静地什么都不发生。
+//
+// 静默的话，用户看到「正在规划」然后永远没有下文——
+// 而真正的原因（AI 输出了一段散文）躺在没人读的地方。
+func TestStartPlanning_UnparseableReplySaysWhy(t *testing.T) {
+	runner := &fakeRunner{reply: "我觉得这个需求可以分成三部分，首先是协议层……"}
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetPlans(newMemPlans())
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "用户能取消正在运行的 turn", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+	if err := svc.FreezeRequirement(ctx, view.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.StartPlanning(ctx, view.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, "没发失败事件——用户对着「正在规划」永远等不到下文", func() bool {
+		for _, e := range bus.snapshot() {
+			if e.Type == "plan_version" && e.Payload["failed"] == true {
+				return true
+			}
+		}
+		return false
+	})
+
+	// ★ 判据：事件里带着**它到底说了什么**
+	for _, e := range bus.snapshot() {
+		if e.Type != "plan_version" || e.Payload["failed"] != true {
+			continue
+		}
+		reason, _ := e.Payload["reason"].(string)
+		if !strings.Contains(reason, "协议层") {
+			t.Errorf("失败事件里没有原话：%s", reason)
+		}
+		return
+	}
+}
+
+// ★★ M7 U7.2.1 · 边界判定接到真实数据上。
+//
+// 「说不清」有四种，每一种都必须返回 `unknown` 而不是 `in_boundary`——
+// 把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默。
+func TestBoundaryFor_UnknownWhenItCannotTell(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	ctx := context.Background()
+
+	// ① 没装配契约存储
+	bare := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+	view, err := bare.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bare.BoundaryFor(ctx, view.ID, "internal/acp/x.go"); got != model.BoundaryUnknown {
+		t.Errorf("没装配契约存储时 = %q，想要 unknown", got)
+	}
+
+	// ② 工作查不到
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, &fakeRunner{})
+	svc.SetContracts(newMemContracts())
+	if got := svc.BoundaryFor(ctx, "work-nope", "x.go"); got != model.BoundaryUnknown {
+		t.Errorf("工作查不到时 = %q，想要 unknown", got)
+	}
+
+	// ③ 还没开始做任何单元（澄清、规划阶段）
+	// ★ 另开一个项目：同一个项目下 workID 会撞上已经存在的分支
+	v2, err := svc.Start(ctx, testutil.NewGitRepo(t), "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := svc.BoundaryFor(ctx, v2.ID, "internal/acp/x.go"); got != model.BoundaryUnknown {
+		t.Errorf("还没开始做单元时 = %q，想要 unknown——"+
+			"契约还没冻结时用户正好最需要看清楚 AI 要动什么", got)
+	}
+
+	// ④ 路径为空（执行命令这类请求给不出路径）
+	if got := svc.BoundaryFor(ctx, v2.ID, ""); got != model.BoundaryUnknown {
+		t.Errorf("没有路径时 = %q，想要 unknown", got)
+	}
+}
+
+// ★★ 有契约时**真的判得出来**——不然上面那些 unknown 就只是永远说不清。
+func TestBoundaryFor_JudgesAgainstTheCurrentUnitsContract(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	repo := &memWorks{}
+	contracts := newMemContracts()
+	svc := newServiceWithRunner(t, repo, &recordingBus{}, &fakeRunner{})
+	svc.SetContracts(contracts)
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "做点事", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 契约：允许 internal/acp/，禁止里面的生成物
+	c := model.NewUnitContract("unit-012", 1)
+	if err := c.SetBoundary(model.WriteBoundary{
+		Allowed:   []string{"internal/acp/"},
+		Forbidden: []string{"internal/acp/gen/"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := contracts.SaveContract(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+
+	// 把工作切到那个单元
+	w, err := repo.FindWork(ctx, view.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.StartUnit("unit-012"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SaveWork(ctx, w); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		path string
+		want model.BoundaryVerdict
+	}{
+		{"internal/acp/session.go", model.BoundaryInside},
+		{"internal/acp/gen/x.go", model.BoundaryOutside},
+		{"README.md", model.BoundaryOutside},
+	} {
+		if got := svc.BoundaryFor(ctx, view.ID, tc.path); got != tc.want {
+			t.Errorf("BoundaryFor(%q) = %q，想要 %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+// memContracts 是内存版契约仓储。
+type memContracts struct {
+	mu    sync.Mutex
+	items map[string][]*model.UnitContract
+}
+
+func newMemContracts() *memContracts {
+	return &memContracts{items: map[string][]*model.UnitContract{}}
+}
+
+func (m *memContracts) SaveContract(_ context.Context, c *model.UnitContract) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	list := m.items[c.UnitID()]
+	for i, existing := range list {
+		if existing.Version() == c.Version() {
+			if existing.IsFrozen() {
+				return model.ErrContractFrozen
+			}
+			list[i] = copyContract(c)
+			return nil
+		}
+	}
+	m.items[c.UnitID()] = append(list, copyContract(c))
+	return nil
+}
+
+func (m *memContracts) LatestContract(
+	_ context.Context, unitID string,
+) (*model.UnitContract, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	list := m.items[unitID]
+	if len(list) == 0 {
+		return nil, model.ErrNotFound
+	}
+	best := list[0]
+	for _, c := range list {
+		if c.Version() > best.Version() {
+			best = c
+		}
+	}
+	// ★★ **交出去的不能是库里那个指针**——真 store 每次都从行重建。
+	// 交指针的话这个替身比真实现「更共享」：`FreezeContract` 拿到它
+	// 调 `Freeze()`，库里那份就已经冻上了，于是存回去撞「已冻结不能改」。
+	// 这是同一个坑的第四次（worktree → 需求快照 → 当前单元 → 契约）。
+	return copyContract(best), nil
+}
+
+func copyContract(c *model.UnitContract) *model.UnitContract {
+	return model.RestoreUnitContract(
+		c.UnitID(), c.Version(), c.Criteria(), c.Boundary(), c.IsFrozen())
+}
+
+func (m *memContracts) ContractVersions(
+	_ context.Context, unitID string,
+) ([]*model.UnitContract, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]*model.UnitContract, 0, len(m.items[unitID]))
+	for _, c := range m.items[unitID] {
+		out = append(out, copyContract(c))
+	}
+	return out, nil
+}
+
+var _ port.Contracts = (*memContracts)(nil)

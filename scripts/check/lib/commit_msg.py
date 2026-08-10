@@ -29,9 +29,12 @@ import subprocess
 import sys
 
 TYPES = ["feat", "fix", "perf", "refactor", "test", "docs", "build", "ci", "chore"]
+# ★ 加 scope 时**两处一起改**：这张表和 docs/rules/git-workflow.md 的取值表。
+# 2026-08-08 发现文档那份漏了 plan 与 skills——脚本先加、文档没跟上，
+# 于是照文档写提交的人会被脚本拦下，而他查文档查不出原因。
 SCOPES = [
     "acp", "domain", "app", "api", "store", "fsstore", "git", "gh",
-    "event", "ui", "shell", "e2e", "ci", "docs", "plan", "skills", "deps",
+    "event", "ui", "shell", "e2e", "ci", "docs", "design", "plan", "skills", "deps",
 ]
 # 这些 type 的提交可以写「不适用」
 NO_TEST_TYPES = {"test", "docs", "chore", "ci", "build"}

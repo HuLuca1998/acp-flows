@@ -28,11 +28,16 @@ import (
 	"github.com/HuLuca1998/acp-flows/backend/internal/acp/session"
 	"github.com/HuLuca1998/acp-flows/backend/internal/api"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/checkpoint"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/memory"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/permission"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/role"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/system"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/eventbus"
+	projectstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/project"
+	skillstore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/skill"
+	"github.com/HuLuca1998/acp-flows/backend/internal/ghx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/gitx"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform"
 	"github.com/HuLuca1998/acp-flows/backend/internal/platform/logging"
@@ -152,13 +157,36 @@ func run() error {
 	}
 	ids.PrimeSeq("proj", maxSeq)
 
-	projectSvc := project.New(db.Projects(), gitProbe{}, ids)
+	// ★★ 工作也要回填——不回填的话，一个已经有 work-01 的库重启后会再发
+	// 一次 work-01，而 SaveWork 是 upsert：那条新工作会**直接覆盖掉旧的**，
+	// 连 worktree 目录都是同一个。用户重开应用、新建一个工作，昨天那条就没了。
+	maxWorkSeq, err := db.Works().MaxWorkSeq(context.Background())
+	if err != nil {
+		return fmt.Errorf("prime work id seq: %w", err)
+	}
+	ids.PrimeSeq("work", maxWorkSeq)
+
+	// ★ 创建项目的预演要四件东西：算计划、扫已有 skill、读 remote、检测 gh。
+	// 任何一件缺了都不该让整次预演失败——扫不到 skill、没装 gh
+	// 都是很常见的正常状态。
+	projectSvc := project.New(db.Projects(), gitProbe{}, ids).
+		WithInit(
+			projectstore.Store{},
+			skillstore.Store{Home: paths.DataDir()},
+			gitx.RemoteProber{},
+			ghx.Detector{},
+		)
 	bus := eventbus.New(eventStore{db.Events()})
 	// ★ 权限中转站：Agent 问的话经它发到时间线，用户点的那一下经它回到 Agent。
 	//
 	// 这里是**唯一**把 acp 层与 app 层接起来的地方——两边互不认识
 	// （depguard 挡着），装配只能在 cmd 做。
 	perms := permission.New(workBus{bus}, ids)
+
+	// ★ 提前声明：下面的 AskUser 回调要用它判边界，而它自己又要拿
+	// agentRunner 才建得出来——先有鸡还是先有蛋。闭包捕获的是**变量**，
+	// 回调真正被调用时它早就赋好值了。
+	var workSvc *work.Service
 
 	// ★ Agent 真的会被拉起来。这里传的是**内置注册表**（claude / codex）：
 	// 用哪一个由检测结果决定，上层不认识任何品牌名。
@@ -175,7 +203,10 @@ func run() error {
 				Runtime:    runtimeNameOf(ask),
 				Kind:       string(ask.Kind),
 				Path:       ask.Path,
-				Options:    toBrokerOptions(ask.Options),
+				// ★★ 边界判定：用户一眼看出 AI 有没有动不该动的东西。
+				// 查不到时是「说不清」，**不是**「没问题」。
+				Boundary: workSvc.BoundaryFor(ctx, workID, ask.Path),
+				Options:  toBrokerOptions(ask.Options),
 			})
 			if err != nil {
 				return session.Answer{}, err
@@ -183,11 +214,34 @@ func run() error {
 			return session.Answer{OptionID: optionID}, nil
 		},
 	}
-	workSvc := work.New(
-		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner)
+	workSvc = work.New(
+		db.Works(), worktrees{root: paths.WorktreeRoot()}, workBus{bus}, ids, agentRunner).
+		WithStatusProbe(repoStatus{})
 	// ★ ProcessRunner 同时是取消能力的实现——它记着「哪个工作对应哪个进程」，
 	// 而那份映射只有它有。
 	workSvc.SetCanceller(agentRunner)
+	// ★ 需求快照：没有它工作照建，只是消息头上没有 `requirement vN` 那枚标签。
+	workSvc.SetRequirements(db.Requirements())
+	// ★ 计划：没有它工作照建，只是产不出计划面板要显示的东西。
+	workSvc.SetPlans(db.Plans())
+	// ★ 契约：边界判定要靠它。没装配时权限卡片一律显示「说不清」，
+	// **不是**「没问题」。
+	workSvc.SetContracts(db.Contracts())
+	// ★ 证据：没有它采集照跑但不落盘，而用户重开应用证据就没了。
+	workSvc.SetEvidence(db.Evidence())
+	// ★ 提交能力：没有它验收会明确报错，而不是「通过了但什么都没提交」。
+	workSvc.SetCommitter(committer{})
+	// ★ 决策：没有它提问会明确报错，而不是「AI 自己选一个往下走」。
+	workSvc.SetDecisions(db.Decisions())
+	// ★★ 记忆：没有它候选照解析但不落库，用户重开应用就没了。
+	// 正文走 md 文件（INV-MEM-8），索引走 DB——两边分工，不是两份拷贝。
+	workSvc.SetMemories(db.Memories(), newMemoryBodies(paths.DataDir()))
+	// ★★ 命中计数：没有它注入照跑但数字永远是 0，而用户看这个数字
+	// 是为了判断「哪些记忆真的在起作用、哪些该清掉」。
+	workSvc.SetMemoryHits(db.Memories())
+	// ★★ Skill 注入与计数：不装的话 Skill 页那一列永远是 0，
+	// 而用户看这个数字是为了判断哪些 Skill 真在起作用。
+	workSvc.SetSkills(skillstore.Store{Home: paths.DataDir()}, db.SkillHits())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。
@@ -210,6 +264,17 @@ func run() error {
 		Works:        workSvc,
 		Permissions:  perms,
 		Checkpoints:  checkpoints,
+		// 角色表：定义在 domain，Runtime 绑定在 acp/runtime——
+		// 这里把两边拼起来。品牌名（claude / codex）只有 adapter 认识。
+		Roles: role.New(runtime.Bindings{}),
+		// Skill 库：只扫全局（`~/.acpflows/skills`）。
+		// 项目级的在创建项目时初始化（M3），那时才有项目。
+		Skills: skillstore.Store{Home: paths.DataDir()},
+		// ★ 命中计数：不接的话 Skill 页那一列永远是 0，而契约里那个字段
+		// 早就在了——「字段在契约里、真实路径上永远是 0」是最难发现的一种。
+		SkillHits: db.SkillHits(),
+		// 记忆库：DB 只存索引与状态，正文在 md 文件里（INV-MEM-8）。
+		Memories: memory.New(db.Memories()),
 	})
 	if err != nil {
 		return fmt.Errorf("build router: %w", err)

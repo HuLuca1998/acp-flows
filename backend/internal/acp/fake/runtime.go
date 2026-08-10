@@ -57,6 +57,11 @@ type Runtime struct {
 	latency Latency
 	asks    *permissionAsks
 
+	// configOptions 是这条会话的配置项当前状态，set_config_option 改它。
+	// currentModeID 是 set_mode 设的档位。两者都由 mu 保护。
+	configOptions []protocol.ConfigOption
+	currentModeID string
+
 	// neverStops 让所有轮次都不响应 session/prompt（预设 NeverStops）。
 	neverStops bool
 	// silentAfter > 0 时，首个 prompt 之后 d 彻底断流（预设 SilentAfter）。
@@ -202,6 +207,12 @@ func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameW
 	case protocol.MethodSessionNew:
 		return r.respondNewSession(w, f.ID)
 
+	case protocol.MethodSessionSetConfig:
+		return r.respondSetConfig(w, f.ID, f.Params)
+
+	case protocol.MethodSessionSetMode:
+		return r.respondSetMode(w, f.ID, f.Params)
+
 	case protocol.MethodSessionPrompt:
 		// 回放放进独立 goroutine：主循环要继续收 session/cancel，
 		// 否则「取消一个正在跑的轮次」根本无从测起。
@@ -233,24 +244,6 @@ func (r *Runtime) dispatch(ctx context.Context, turns *sync.WaitGroup, w *frameW
 		}
 		return w.respondError(f.ID, -32601, fmt.Sprintf("fake: 未实现的方法 %s", f.Method))
 	}
-}
-
-func (r *Runtime) respondNewSession(w *frameWriter, id json.RawMessage) error {
-	behavior := r.script.NewSession
-	if behavior != nil && behavior.Delay > 0 {
-		time.Sleep(time.Duration(behavior.Delay))
-	}
-
-	resp := protocol.NewSessionResponse{SessionID: r.script.sessionID()}
-	// 不声明 modes 时响应里就**真的没有** modes 字段 ——
-	// 假的能力声明必须表现为真的协议行为，否则测的是我们自己的探针代码。
-	if behavior != nil && len(behavior.Modes) > 0 {
-		resp.Modes = &protocol.SessionModeState{
-			CurrentModeID:  behavior.CurrentModeID,
-			AvailableModes: behavior.Modes,
-		}
-	}
-	return w.respond(id, resp)
 }
 
 // Close 关掉 Fake。
@@ -351,36 +344,4 @@ func (r *Runtime) cancelSignal() <-chan struct{} {
 	r.cancelMu.Lock()
 	defer r.cancelMu.Unlock()
 	return r.cancelCh
-}
-
-// respondLoadSession 处理 session/load。
-//
-// ★ 不支持时回 **-32601**，那是真 Agent 的做法。回一个空的成功响应
-// 会让上层以为恢复成功了——而 Agent 那边根本没有这条会话，
-// 下一轮打过去就是「会话不存在」，而用户看到的只是「AI 忽然变笨了」。
-func (r *Runtime) respondLoadSession(w *frameWriter, f wireFrame) error {
-	behavior := r.script.Load
-	if behavior == nil || !behavior.Supported {
-		return w.respondError(f.ID, -32601, "fake: 本 Agent 不支持 session/load")
-	}
-	if behavior.Delay > 0 {
-		time.Sleep(time.Duration(behavior.Delay))
-	}
-
-	// ★ 记下被恢复的是哪一条：上层「恢复了却打在别的会话上」这类 bug
-	// 只有对着它才测得出来。
-	var req protocol.LoadSessionRequest
-	if err := json.Unmarshal(f.Params, &req); err == nil && req.SessionID != "" {
-		r.mu.Lock()
-		r.loadedSessionID = req.SessionID
-		r.mu.Unlock()
-	}
-	return w.respond(f.ID, protocol.LoadSessionResponse{})
-}
-
-// LoadedSessionID 返回最后一次 session/load 恢复的会话标识。
-func (r *Runtime) LoadedSessionID() string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.loadedSessionID
 }

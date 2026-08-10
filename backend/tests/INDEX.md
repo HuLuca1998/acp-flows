@@ -235,7 +235,7 @@
 | `TestProcessRunner_NoRuntimeReady` | `internal/acp/agent/runner_test.go` | acp | ★ 一个 Runtime 都没就绪时错误里带**补救办法**（`npm i -g ...`）——这句话会出现在时间线的失败事件里，是用户唯一能看到的线索 |
 | `TestProcessRunner_ReportsAgentStderr` | `internal/acp/agent/runner_test.go` | acp | ★ Agent 起来又立刻退出时把它的 stderr 带回来（「not authenticated」）——不带的话真正的原因躺在一个没人读的管道里 |
 | `TestProcessRunner_PublishesToBus` | `internal/acp/agent/runner_test.go` | acp | 事件发到**总线**（那是它去到界面的唯一通路）；对手方是 `t.TempDir()` 里按 ACP 规范说话的 shell 脚本，不是 Fake——要验的正是进程怎么拉起来 |
-| `TestProcessRunner_LeavesNoOrphan` | `internal/acp/agent/runner_test.go` | acp | ★★ 一轮跑完 Agent 进程**不能还活着**（假 Agent 里放 `sleep 300`，跑完 `ps` 查 pid）——留着的话用户每提一个需求就多一个常驻进程，关掉应用后它们还在 |
+| `TestProcessRunner_LeavesNoOrphan` | `internal/acp/agent/runner_test.go` | acp | M5 U5.1.1（**判据随 Q42 改过**）：★★ 同一个工作连跑三轮**只起一个进程**——每轮一个新进程的话，用户「补充一句」时 AI 不记得上一句。跑完进程**还活着**（那正是「常驻」），而 `ReleaseWork` 之后**必须收干净**：收不干净的话，每开一个工作就多一个常驻进程，关掉应用之后它们还在 |
 | `TestProcessRunner_BusFailureDoesNotFailTurn` | `internal/acp/agent/runner_test.go` | acp | 总线发不出去不让整轮失败——AI 那边的活已经干了，报「失败」而磁盘上躺着改好的文件比不通知更糟 |
 | `TestStart_RunsTurnInWorktree` | `internal/app/work/service_test.go` | app | ★★ M2 U2.4.1：工作建好后**真的把需求送给 AI**，且 cwd 是工作自己的 worktree 而非用户项目目录——后者等于让 AI 直接在他的分支上改文件 |
 | `TestStart_TurnSurvivesRequestCancel` | `internal/app/work/service_test.go` | app | ★★ 这一轮脱开请求的 ctx（`WithoutCancel`）——挂在上面的话 HTTP 一返回 AI 就被砍掉，用户看到时间线停在半截且没有报错 |
@@ -346,3 +346,373 @@
 | `TestUnitContract_R4_VersionIncrementsByOne` | `internal/domain/model/plan_test.go` | domain | 契约版本号严格递增不跳号 |
 | `TestUnitContract_RevisedIsUnfrozen` | `internal/domain/model/plan_test.go` | domain | 修订出来的新契约没冻结（能继续加标准），而**旧的那份一个字不变**——那是「修订」与「改写」的全部区别 |
 | `TestPlanModel_StaysPure` | `internal/domain/model/plan_test.go` | domain | domain 是纯计算：构造与校验都不需要 context、不取当前时间 |
+| `TestPresetRoles_R1_EightRolesMatchDesign` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R1：★ 八个预置角色的 id / 显示名 / 承担操作逐条对上 `INVENTORY.md` §八，**顺序就是设计稿行序**（界面照它渲染）。数量单独断言——第一版清单只抽到 5 个，漏了滚动区外那三行 |
+| `TestPresetRoles_R1b_EveryOperationHasAnOwner` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R1b（INV-ROLE-6）：★★ 11 个 AI 操作每个都有且只有一个角色认领；漏派的后果是**跑到那一步才发现没人干**，而那时计划已经排好了 |
+| `TestRoleByID_R4_UnknownRoleErrsNoFallback` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R4：认不出的角色名返回 `ErrUnknownRole` 且不返回任何角色。★ 静默回落的后果是「本该审查员做的事被实现工程师做了」，而实现方审查自己正是 INV-ATT-8 禁止的 |
+| `TestRoleByID_R4b_EveryPresetIsRetrievable` | `internal/domain/model/role_test.go` | domain | 八个预置角色都按 id 取得出来，取出来的显示名对得上 |
+| `TestRole_INVROLE2_HasNoModelOrEffortField` | `internal/domain/model/role_test.go` | domain | INV-ROLE-2：★ 反射断言 `Role` 没有 model / reasoning_effort 一类字段——ACP 不提供这两个设置，它们是观测结果不是配置项（§16.5）。加上去毫不费力且加完测试照绿，所以用反射守 |
+| `TestPresetRoles_R5_UserFacingRolesAreReadOnly` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R5（**Q42**）：需求分析师 / 计划架构师 / 单元设计师 / 实现审查员 / 记忆管理员五个角色的会话档位必须是只读。★ 判据在档位上而不在权限裁决上——实测证明客户端全拒拦不住沙箱内的写 |
+| `TestPresetRoles_R5b_OnlyImplementerMayWrite` | `internal/domain/model/role_test.go` | domain | 反向穷举：除实现工程师外任何角色拿到写权限就红（上一条只查名单里的五个，漏掉新角色时测不出）；「放开」档一个都不该用上 |
+| `TestPermissionPolicy_R6_ClosedEnumOfTwo` | `internal/domain/model/role_test.go` | domain | M2 U2.1.1 R6：权限裁决只有「逐条询问 / 自动允许读」——设计稿的下拉里**没有**「一律拒绝」，别把旧 `session.Policy` 那三种搬过来 |
+| `TestRole_R6b_WithPermissionPolicyRejectsInvalid` | `internal/domain/model/role_test.go` | domain | `WithPermissionPolicy` 拒非法值、返回新实例、原实例不变 |
+| `TestPresetRoles_R7_ReturnsCopies` | `internal/domain/model/role_test.go` | domain | ★ `PresetRoles()` / `Operations()` 返回副本。不返回副本的话调用方一个 `sort.Slice` 就把预置表顺序永久改了，而界面照那个顺序渲染 |
+| `TestAllOperations_R7b_ReturnsCopy` | `internal/domain/model/role_test.go` | domain | 同上，操作全集也是副本 |
+| `TestPresetRoles_FourElementsAllFilled` | `internal/domain/model/role_test.go` | domain | §16.2 的四要素（职责 / 性格 / 边界 / 产出）都填了——边界是可测的约束不是文案，空着的话角色卡是一片空白 |
+| `TestModeNameOn_R3_SameIntentDiffersPerRuntime` | `internal/acp/runtime/mode_test.go` | acp | M2 U2.1.1 R3：★★ 同一个「只读」claude 叫 `plan`、codex 叫 `read-only`，**一个字都不一样**。硬编码成某一端的取值 → 换 Runtime 时发出对方不认识的档名 → 收权失败，而失败的表现是「沙箱照旧放行」 |
+| `TestModeNameOn_R3b_CodexHasNoAutoMode` | `internal/acp/runtime/mode_test.go` | acp | ★ 设计稿角色表给 codex 写的 `auto` 是 **0.16.0 的旧档名**，1.1.7 已改；照设计稿抄会静默收权失败（`acp-field-notes.md` §7 裁定 2） |
+| `TestModeNameOn_R3c_UnknownRuntimeErrsNoGuess` | `internal/acp/runtime/mode_test.go` | acp | 没登记映射的 Runtime 返回 `ErrUnknownRuntime` 且不返回档名——猜一个出来等于在不知道权限多大的情况下开工 |
+| `TestModeNameOn_R3d_MapHasNoHoles` | `internal/acp/runtime/mode_test.go` | acp | 三个语义档 × 两个 Runtime 全部翻译得出；漏填一格要到真开会话时才发现 |
+| `TestRecommendedRuntimeFor_R2_EightPresetBindings` | `internal/acp/runtime/mode_test.go` | acp | M2 U2.1.1 R2：八个角色的推荐 Runtime 对上设计稿角色表。★ 「推荐」是认真的——设计稿有「恢复推荐绑定」按钮，说明用户改得动 |
+| `TestRecommendedRuntimeFor_R2b_UnlistedRoleErrs` | `internal/acp/runtime/mode_test.go` | acp | 自定义角色没有推荐绑定时报错，不给「反正 claude 能干」的默认值 |
+| `TestPresetRoles_R2c_BindingAndModeFitTogether` | `internal/acp/runtime/mode_test.go` | acp | ★★ 把两张表**连起来**验：单看都对，合起来可能是「某角色推荐 codex，而 codex 上没有它要的那一档」——那种错只在真开会话时暴露 |
+| `TestApplyMode_R1_PrefersSetConfigOption` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R1：两个方法都可用时走 `set_config_option`，`set_mode` 调用次数为 0。★ 后者官方已挂废弃告示，先试旧的会让代码一直走在废弃路径上直到它被移除 |
+| `TestApplyMode_R2_ParamIsConfigIdNotOptionId` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R2：★★ 参数名是 `configId`。判据是**档位真的变了**（Fake 那侧回读），不是「请求发出去了」——写成 `optionId` 时 Agent 什么都不设而响应仍然成功。另外直查线上帧的键名 |
+| `TestApplyMode_R3_LooksUpByCategoryNotID` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R3：按 `category` 取配置项。三个不同的 id 都要能取到，且前面塞了别的 category 的项以排除「取第一项蒙对」 |
+| `TestApplyMode_R4_FallsBackToSetMode` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R4：只声明 `modes` 没有 `configOptions` 时降级到 `set_mode`，且档位真的设进去了。「不支持」的判据是 Agent 自己声明的能力 |
+| `TestApplyMode_R5_RefusesWhenNeitherSupported` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R5：★★ 两个都不支持 → `ErrCannotRestrictMode`，不返回可用会话，**且一句 prompt 都不发**。收不了权还继续跑等于让 AI 在不受限档位上动用户代码 |
+| `TestApplyMode_R6_VerifiesByReadingBack` | `internal/acp/session/mode_test.go` | acp | M2 U2.1.2 R6：要设的档位不在可选值里 → 发之前就拒绝（`ErrModeNotAvailable`） |
+| `TestApplyMode_R6b_ErrsWhenReadBackDiffers` | `internal/acp/session/mode_test.go` | acp | ★ Agent 收下请求、回成功、但值没变（`IgnoreConfigWrites`）→ 回读发现不一致，报 `ErrModeNotApplied`。与 R6 的区别：那条是发之前查出来，这条是发之后才发现——只有前者的话，Agent 悄悄忽略一个合法请求时我们照样一路绿灯 |
+| `TestApplyMode_EmptyModeSkipsRestriction` | `internal/acp/session/mode_test.go` | acp | `RequiredModeID` 留空时不发任何收权请求——不是所有会话都需要限制 |
+| `TestApplyMode_LegacyRejectsUnavailableMode` | `internal/acp/session/mode_test.go` | acp | 降级路径上档位不在 `availableModes` 里也要拒绝，且不发 `set_mode` |
+| `TestValidateSkill_R2_ExplainsWhyItFailed` | `internal/domain/model/skill_test.go` | domain | M2 U2.2.1 R2（INV-SKL-2）：★ 校验不过要说清**为什么**（缺 name / description / SKILL.md / 版本号形态），两个字段都缺时一次说全。静默拒绝的话用户看到 draft 却不知道改什么，只能删了重建——而重建出来还是 draft |
+| `TestValidateSkill_R2b_MissingFileTakesPrecedence` | `internal/domain/model/skill_test.go` | domain | ★ 缺 `SKILL.md` 时不能报成「缺 description」——顺序错了会把人引向改一个不存在的文件 |
+| `TestSkillVersion_R4_Compare` | `internal/domain/model/skill_test.go` | domain | M2 U2.2.1 R4：版本号按段比较（`2.10 > 2.9`，字符串比法下是反的）；`v` 前缀可选 |
+| `TestParseSkillVersion_RejectsMalformed` | `internal/domain/model/skill_test.go` | domain | 拒绝空 / 一段 / **三段**（那是应用版本的形态）/ 非数字 / **前导零**（`01` 与 `1` 会排成两个版本而界面上长得几乎一样）/ 负数 |
+| `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
+| `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
+| `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestService_SkillHits_CountsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.4.1 R1：跑两轮 Skill 命中计数是 2（ref 用 `<scope>:<dir>`，不用 name——name 来自 frontmatter，用户改一次名计数就断了） |
+| `TestService_SkillHits_IgnoresWhatTheAgentClaims` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R2：AI 在回复里说「我用了 tdd-unit」，那个 ref 的计数仍是 0——跟着它的说法记的话，这个数字是它自己写的，不是我们观察到的 |
+| `TestService_SkillHits_DraftIsNeitherInjectedNorCounted` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R3：draft 既不注入也不计数（INV-SKL-1：扫出来的一律 draft，那是「可以发布」不是「已经发布」）——否则用户往目录里丢个半成品文件就等于让它进了每一轮 prompt。**验过负例**：把状态判断改成恒真，这条立刻红 |
+| `TestService_SkillInjection_ReachesThePrompt` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1：active 的 Skill 真的进了发给 Agent 的 `AgentTurn.Prompt`——不进的话，计数数的是一件没发生过的事 |
+| `TestService_SkillInjection_SilentWhenNothingActive` | `internal/app/work/memory_capture_test.go` | app | M10 U10.4.1：一个 active 的都没有时 prompt 里不挂空标题 |
+| `TestService_Injection_ActiveMemoryReachesThePrompt` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R1：active 记忆真的进了**发给 Agent 的那段 prompt**（判据落在 `AgentTurn.Prompt` 上，不是某个函数的返回值）——不进的话它还是每次从零开始，这一整步就白做了 |
+| `TestService_Injection_SkipsNonActiveMemories` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R4：candidate 不注入——注入进去等于让 AI 照着一条**用户从没同意过**的前提干活，而他很难想到问题出在一条老记忆上 |
+| `TestService_Injection_CountsHitsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.3.1 R3：跑两轮命中计数是 2，且**由应用数不问 AI**——它自报的话会把「我读到了这条」说成「我用上了这条」 |
+| `TestService_Injection_NoEventWhenNothingToInject` | `internal/app/work/memory_capture_test.go` | app | M10 U10.3.1 R5：没有可注入的记忆时一条 `injection` 事件都不发——「注入 0 条」是一行永远为空的噪音 |
+| `TestService_Injection_ListComesFromWhatWeActuallySent` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R2：AI 在回复里胡说「我参考了 mem-99」，清单里仍然只有真的发出去的 mem-01——跟着它的说法走的话，这份清单没有任何价值 |
+| `TestService_MemoryCandidate_IsAlwaysCandidateNeverActive` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R1 R2：AI 在载荷里**明写 `status: active`** 也只能建出 candidate——那是这一整步的底线（它自己写的话，一条它误解的「经验」会一直影响后面每一轮，而用户从没同意过）。判据落在**库里那条记录**上，顺带断言正文真落了盘（索引有而 md 不在的话，用户点开看到「文件不存在」） |
+| `TestService_MemoryCandidate_EventCarriesID` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1 R5：候选事件带 `memory_id` 与 `status`——不带 id 的话用户在时间线上看到候选却点不动 |
+| `TestService_MemoryCandidate_BrokenFenceIsReported` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 R3：围栏写坏了要**发事件说原因**，不静默——咽下去的话 AI 想记的那条经验消失了而没有任何人知道 |
+| `TestService_MemoryCandidate_SilentWhenNoFence` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1：没写围栏是**常态**，一条事件都不该发——绝大多数轮次本来就没经验可记，每轮发一条的话时间线会被废话淹掉 |
+| `TestService_MemoryCandidate_NoDuplicateForSameTitle` | `internal/app/work/memory_capture_test.go` | app | M10 U10.2.1 R4：同一条经验讲两遍只建一条（第二轮走 `Say` 这条真实路径）——AI 在一个单元里跑好几轮常会把上一轮那条再讲一遍 |
+| `TestAgentTurn_SystemPromptTellsAgentHowToProposeMemory` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.2.1 **接线守卫**：断的是真的传给 Agent 的 `AgentTurn.SystemPrompt`，要求它含 `duet-memory` 与「没有就不要输出」。不带的话 AI 永远不输出围栏，解析那一整套就是死代码。**验过负例**：拆掉 `role.go` 里那一行拼接，这条立刻红 |
+| `TestStore_Read_ReflectsUserEdits` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R2：用户拿编辑器改过 md 之后，读出来是**新内容**——缓存的话他改完打开 Duet 看到的还是旧的，会以为自己改错了地方 |
+| `TestStore_Read_MissingFileIsAnErrorWithPath` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1 R3：文件不见了报 `ErrBodyMissing` **且带路径**，不当成空正文——空正文看起来像「这条记忆没内容」，而真相是「文件丢了」 |
+| `TestStore_Write_RefusesToEscapeRoot` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R4：`../` 的 id 被 `ErrBadID` 挡住，记忆库目录外没被写出文件。断到具体错误上，防的是有人把那道检查放宽之后测试还绿着（挡它的**只有这一道**） |
+| `TestStore_Read_MalformedFrontmatterKeepsText` | `internal/fsstore/memory/body_test.go` | fsstore | ★★ M10 U10.1.1 R5：frontmatter 少了收尾时 `Malformed` 置位、`Text` 给整个原文——一条 frontmatter 少个引号就吞掉用户写的三百字，是最糟的处理方式 |
+| `TestStore_Read_SplitsTitleAndText` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1：正常一条里 frontmatter 与正文各归各位，`title:` 不漏进正文 |
+| `TestStore_Write_KeepsRawByteForByte` | `internal/fsstore/memory/body_test.go` | fsstore | M10 U10.1.1：写入逐字节保留用户原文，不「顺手规范一下」 |
+| `TestScan_R1_ParsesFrontmatter` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R1：真目录真文件扫出 name / version / description / compatibility（值里带 `>=` 和空格，不能在第一个冒号之后再切）；★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单 |
+| `TestScan_R2_MissingDescriptionExplained` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R2：缺 description 的条目状态是 draft、原因点名 description，且名字仍认得出来（用户才知道去改哪一个） |
+| `TestScan_R3_OneBrokenDoesNotHideOthers` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R3：★★ 一条 frontmatter 坏的不让整个库列不出来——整批失败的话用户连修它的入口都找不到 |
+| `TestScan_R5_DoesNotTouchUserFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R5（**红线 3** / INV-SKL-6）：★★ 判据是**全目录内容哈希 + 文件清单**，不是「没写 O_WRONLY」——前者才管得住「顺手补个默认 frontmatter」这种好意 |
+| `TestScan_R4_DoesNotFollowSymlinks` | `internal/fsstore/skill/scan_test.go` | fsstore | 符号链接不跟出去。★ 两道防线各自独立有效（显式判 ModeSymlink + ReadDir 的 Lstat 语义），造负例分别验过 |
+| `TestScan_R6_MissingDirIsEmptyNotError` | `internal/fsstore/skill/scan_test.go` | fsstore | M2 U2.2.1 R6：目录不存在 = 空列表不是错误。绝大多数项目没有 `.claude/skills`，当错误的话创建项目的预演会因一个正常状态而失败 |
+| `TestScan_R6b_EmptyDirIsEmpty` | `internal/fsstore/skill/scan_test.go` | fsstore | 空目录返回空列表 |
+| `TestScan_IgnoresLooseFiles` | `internal/fsstore/skill/scan_test.go` | fsstore | 散装文件不算 skill——skill 是目录不是文件 |
+| `TestScan_HandlesCRLF` | `internal/fsstore/skill/scan_test.go` | fsstore | ★ Windows 换行的 SKILL.md 也读得出来。读不出的症状是「缺 name、description」，会把人引向一个根本没写错的文件 |
+| `TestScan_SortedByDir` | `internal/fsstore/skill/scan_test.go` | fsstore | 结果按目录名排序，不受文件系统返回顺序影响 |
+| `TestMemoryKind_R1_ClosedEnum` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R1：类型封闭枚举（constraint / experience / fact）；`note` 与空串一律非法 |
+| `TestMemoryStatus_R2_FiveStatesFourTransitions` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R2（INV-MEM-4）：**五态**（设计稿筛选器那三档是界面分组，「已失效」同时装 invalid 与 obsolete）；迁移只有四条；★ **没有任何一条边指回 candidate**——有回边的话，一条被人确认过、注入了几十轮的记忆能重新变成待审 |
+| `TestProposeCandidate_INVMEM2_OnlyCreatesCandidates` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-2 **绝不自动写入**：唯一的构造入口只造得出 candidate，刚建出来不可注入、没有 confirmedBy |
+| `TestMemory_INVMEM2_ConfirmNeedsAnActor` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-2：`candidate → active` 必须带一个**人**的动作。空 actor / 全空白都拒；确认后记下是谁放行的。允许空 actor 的话一句 `Confirm("")` 就绕过整条规矩而代码读起来完全正常 |
+| `TestProposeCandidate_INVMEM3_RequiresSourceRefs` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-3：没有 `source_refs` 就不能成为记忆——空着的话 AI 的一句臆断就能变成以后每一轮的前提 |
+| `TestProposeCandidate_RejectsBadInput` | `internal/domain/model/memory_test.go` | domain | 空 id / 不认识的类型 / 空 scope 一律拒，错误信息点名是哪一项 |
+| `TestMemory_R4_OnlyActiveIsInjectable` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R4（INV-MEM-5）：只有 active 进**新**注入清单；candidate 进了就等于自动写入，invalid 进了等于失效没生效 |
+| `TestMemory_R4b_DiscardedAndObsoleteNotInjectable` | `internal/domain/model/memory_test.go` | domain | 被否决的、已废弃的都不可注入 |
+| `TestMemory_INVMEM1_ScopeIsolation` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-1：P1 的记忆永不出现在 P2 的清单里，也不出现在跨项目列表里。串项目 = 把 A 的约束当成 B 的前提，而两个项目的约定常常正好相反 |
+| `TestMemory_R3_CrossProjectVisibleEverywhere` | `internal/domain/model/memory_test.go` | domain | M2 U2.3.1 R3：L3 跨项目记忆对所有项目可见 |
+| `TestMemory_INVMEM4_RejectsIllegalTransitions` | `internal/domain/model/memory_test.go` | domain | 非法迁移一律拒且状态不变；三个终态（discarded/invalid/obsolete）没有出边 |
+| `TestMemory_INVMEM7_DeprecateNeedsReason` | `internal/domain/model/memory_test.go` | domain | INV-MEM-7：废弃必须给理由，`supersedes` 不能指向自身；被拒时状态不变 |
+| `TestMemory_INVMEM6_HasNoDeleteMethod` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-6 反射断言**没有 Delete**（失效 ≠ 删除）。★ 对**指针类型**取方法集——值类型的方法集不含指针接收者的方法（PlanVersion 那条负例的教训） |
+| `TestMemory_INVMEM8_DoesNotHoldContent` | `internal/domain/model/memory_test.go` | domain | ★★ INV-MEM-8 反射断言模型**不存正文**：正文只在 md 文件里。存两份的话迟早对不上，而「哪一份是真的」没有答案 |
+| `TestMemory_INVMEM10_HistoryGrowsOnEveryChange` | `internal/domain/model/memory_test.go` | domain | INV-MEM-10：每次状态变更追加一条历史；★ **被拒的迁移不留历史**——它什么都没发生 |
+| `TestMemory_SourceRefsReturnsCopy` | `internal/domain/model/memory_test.go` | domain | `SourceRefs()` 返回副本 |
+| `TestAllMemoryStatuses_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 状态全集返回副本 |
+| `TestAllMemoryKinds_ReturnsCopy` | `internal/domain/model/memory_test.go` | domain | 类型全集返回副本 |
+| `TestRunTurn_SendsSetConfigOptionOnTheWire` | `internal/acp/agent/role_test.go` | acp | M2 U2.1.2 **最后一公里**：★★ 判据是 Agent 那侧**收到的帧**，不是「我们调了那个函数」。接上之前 `applyMode` 六条测试全绿而没有任何调用方传 `RequiredModeID`——那段代码一次都没跑过 |
+| `TestRunTurn_RestrictsBeforeAnyPrompt` | `internal/acp/agent/role_test.go` | acp | ★★ 收权帧在 prompt 帧**之前**。顺序反了的话，中间那个窗口里 codex 跑在 workspace-write 沙箱，写操作连审批都不触发 |
+| `TestRunTurn_ModeFollowsTheRole` | `internal/acp/agent/role_test.go` | acp | ★★ 把「角色 → 语义档 → 那一端的档名」整条链路验穿：实现工程师发 `default`、审查员与需求分析师发 `plan`、留空按实现工程师。少了它的话「所有角色都发同一个档」测不出来 |
+| `TestRunTurn_RefusesWhenAgentCannotRestrict` | `internal/acp/agent/role_test.go` | acp | Agent 不声明任何 mode 能力 → 拒绝开工，**线上一句 prompt 都没有** |
+| `TestRunTurn_UnknownRoleIsRefusedNotDefaulted` | `internal/acp/agent/role_test.go` | acp | 认不出的角色报错且错误里点名是哪个，**不回落到默认角色**——回落的后果是「本该审查员做的事被实现工程师做了」，而这种错没有症状：审查照常「通过」 |
+| `TestListRoles_ReturnsEightPresets` | `internal/api/roles_test.go` | api | M2 U2.4.1：八个角色都出来、四要素不空、顺序是设计稿行序。★ 用**真的** app 服务 + 真的 adapter，mock 掉任一头就测不出「domain 的角色 + adapter 的绑定拼得对不对」 |
+| `TestListRoles_ExposesSemanticModeAndTranslatedName` | `internal/api/roles_test.go` | api | ★★ 同时给出**语义档**与**翻译好的档名**：实现工程师 `guarded_write`→`agent`（codex）、审查员 `read_only`→`plan`（claude）、测试执行者 `read_only`→`read-only`（codex）。直接返回档名的话前端就得认识品牌相关的取值 |
+| `TestListRoles_UnconfiguredIsNotAnEmptyList` | `internal/api/roles_test.go` | api | ★★ 没装配回 503 而**不是 200 空列表**——八个预置角色是内置的，空表只会让用户以为应用坏了 |
+| `TestListRoles_BrokenBindingStillListsTheRole` | `internal/api/roles_test.go` | api | ★ 绑定坏掉的角色照样列出来并带原因；跳过的话用户看到七个角色而不知少了哪个 |
+| `TestListSkills_CarriesValidationReasonToTheUI` | `internal/api/skills_test.go` | api | M2 U2.4.1：真目录真文件 → 版本/描述/兼容性原样到界面；**校验没过的带原因**；扫出来一律 `draft`；来源必须标出 |
+| `TestListSkills_EmptyIsArrayNotNull` | `internal/api/skills_test.go` | api | ★ 空集合序列化成 `[]` 不是 `null`——null 会让前端崩在 `.map` 上，而「一个都没有」正是新用户的常态 |
+| `TestListSkills_ProjectScopeSaysNotReady` | `internal/api/skills_test.go` | api | ★ 项目级 Skill 还没做（要等创建项目）→ 回 501 **明说没有**，而不是回空列表让用户以为自己的 skill 没被认出来 |
+| `TestListSkills_UnconfiguredIsNotAnEmptyList` | `internal/api/skills_test.go` | api | 没装配回 503 并给出可查的错误码 |
+| `TestListSkills_ScanFailureIsReported` | `internal/api/skills_test.go` | api | ★ 扫不动要说出来，不装作「一个都没有」——装作没有的话用户以为自己的 skill 丢了 |
+| `TestMemoryRepo_SaveAndFindRoundTrip` | `internal/store/memory_repo_test.go` | store | M2 U2.3.1：真 SQLite 存取往返，状态/类型/依据/确认人都不丢。`source_refs` 是溯源信息，丢了就查不到这条记忆凭什么成立 |
+| `TestMemoryRepo_INVMEM8_TableHasNoContentColumn` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-8：**问 SQLite 要表结构**（`pragma_table_info`），断言没有 content/body/text 一类列。★ 问数据库而不是看结构体——迁移脚本是人手写的 SQL，那才是真风险 |
+| `TestMemoryRepo_INVMEM6_HasNoDeleteMethod` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-6 反射断言仓储没有删除类方法。失效 ≠ 删除——删了的话半年前那次运行「当时用的是哪条记忆」永远查不到 |
+| `TestMemoryRepo_INVMEM1_ScopeIsolationInQueries` | `internal/store/memory_repo_test.go` | store | ★★ INV-MEM-1：按 scope 查不串项目；跨项目（`*`）单独可查 |
+| `TestMemoryRepo_ListByStatus` | `internal/store/memory_repo_test.go` | store | 按状态筛——记忆页那四档筛选靠它 |
+| `TestMemoryRepo_StatusChangePersists` | `internal/store/memory_repo_test.go` | store | 状态变更真的落盘（GORM 的 `Updates` 传 struct 会静默丢零值，本项目一律用显式列名 upsert）；变更历史条数一并持久化 |
+| `TestMemoryRepo_NotFoundIsDomainError` | `internal/store/memory_repo_test.go` | store | 查不到返回 `model.ErrNotFound`，**GORM 的错误不泄漏出 store 包** |
+| `TestMemoryRepo_EmptyListIsNotAnError` | `internal/store/memory_repo_test.go` | store | 空库返回空切片而非 nil，且不是错误——一条记忆都没有是新用户的常态 |
+| `TestMemoryRepo_EmptyRefsRoundTripAsEmpty` | `internal/store/memory_repo_test.go` | store | ★ 空 `source_refs` 拆成空切片而不是 `[""]`——后者会让「有没有依据」这个判断变成假的 |
+| `TestReviewMemory_INVMEM2_RequiresAnActor` | `internal/api/memories_test.go` | api | ★★ INV-MEM-2：不带 actor 一律拒，且**状态没变**。放行的话一个后台任务就能把 AI 提的候选变成长期记忆——AGENTS.md §9 把这列为明令反例 |
+| `TestReviewMemory_ConfirmRecordsWho` | `internal/api/memories_test.go` | api | 带 actor 才能确认，且记下是谁——半年后要能查「这条谁放行的」；确认后可注入 |
+| `TestListMemories_CandidateIsNotInjectable` | `internal/api/memories_test.go` | api | ★ 候选态 `injectable=false`——标成可注入就等于自动写入了 |
+| `TestListMemories_INVMEM1_ScopeIsolation` | `internal/api/memories_test.go` | api | ★★ 按 scope 查不串项目 |
+| `TestReviewMemory_AlreadyActiveIsConflict` | `internal/api/memories_test.go` | api | ★ 对已生效的记忆再点确认 → **409 而不是 500**：那是用户操作的结果，不是我们坏了 |
+| `TestReviewMemory_UnknownIdIs404` | `internal/api/memories_test.go` | api | 不存在的记忆返回 404 |
+| `TestReviewMemory_InvalidDecisionIsRejected` | `internal/api/memories_test.go` | api | 非法 decision 回 400 且状态不变 |
+| `TestListMemories_EmptyIsArrayNotNull` | `internal/api/memories_test.go` | api | 空集合序列化成 `[]` 不是 null |
+| `TestListMemories_FailureIsReported` | `internal/api/memories_test.go` | api | ★ 查不动要说出来，不装作「一条都没有」——装作没有的话用户以为 Duet 把记忆忘光了 |
+| `TestListMemories_UnconfiguredSaysSo` | `internal/api/memories_test.go` | api | 没装配回 503 |
+| `TestMakePlan_R1_WritesNothing` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R1：★★ 预演**一个字节都不写**，判据是**全目录指纹**（路径+内容+结构）而不是「我们没调 WriteFile」；且每一步都要写得出 `Reason`——不然用户凭什么点确认 |
+| `TestApply_R2_DoesExactlyWhatThePlanSaid` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R2：★★ 同一份 Plan 分别取「说要动的路径」与「执行后真的出现的路径」，两集合必须相等。分别写两套的话必然漂移，而漂移方向永远是「预演里没说的那件事被做了」 |
+| `TestApply_R3_AppendsToGitignoreKeepingEveryLine` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R3：`.gitignore` 是**追加**不是覆盖——覆盖等于删掉用户自己的规则，而他不会立刻发现 |
+| `TestApply_R3b_IsIdempotent` | `internal/fsstore/project/init_test.go` | fsstore | 跑三次只追加一次，否则 `.gitignore` 会越长越长 |
+| `TestApply_R3c_HandlesMissingTrailingNewline` | `internal/fsstore/project/init_test.go` | fsstore | ★ 用户的 `.gitignore` 末行常常没换行符，直接追加会和他的最后一条规则**粘成一行**——那条规则就此失效而 git 不报错 |
+| `TestApply_R3d_CommentedRuleDoesNotCount` | `internal/fsstore/project/init_test.go` | fsstore | ★ 逐行精确比对而非 `strings.Contains`：`# .acpflows/runs/` 会让含糊匹配以为规则已生效，而它被注释着 |
+| `TestMakePlan_R4_NonRepoIsReportedNotInitialized` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R4：★★ 非 git 仓库如实报告，**且不擅自 `git init`**（在别人的目录里建仓库是不可逆的）；也不凭空造 `.gitignore`；但 `.acpflows` 照建 |
+| `TestApply_R5_RollsBackOnFailure` | `internal/fsstore/project/init_test.go` | fsstore | M3 U3.1.1 R5：★★ 判据是「**我们自己建的东西**回到原样」。★ 发现真 bug：`MkdirAll` 对已存在目录成功返回，记成「这次创建的」再 `RemoveAll` 会**连同用户已有的内容一起删掉**——计划里的 `AlreadyThere` 挡不住，它是算计划那一刻的快照 |
+| `TestApply_R5b_RollbackKeepsUserFiles` | `internal/fsstore/project/init_test.go` | fsstore | ★ 回滚**不删用户自己的文件**：一次失败的初始化不该顺手清掉他的 `.gitignore` |
+| `TestMakePlan_MarksExistingItems` | `internal/fsstore/project/init_test.go` | fsstore | 已初始化过的目录，条目标成「已经在了」而不是消失——用户要看的是「最终长什么样」 |
+| `TestMakePlan_RejectsBadRoots` | `internal/fsstore/project/init_test.go` | fsstore | 相对路径 / 不存在的目录 / 指向文件一律拒（相对路径的失败信息很难懂，在最外层就拦掉） |
+| `TestMakePlan_GitFileCountsAsRepo` | `internal/fsstore/project/init_test.go` | fsstore | ★ worktree / submodule 里 `.git` 是**文件**不是目录，报成非仓库的话那些项目都拿不到忽略规则 |
+| `TestDiscover_R1_FindsEverySkillsDirAndTagsSource` | `internal/fsstore/skill/discover_test.go` | fsstore | M3 U3.1.2 R1：★ 按设计稿扫 `**/skills`（不是只看两个固定目录）；每条标**项目内的相对路径**当来源——不标的话用户不知道 Duet 翻了他哪些目录，报绝对路径的话界面上一长串前缀全是噪声 |
+| `TestDiscover_R2_ReusesTheSameValidator` | `internal/fsstore/skill/discover_test.go` | fsstore | M3 U3.1.2 R2：★★ 同一个坏 frontmatter，`Discover` 与 `Scan` 给出**同样的原因文本**。另起一套的话用户会看到两种说法而不知道该信哪个 |
+| `TestDiscover_R3_DoesNotTouchUserFiles` | `internal/fsstore/skill/discover_test.go` | fsstore | R3：全目录指纹守只读（红线 3） |
+| `TestDiscover_R4_DoesNotFollowSymlinksOutOfProject` | `internal/fsstore/skill/discover_test.go` | fsstore | R4：★ 项目里一个指向 `~` 的链接就能让扫描漫游整个家目录 |
+| `TestDiscover_SkipsHeavyDirs` | `internal/fsstore/skill/discover_test.go` | fsstore | ★ 跳过 node_modules / target / dist / .git——不跳的话一个装了依赖的前端项目要走十几万个目录，而创建项目的弹层是**用户点了在等**的界面 |
+| `TestDiscover_DoesNotDescendIntoSkillDirs` | `internal/fsstore/skill/discover_test.go` | fsstore | ★ 找到 `skills/` 就停：继续下探的话每个 skill 自己的 `scripts/`、`references/` 都会被当成候选 |
+| `TestDiscover_R5_NoSkillsIsEmptyNotError` | `internal/fsstore/skill/discover_test.go` | fsstore | R5：没有 skill 目录是**空**不是错——绝大多数项目就是没有 |
+| `TestDiscover_EmptyRootIsEmpty` | `internal/fsstore/skill/discover_test.go` | fsstore | 空路径返回空 |
+| `TestDiscover_SortedBySourceThenDir` | `internal/fsstore/skill/discover_test.go` | fsstore | 结果按来源+目录名排序，不受文件系统顺序影响 |
+| `TestParseRemoteURL_R1_BothFormsGiveTheSameSlug` | `internal/gitx/remote_test.go` | gitx | M3 U3.1.3 R1：https / scp / `ssh://` / 带端口 / 结尾斜杠 五种真实写法都得到同一个 `owner/repo`；URL 原文始终保留 |
+| `TestParseRemoteURL_R4_NonGitHubIsKept` | `internal/gitx/remote_test.go` | gitx | R4：★ GitLab 与自建 remote **照常显示**——丢掉的话用 GitLab 的用户会看到「没有 remote」而他明明配了一个。★ 多级 group 取**最后两段**，否则 `group/sub` 会被当成 owner/repo |
+| `TestParseRemoteURL_StripsCredentials` | `internal/gitx/remote_test.go` | gitx | ★★ `https://user:token@github.com/...` 这种写法很常见，而这个字段会显示在界面上、写进日志——凭据必须摘掉 |
+| `TestParseRemoteURL_KeepsUrlWhenUnparseable` | `internal/gitx/remote_test.go` | gitx | 解析不出 owner/repo 时保留 URL 原文，不编造 slug |
+| `TestProbeRemote_R2_NoRemoteIsEmptyNotError` | `internal/gitx/remote_test.go` | gitx | R2：没有 origin **不是错误**（本地仓库、还没推过的项目都很常见），当成错误的话创建项目的预演会因一个正常状态而失败 |
+| `TestProbeRemote_ReadsConfiguredOrigin` | `internal/gitx/remote_test.go` | gitx | 真 git 仓库里配了 origin 就读得出来 |
+| `TestProbeRemote_NonRepoIsEmpty` | `internal/gitx/remote_test.go` | gitx | 非 git 目录返回空、不报错 |
+| `TestProbeRemote_R3_DoesNotModifyRepo` | `internal/gitx/remote_test.go` | gitx | R3：读 remote 不改仓库（判据是仓库全目录内容指纹，含 `.git` 里的配置） |
+| `TestDetect_ReadyReadsVersionAndAccount` | `internal/ghx/detect_test.go` | ghx | M3 U3.1.3 R5（**Q41**）：装了且登录了 → 读出版本与账号，且**不给修复命令**（没什么要修的） |
+| `TestDetect_NotAuthenticatedGivesLoginCommand` | `internal/ghx/detect_test.go` | ghx | 装了没登录 → `gh auth login`。★ `gh auth status` 没登录时以非 0 退出，**那是正常结论不是故障** |
+| `TestDetect_UnknownAuthFailureIsProbeFailedNotUnauthenticated` | `internal/ghx/detect_test.go` | ghx | ★★ 认不出的失败当成 probe_failed：给一句「请运行 gh auth login」而实际问题是别的，会让用户照着做一遍然后发现没用 |
+| `TestDetect_BrokenBinaryIsNotReportedAsMissing` | `internal/ghx/detect_test.go` | ghx | ★ 文件在但跑不起来（权限/架构/装坏了）≠ 没装——报成没装的话用户会去 brew install 一个已经在的东西 |
+| `TestDetect_UnparseableAccountIsEmptyNotGuessed` | `internal/ghx/detect_test.go` | ghx | ★ 账号名取不到就留空：显示一个错的账号名比不显示糟得多，用户会以为自己登在另一个账号上 |
+| `TestDetect_NeverLeaksToken` | `internal/ghx/detect_test.go` | ghx | ★★ **Q41 的核心**：Result 的每个字段都不含 `gho_`。`gh auth status` 输出里就有一行 Token，整段塞进 Detail/Account 的话令牌会进日志、进界面 |
+| `TestDetect_UnparseableVersionStillWorks` | `internal/ghx/detect_test.go` | ghx | 版本号读不出不影响「装了且登录了」这个结论 |
+| `TestDetect_NotInstalledGivesInstallCommand` | `internal/ghx/detect_test.go` | ghx | 没装 → `brew install gh`（本机装了 gh 时跳过） |
+| `TestPreviewProject_ReturnsAllFourBlocks` | `internal/api/project_preview_test.go` | api | M3 U3.2.1：预演返回四块（将做什么 / 已有 Skill / remote / gh），**每一步都带 reason**——不说为什么的话用户凭什么点确认；skill 要标来源 |
+| `TestPreviewProject_DoesNotInitialize` | `internal/api/project_preview_test.go` | api | ★★ 预演**不动手**：判据是初始化器一次都没被调用。先看后做是这一步的全部意义 |
+| `TestAddProject_DoesNotInitializeByDefault` | `internal/api/project_preview_test.go` | api | ★★ 加项目**默认不初始化**——静默往用户的仓库里写东西是最快失去信任的方式 |
+| `TestAddProject_InitializesWhenAsked` | `internal/api/project_preview_test.go` | api | 显式传 `initialize:true` 才照计划执行 |
+| `TestAddProject_InitFailureIsReportedNotSilent` | `internal/api/project_preview_test.go` | api | ★ 初始化失败给出 `project_init_failed`，且**登记不回滚**：连登记一起撤的话用户点了「创建」却什么都没发生，而错误一闪而过 |
+| `TestPreviewProject_RejectsBadInput` | `internal/api/project_preview_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
+| `TestPreviewProject_UnconfiguredSaysSo` | `internal/api/project_preview_test.go` | api | 没装配回 503 |
+| `TestPreviewProject_EmptyCollectionsAreArrays` | `internal/api/project_preview_test.go` | api | 空集合序列化成 `[]` 不是 null |
+| `TestProbeStatus_R1_SeparatesTrackedFromUntracked` | `internal/gitx/status_test.go` | gitx | M4 U4.1.1 R1：★★ 已跟踪与未跟踪**分开数**——合成一条的话「新建了几个还没 add 的文件」和「改了正在跟踪的代码」长得一模一样，而对用户是两件不同的事 |
+| `TestProbeStatus_R2_ListsBranchesAndMarksCurrent` | `internal/gitx/status_test.go` | gitx | R2：列本地分支、标出当前分支、给出 HEAD（worktree 要它当基线） |
+| `TestProbeStatus_R3_WritesNothing` | `internal/gitx/status_test.go` | gitx | R3：探测前后仓库全目录内容指纹不变（含 `.git` 里的索引） |
+| `TestProbeStatus_R4_RefusesDuringMerge` | `internal/gitx/status_test.go` | gitx | R4：★★ 造一个**真的 merge 冲突**中途态 → 报 `ErrMidOperation`。那时切 worktree 会把用户正在解的冲突丢在那儿 |
+| `TestProbeStatus_R5_EmptyRepoIsReported` | `internal/gitx/status_test.go` | gitx | R5：空仓库报 `ErrNoCommits`，★ **不能报成「没有分支」**——那会让用户去建分支，而他真正要做的是先提交一次 |
+| `TestProbeStatus_CountsFilesInUntrackedDirs` | `internal/gitx/status_test.go` | gitx | ★ `--porcelain` 默认把未跟踪目录折成一行，用户会看到「1 处改动」而实际有三个文件 |
+| `TestProbeStatus_StagedCountsAsTracked` | `internal/gitx/status_test.go` | gitx | 已暂存的改动同样是「未提交」 |
+| `TestProbeStatus_NonRepoErrs` | `internal/gitx/status_test.go` | gitx | 非 git 目录如实报错 |
+| `TestAddWorktree_R2_RefusesToStealAnExistingBranch` | `internal/gitx/worktree_test.go` | gitx | M4 U4.1.2 R2：★★ 分支已存在时**报错不覆盖**。原来用 `-B` 会把用户手建的同名分支**强制复位到 HEAD**——他的提交没了而分支还在，不会立刻发现。判据是「他那条分支一个 commit 都没少」 |
+| `TestAddWorktree_R5_RecordsBaseCommit` | `internal/gitx/worktree_test.go` | gitx | R5：记下基线 commit——「领先几个」与验收 diff 都要它当起点 |
+| `TestAddWorktree_ForksFromChosenBase` | `internal/gitx/worktree_test.go` | gitx | ★ 从**用户选的基线**开分支：他可能想从 `develop` 开工，而当前分支上正躺着他没提交完的东西 |
+| `TestAddWorktree_RefusesUnknownBase` | `internal/gitx/worktree_test.go` | gitx | 基线解析不出就不建，且**错误信息说得出是基线的问题**——光靠 git 报错的话用户不知道那是「你选的基线」还是「Duet 内部出错」 |
+| `TestProbeWorktree_ReportsPerFileLineCounts` | `internal/gitx/status_test.go` | gitx | M4 U4.2.2：未提交改动**逐个文件带增删行数**（设计稿的 `+64 −12`）——只说「改了 3 个文件」判断不出改动有多大 |
+| `TestProbeWorktree_OnlyCountsCommitsAfterBase` | `internal/gitx/status_test.go` | gitx | ★★ 只报基线之后的 commit：基线之前是用户自己的历史，混进来他会以为 Duet 改了他早先的提交。最近的排最前 |
+| `TestProbeWorktree_HandlesSubjectsWithSeparators` | `internal/gitx/status_test.go` | gitx | ★ commit 标题里有 `|` 和 `:` 很正常，用 `\x1f` 当分隔符才不会被切坏 |
+| `TestProbeWorktree_NoBaseMeansNoAheadCount` | `internal/gitx/status_test.go` | gitx | ★★ 没有基线时**不编一个 0 出来**：报「领先 0 个」而实际我们不知道，用户会以为 AI 什么都没干 |
+| `TestProbeWorktree_WritesNothing` | `internal/gitx/status_test.go` | gitx | 探测不改工作区 |
+| `TestProbeWorktree_CleanTreeIsFine` | `internal/gitx/status_test.go` | gitx | 干净的工作区不报错 |
+| `TestProbeWorktree_NonRepoErrs` | `internal/gitx/status_test.go` | gitx | 非仓库如实报错 |
+| `TestPrepareWork_SeparatesTrackedFromUntracked` | `internal/api/work_prepare_test.go` | api | M4 U4.1.1：端点把两个数分开报，并给出分支列表与 HEAD |
+| `TestPrepareWork_DoesNotStartAnything` | `internal/api/work_prepare_test.go` | api | ★★ 探测**不开工**：判据是 Start 一次都没被调用 |
+| `TestPrepareWork_MidOperationIsReported` | `internal/api/work_prepare_test.go` | api | ★★ rebase/merge 中途 → **单独的错误码** `work_repo_mid_operation` + 409。落进笼统的 `work_operation_failed` 的话，用户不知道自己该做什么 |
+| `TestPrepareWork_EmptyRepoIsReported` | `internal/api/work_prepare_test.go` | api | 空仓库 → `work_repo_no_commits`，界面据它说「先提交一次」 |
+| `TestStartWork_PassesBaseRefThrough` | `internal/api/work_prepare_test.go` | api | ★ 基线传得下去：传不下去的话用户选了 `develop` 而工作还是从当前分支开的 |
+| `TestStartWork_EmptyBaseRefIsFine` | `internal/api/work_prepare_test.go` | api | 不传基线时是空串，后端据此用当前 HEAD |
+| `TestPrepareWork_RejectsBadInput` | `internal/api/work_prepare_test.go` | api | 空路径 / 全空白 / 坏 JSON 一律 400 |
+| `TestPrepareWork_UnconfiguredSaysSo` | `internal/api/work_prepare_test.go` | api | 没装配回 503 |
+| `TestPrepareWork_EmptyBranchesIsArray` | `internal/api/work_prepare_test.go` | api | 空分支列表序列化成 `[]` 不是 null |
+| `TestProcessRunner_KillAlsoDropsTheSession` | `internal/acp/agent/runner_test.go` | acp | M5 U5.1.1：★★ `KillAgent` 之后**池子里那条会话也要摘掉**。只杀进程不摘会话的话，下一轮接到一条进程已死的会话上——表现是「prompt 石沉大海」，用户看着转圈的界面而我们以为一切正常。两条判据：池子空了 + 下一轮跑得通 |
+| `TestCancel_ReleasesTheLiveSession` | `internal/app/work/service_test.go` | app | M5 U5.1.1：★★ 暂停之后**常驻会话要放掉**（Q42）。常驻是为了让 AI 记得上文，而 paused 的工作不需要——留着的话它一直占着 Agent 进程，而用户以为它已经停了 |
+| `TestRequirement_R1_FrozenIsImmutable` | `internal/domain/model/requirement_test.go` | domain | M5 U5.2.1 R1（INV-REQ-2）：★★ 反射断言方法集里**只有读方法与三个受控迁移**——加一个 setter 毫不费力且加完测试照绿，直到有人想查「上周那版需求说的是什么」。★ 对**指针类型**取方法集（PlanVersion 那条负例的教训）；冻结后连待确认清单都动不了 |
+| `TestRequirement_R2_ReviseKeepsTheOldVersion` | `internal/domain/model/requirement_test.go` | domain | R2：修订出 v2 而 **v1 一个字没变**；新版本**不是冻结的**——一出来就冻的话用户没机会再看一眼 |
+| `TestRequirement_R3_VersionChainIsStrict` | `internal/domain/model/requirement_test.go` | domain | R3：版本只增不跳号、不回退、第一版必须是 v1——跳号的话中间那版去哪了没人说得清 |
+| `TestRequirement_R4_UnfrozenCannotStartPlanning` | `internal/domain/model/requirement_test.go` | domain | R4（INV-REQ-1）：未冻结不能进计划——需求还在变时做出来的计划，做完也对不上 |
+| `TestRequirement_INVREQ1_OpenFactsBlockFreeze` | `internal/domain/model/requirement_test.go` | domain | ★★ 有待确认事实时拒绝冻结，且**错误里说清还剩什么**。带着没问清的问题往下走，AI 会自己替用户做决定，而那些决定会一路固化进计划与契约 |
+| `TestRequirement_FreezeIsIdempotent` | `internal/domain/model/requirement_test.go` | domain | 重复冻结不报错——用户手快点两下是常态 |
+| `TestNewRequirement_RejectsEmpty` | `internal/domain/model/requirement_test.go` | domain | 一条条目都没有时拒绝创建：空需求会走到「需求 0 · 已映射 0」，看起来正常而实际什么都没定 |
+| `TestNewRequirement_DropsBlankItems` | `internal/domain/model/requirement_test.go` | domain | ★ 空白条目丢掉——留着的话「需求 6 · 已映射 6」会变成假的，那个 6 里有一条没内容 |
+| `TestRequirement_ResolveUnknownFactErrs` | `internal/domain/model/requirement_test.go` | domain | 划掉不存在的待确认事实要报错，否则用户以为自己确认过了 |
+| `TestRequirement_ReturnsCopies` | `internal/domain/model/requirement_test.go` | domain | `Items()` / `OpenFacts()` 返回副本 |
+| `TestRequirement_ReviseDraft_UpdatesInPlaceWhileUnfrozen` | `internal/domain/model/requirement_test.go` | domain | ★★ 未冻结的版本能**原地改**，不升版本号。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」。★ 没有它的话 app 层唯一的出路是 `RestoreRequirement`——那个方法绕过全部校验，「条目不能全空」在追问路径上会彻底失效 |
+| `TestRequirementRepo_SaveAndLatestRoundTrip` | `internal/store/requirement_repo_test.go` | store | M5 U5.2.1 落库：存进去再取出来，条目与待确认清单都不丢。★ 条目里有逗号——用逗号当分隔符的话那一条会被拆成两条 |
+| `TestRequirementRepo_RefusesToRewriteAFrozenVersion` | `internal/store/requirement_repo_test.go` | store | ★★ 改写**已冻结**的版本要报错，判据是库里那条一个字没变。静默覆盖的话，一次重试就能把冻结那版换掉而没有任何痕迹——计划、契约、单元全是照着那一版做的 |
+| `TestRequirementRepo_ResavingIdenticalFrozenIsIdempotent` | `internal/store/requirement_repo_test.go` | store | 原样重存已冻结的版本是幂等的，且不造新记录——重试与手快点两下都是常态 |
+| `TestRequirementRepo_DraftIsUpdatedInPlace` | `internal/store/requirement_repo_test.go` | store | ★★ 未冻结的版本是草稿，原地覆盖且不升版本号。★ 判据落在**划掉最后一条待确认事实**上：空清单是零值，GORM 的 `Updates` 传 struct 会当「没设置」丢掉，于是用户看到「还剩 1 条」而永远冻不上（负例验证过） |
+| `TestRequirementRepo_FreezingPersists` | `internal/store/requirement_repo_test.go` | store | 冻结落盘后 `CanStartPlanning()` 为真 |
+| `TestRequirementRepo_RefusesToUnfreeze` | `internal/store/requirement_repo_test.go` | store | ★★ 解冻是没有的事——冻结之后那一版就是历史的一部分 |
+| `TestRequirementRepo_KeepsEveryVersion` | `internal/store/requirement_repo_test.go` | store | ★★ 旧版本全都留着，`RequirementVersions` 从新到旧、`LatestRequirement` 取到 v2。旧版被覆盖的话「上周那版说的是什么」永远没有答案 |
+| `TestRequirementRepo_HasNoRewriteMethods` | `internal/store/requirement_repo_test.go` | store | ★★ 反射断言仓储没有 Update/Delete 类方法（INV-REQ-2）——加一个毫不费力且加完测试照绿 |
+| `TestRequirementRepo_NoRequirementYet` | `internal/store/requirement_repo_test.go` | store | 还没提需求时列表返回空切片不是错（新工作的常态），取最新返回 `model.ErrNotFound` |
+| `TestRequirementRepo_ScopedByWork` | `internal/store/requirement_repo_test.go` | store | 两个工作的需求互不干扰 |
+| `TestStart_TalksToTheUserAsTheRequirementAnalyst` | `internal/app/work/role_test.go` | app | ★★ M5 完成标志第 1、6 条：跟用户说话的是**需求分析师**（只读）。这是「常驻会话只读」的唯一落点——留空的话 acp 层退到实现工程师（受控写），用户以为自己只是在聊天而对面能改他的文件。★ 负例验证过：`RoleID` 改回空串立刻红。**这是第三次撞上「测试构造了真实路径产生不了的输入」** |
+| `TestSay_KeepsTheSameRole` | `internal/app/work/role_test.go` | app | 接着说的那几轮角色不变——会话池按「工作 + 角色」分键，角色变了就会另开一条会话，前一句彻底不在上下文里 |
+| `TestStart_SendsTheRolesOpeningWords` | `internal/app/work/role_test.go` | app | ★★ M5 U5.1.4 R1 R2 · 完成标志第 1 条「它追问而不是直接开写」。不拼开场白的话，需求分析师和实现工程师收到一模一样的一句需求——角色库那八张卡片只是界面上的装饰。★ 判据落在**角色页卡片上的原文**（「需求分析师」「追问」「不写代码」）：两处同一份内容，用户看到什么 AI 收到的就是什么。**这是第四次撞上「代码写了没接线」** |
+| `TestEventStore_FieldCountsMatch` | `cmd/duetd/wiring_test.go` | cmd | ★★ **真机抓出来的第六次同类 bug**：`eventStore` 是逐字段手抄的翻译层，给事件加五个字段时三处都改了唯独这层没抄——事件照样落库照样读得回来，只是角色标签没了，而所有单测都绿（它们不过这层）。这条不测字段值，测**两个结构体字段数与字段名逐个对上**：下一个加字段的人当场看到红 |
+| `TestEventStore_RoundTripKeepsEveryField` | `cmd/duetd/wiring_test.go` | cmd | ★ 只测「字段数一致」挡不住「抄了但抄错了」（把 Runtime 抄成 Role），所以再走一遍来回搬运 |
+| `TestParsePlanReply_R6_ExtractsTheGraph` | `internal/app/work/plan_parse_test.go` | app | ★★ M6 U6.2.1 R6：AI 回复里带 `duet-plan` 围栏的 JSON → 结构化 PlanVersion，角色与依赖都在。**版本号由我们给**——让 AI 猜的话会给出一个与库里对不上的号，而版本号是版本链的骨架 |
+| `TestParsePlanReply_R7_PlainProseSaysWhatItSaid` | `internal/app/work/plan_parse_test.go` | app | ★★ R7：一段散文 → 报错且**带上它的原话**。静默失败的话用户看到「正在规划」然后永远没有下文，而真正的原因躺在没人读的地方 |
+| `TestParsePlanReply_TakesTheLastFence` | `internal/app/work/plan_parse_test.go` | app | ★★ 取**最后一段**围栏：AI 常常先贴一段示例再给真计划，取第一段的话用户会得到一份内容是我们自己例子的计划 |
+| `TestParsePlanReply_UnknownRoleIsRejected` | `internal/app/work/plan_parse_test.go` | app | 派了不存在的角色当场报错（裁定三），错误里说清是哪个单元 |
+| `TestParsePlanReply_CycleIsRejected` | `internal/app/work/plan_parse_test.go` | app | 依赖成环当场报错 |
+| `TestParsePlanReply_BadJSONSaysSo` | `internal/app/work/plan_parse_test.go` | app | 坏 JSON 报错并带上那段内容 |
+| `TestParsePlanReply_UnclosedFence` | `internal/app/work/plan_parse_test.go` | app | 围栏没闭合（流式被截断）当成没有，不去解析半截 JSON |
+| `TestParsePlanReply_EmptyPlanIsRejected` | `internal/app/work/plan_parse_test.go` | app | 空计划被拒——会让用户以为 AI 什么都没规划出来 |
+| `TestParsePlanReply_TruncatesByRunes` | `internal/app/work/plan_parse_test.go` | app | ★ 原话按**字符**截断不按字节——按字节切会把中文变成乱码 |
+| `TestStartPlanning_AbsorbsTheReplyIntoAPlan` | `internal/app/work/plan_test.go` | app | ★★ **端到端**：AI 回复 → 库里真的有了一版计划。只测解析函数的话，「解析器好使」与「这条链路通了」是两件事——而这个项目已经四次撞上「代码写了、测试绿了、真实路径没走过」 |
+| `TestStartPlanning_UnparseableReplySaysWhy` | `internal/app/work/plan_test.go` | app | ★★ 解析不出来时发失败事件且**带着原话**，不是静静地什么都不发生 |
+| `TestParseContractReply_ExtractsCriteriaAndBoundary` | `internal/app/work/contract_parse_test.go` | app | ★★ M7 完成标志 1：单元设计师回复里的 `duet-contract` 围栏 → 验收标准与边界。★ 判据落在**判定行为**上（`Judge` 真的分得出内外），不是「切片长度是 2」；★★ 产出的是**草稿不是冻结的**——自动冻结的话用户还没看过它，AI 就能照着它改文件了 |
+| `TestParseContractReply_EmptyCriteriaIsRejected` | `internal/app/work/contract_parse_test.go` | app | ★★ 一条验收标准都没有 → 拒绝。空契约冻结之后「做完了」没有任何判据——AI 说做完了就是做完了 |
+| `TestParseContractReply_DoesNotPickUpAPlanFence` | `internal/app/work/contract_parse_test.go` | app | ★★ 契约与计划的围栏**分开**：一轮回复里可能同时讲到两者，共用标记的话会解析出一份验收标准是子计划标题的契约 |
+| `TestParseContractReply_ProseSaysWhatItSaid` | `internal/app/work/contract_parse_test.go` | app | 散文 → 报错并带上原话 |
+| `TestDesignContract_AbsorbsTheReply` | `internal/app/work/unit_test.go` | app | ★★ **端到端**：设计师的回复 → 库里有契约草稿，边界真的判得出来。★★ 这一轮由**单元设计师**跑而不是单元自己派的角色——自己给自己定边界等于没有边界 |
+| `TestFreezeContract_ThenTheUnitCanStart` | `internal/app/work/unit_test.go` | app | ★★ M7 主线的最后一环：草稿时开不了工，冻结后能，且执行轮用的是**单元自己派的角色**（审查员）而契约轮用的是设计师 |
+| `TestStartUnit_R1_RefusesWhileContractIsDraft` | `internal/app/work/unit_test.go` | app | ★★ M7 U7.3.1 R1：契约没冻结时拒绝开工，**且一轮都不跑**。没冻结就开工的话 AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——产出对不上任何一版契约 |
+| `TestStartUnit_R2_RunsAsTheUnitsOwnRole` | `internal/app/work/unit_test.go` | app | ★★ R2（裁定三）：这一轮用**单元自己派的那个角色**（测试里是审查员），不是按工作状态选。按状态选的话会错派成实现工程师——而实现方审查自己的产出是 INV-ATT-8 禁止的 |
+| `TestStartUnit_R5_PromptCarriesTheContract` | `internal/app/work/unit_test.go` | app | ★★ R5：prompt 里带验收标准原文、允许与禁止的边界、依赖。不贴边界的话 AI 不知道哪些不该碰——而越界会在权限卡片上被标出来，那时用户看到「它想动不该动的东西」，实际上是我们从没告诉过它 |
+| `TestStartUnit_EmptyBoundarySaysSo` | `internal/app/work/unit_test.go` | app | ★★ 没有允许项时**明说**「不要改动任何文件」，别让那段空着——空着的话 AI 会以为没有限制，而实际上一个字节都不许改 |
+| `TestStartUnit_UnknownUnitIsRejected` | `internal/app/work/unit_test.go` | app | 计划里没有的单元不凭空造：造的话它没有角色、没有契约，而 AI 会照着一份不存在的说明开始改文件 |
+| `TestStartUnit_WorkRemembersTheUnit` | `internal/app/work/unit_test.go` | app | ★ 判据落在**边界判定**上而不是「字段等于 unit-013」——后者只证明字段被赋值了，前者证明这条链真的通了 |
+| `TestStartUnit_TerminalWorkRefuses` | `internal/app/work/unit_test.go` | app | 终态的工作切不动单元——那会让边界判定拿到一份过期的契约 |
+| `TestBoundaryFor_UnknownWhenItCannotTell` | `internal/app/work/plan_test.go` | app | ★★ M7 U7.2.1：四种「说不清」（没装配契约存储 / 工作查不到 / 还没开始做单元 / 没有路径）每一种都返回 `unknown` 而不是 `in_boundary`——把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |
+| `TestBoundaryFor_JudgesAgainstTheCurrentUnitsContract` | `internal/app/work/plan_test.go` | app | ★★ 有契约时**真的判得出来**（边界内 / 越界 / 没说过的路径）——不然上面那些 unknown 就只是永远说不清。★ 这条先红发现 `memWorks` 又漏还原了一个字段 |
+| `TestBroker_BoundaryVerdictIsThreeState` | `internal/app/permission/broker_test.go` | app | ★★ M7 U7.2.1 R3：边界判定是**三态**，「不知道」不等于「没问题」。用 bool 的话契约还没冻结时那条请求会长得和「边界内」一模一样——而那正是用户最需要看清楚 AI 要动什么的时刻。★ 留空按 unknown 处理：装配漏一根线时表现必须是「说不清」不能是「没问题」 |
+| `TestContractRepo_R1_RoundTrip` | `internal/store/contract_repo_test.go` | store | ★★ M7 U7.1.2 R1：边界与验收标准逐字过库、顺序也在。★ 标准正文里有逗号——用逗号当分隔符会把一条拆成两条；★★ 边界少一条就等于**放宽了一次** |
+| `TestContractRepo_R2_RefusesToRewriteFrozen` | `internal/store/contract_repo_test.go` | store | ★★ R2：改写已冻结的契约被拒，库里那条一个字没变——否则边界随时可以被放宽到全放行 |
+| `TestContractRepo_DraftIsUpdatedInPlace` | `internal/store/contract_repo_test.go` | store | 未冻结的是草稿原地覆盖（单元设计师还在往里加标准），不升版本号 |
+| `TestContractRepo_DraftRewriteClearsRemovedItems` | `internal/store/contract_repo_test.go` | store | ★★ 整版重写要**清干净旧条目**：留着的话删掉的那条标准会复活，边界也会比用户以为的更宽 |
+| `TestContractRepo_R3_KeepsEveryVersion` | `internal/store/contract_repo_test.go` | store | R3：版本链从新到旧，v1 的标准与冻结态原样留着 |
+| `TestContractRepo_R4_HasNoRewriteMethods` | `internal/store/contract_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-UC-2） |
+| `TestContractRepo_NoContractYet` | `internal/store/contract_repo_test.go` | store | 还没有契约时列表返回空切片不是错 |
+| `TestWorkRepo_MaxWorkSeq` | `internal/store/work_repo_test.go` | store | ★★ **数据丢失级别的 bug**（2026-08-10 真机走查发现）：`PrimeSeq` 只给项目调了没给工作调，重启后 `NextID("work")` 又从 work-01 开始，而 `SaveWork` 是 upsert——新工作**直接覆盖掉旧的**，连 worktree 目录都是同一个（两个工作的 AI 在同一份代码上改）。开发机上撞不到（库总是空的），只会在用户那儿炸 |
+| `TestWorkRepo_MaxWorkSeqSkipsWeirdIDs` | `internal/store/work_repo_test.go` | store | ★ 解析不出的 ID 跳过而不是报错——宁可序号多跳几个，也不能因为一条手工改过的记录就打不开应用 |
+| `TestList_CarriesTheProjectSoTheRailCanGroupThem` | `internal/app/work/service_test.go` | app | ★★ 工作要记住**自己属于哪个项目**：`WorkToEntity` 从来没填过 `ProjectID`，于是左栏的项目下永远是空的——而工作明明就在库里。`design/PARITY.md` 开篇记的正是这一类「数据有却不显示，等于界面说谎」 |
+| `TestAcceptUnit_CommitsAndCheckpoints` | `internal/app/work/accept_test.go` | app | ★★ M8 U8.2.2 R2 R3 R4：**改动真的落进分支**（判据是「验收后工作区干净了」，用真 gitx 不塞假的）；提交信息带单元 id 与每条标准的 `✓ ev-441` / `○`——三个月后那条 commit 才说明得了「凭什么算通过」；检查点绑着 commit（不绑的话「恢复到哪」没有答案） |
+| `TestAcceptUnit_RefusesWithoutAnyEvidence` | `internal/app/work/accept_test.go` | app | ★★ 一条标准都没有证据时拒绝，且**一次提交都没发生**。允许的话「验收」这个动作就没有内容了——用户点通过时以为自己核对过什么 |
+| `TestAcceptUnit_RefusesToCommitNothing` | `internal/app/work/accept_test.go` | app | R5：没有改动时不造空提交 |
+| `TestAcceptUnit_NoCommitterSaysSo` | `internal/app/work/accept_test.go` | app | 没装配提交能力时明确报错——不是「通过了但什么都没提交」，那会让用户以为改动已经落进分支，而它还散在工作区里 |
+| `TestCommit_MissingIdentityIsExplained` | `internal/gitx/commit_test.go` | gitx | ★★ 没配 git 身份时报 `ErrNoGitIdentity` 而不是 `exit status 128`——用户刚装完 git 就用 Duet 会卡在这里，而他只差一句 `git config`。★ 用**空 ident** 构造条件而不是摘配置：macOS 上 git 会从用户名与主机名**自动推导**一个身份然后提交成功，Linux 容器里才拒绝——本地绿而 CI 红的根因就是这个差异，空 ident 在两种系统上都被拒绝 |
+| `TestCommit_IncludesUntrackedFiles` | `internal/gitx/commit_test.go` | git | ★★ M8 U8.2.2：提交带上**未跟踪的新文件**。AI 干活时新建文件是常态，不带的话提交里少了一半东西——而 diff 证据里明明有它们，用户会发现两处对不上。判据是「提交之后工作区干净了」 |
+| `TestCommit_RefusesToMakeAnEmptyCommit` | `internal/gitx/commit_test.go` | git | ★★ 没有改动时**不造空提交**：一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收，而不是往历史里塞一个空 commit 把问题盖过去 |
+| `TestCommit_KeepsTheMessage` | `internal/gitx/commit_test.go` | git | 提交信息原样进历史——用户日后 `git log` 要能看懂那次验收 |
+| `TestCommit_RejectsEmptyMessage` | `internal/gitx/commit_test.go` | git | 空信息的 commit 在历史里等于没有说明 |
+| `TestEvidenceRepo_RoundTrip` | `internal/store/evidence_repo_test.go` | store | ★★ M8：**原始输出一个字节都不少**过库（截断过的输出在排查时等于没有）；来源与「支持哪几条标准」也过库——关系丢了的话它在「标准 ✓ ev-441」里不会出现，用户以为它没派上用场 |
+| `TestEvidenceRepo_KeepsAgentSource` | `internal/store/evidence_repo_test.go` | store | ★★ AI 转述的过库之后**还是 agent**——那正好是这一层最不该弄错的一件事 |
+| `TestEvidenceRepo_HasNoRewriteMethods` | `internal/store/evidence_repo_test.go` | store | ★★ 反射断言没有 Update/Delete——证据改写过就不是证据了 |
+| `TestEvidenceRepo_NoEvidenceYet` | `internal/store/evidence_repo_test.go` | store | 还没有证据时返回空切片不是错 |
+| `TestEvidenceRepo_ScopedByUnit` | `internal/store/evidence_repo_test.go` | store | 两个单元的证据互不干扰 |
+| `TestCollectDiffEvidence_R1R4_ComesFromGitAndIsMarkedAsApp` | `internal/app/work/evidence_test.go` | app | ★★ M8 U8.1.2 R1 R4：diff 证据从**真 git** 读出来（真仓库真文件，不塞假探针——假的返回什么都行，而这个单元测的正是「读出来的与仓库里的一致」），且标着 `source=app` |
+| `TestCollectDiffEvidence_R2_DoesNotTouchTheWorktree` | `internal/app/work/evidence_test.go` | app | R2：采集**只读**，采集前后工作区快照一致 |
+| `TestCollectDiffEvidence_R3_NoProbeSaysSo` | `internal/app/work/evidence_test.go` | app | ★★ R3：没装配 git 探针时报错，**不留一条空证据**——空证据会让「验收证据 1 条」变成假的，用户点开是空的，而他不会再信这个数 |
+| `TestAcceptanceOf_MarksCriteriaWithoutEvidence` | `internal/app/work/evidence_test.go` | app | ★★ 没证据的标准**留在表里且为空**，不是「通过」——把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。★ 顺序照契约不照 map（用户是照着契约那张表一条条核对的） |
+| `TestProbeWorktree_CountsUntrackedFiles` | `internal/gitx/status_test.go` | git | ★★ **未跟踪的新文件也算改动**（M8 采集时发现的）：`git diff` 不认识它们，而 AI 干活时新建文件是常态。不算的话，新写了三个文件的单元显示「改了 0 个文件」，用户会以为它什么都没做 |
+| `TestProbeWorktree_SkipsIgnoredFiles` | `internal/gitx/status_test.go` | git | ★ 被 `.gitignore` 忽略的不算——带上的话 `node_modules` 会把证据淹掉 |
+| `TestAskDecision_D2StopsAndWaits` | `internal/app/work/decision_test.go` | app | ★★ M9 U9.2.1：D2 提问时工作进 `waiting_user`——**AI 停在这里等他**。不停的话它会带着自己选的答案往下做几十个文件。★ 测试现场是 executing（状态机不许 `clarifying → waiting_user`，那条限制是对的） |
+| `TestAskDecision_D1DoesNotStop` | `internal/app/work/decision_test.go` | app | ★★ D0/D1 不停下来等——全停的话用户会被一堆「用哪个变量名」的问题烦死 |
+| `TestAskDecision_OptionsCarryImpactAndRecommendation` | `internal/app/work/decision_test.go` | app | ★★ 事件载荷里每个选项都带**影响**，推荐的**只是标记不是预选**——预选中的话用户会顺手点确定，而那正好绕过了「让他自己决定」 |
+| `TestAnswerDecision_ResumesTheWork` | `internal/app/work/decision_test.go` | app | 答完回到执行态——不回的话它一直停在那儿，而用户以为自己已经放行了 |
+| `TestAnswerDecision_KeepsWaitingWhileOthersPend` | `internal/app/work/decision_test.go` | app | ★★ 还有别的没答完时**继续等**：答了一条就全放行的话，另一条会被静静跳过 |
+| `TestAnswerDecision_OnlyOnce` | `internal/app/work/decision_test.go` | app | 答过的不能再答 |
+| `TestDecision_UnconfiguredSaysSo` | `internal/app/work/decision_test.go` | app | 没装配决策存储时明确报错——不是「AI 自己选一个往下走」 |
+| `TestDecisionRepo_R1_RoundTrip` | `internal/store/decision_repo_test.go` | store | ★★ M9 U9.1.2：选项与**影响说明**都过库——影响丢了的话用户在盲选，他看到两个名字而不知道选哪个会发生什么 |
+| `TestDecisionRepo_R2_AnswersOnlyOnce` | `internal/store/decision_repo_test.go` | store | ★★ R2：作答只能一次，改答案被拒且**库里那条没变**——改了的话「他当时选了什么」就没有答案 |
+| `TestDecisionRepo_R3_PendingOnly` | `internal/store/decision_repo_test.go` | store | ★★ R3：只列未作答的——**左栏那个亮蓝点靠它**。答过的混进来的话，用户会一直看到一个点不掉的提醒 |
+| `TestDecisionRepo_R4_HasNoDeleteMethod` | `internal/store/decision_repo_test.go` | store | ★★ R4：没有 Delete——「他当时被问了什么」不该能被抹掉 |
+| `TestDecisionRepo_NoPending` | `internal/store/decision_repo_test.go` | store | 没有待决策时返回空切片不是错 |
+| `TestDecision_R1_LevelIsClosed` | `internal/domain/model/decision_test.go` | domain | M9 U9.1.1 R1：等级封闭 D0–D3，且 **D2/D3 必须问用户**（改变外部行为、回滚已验收的东西）。全问用户会把他烦死，全不问他会在几十个文件之后才发现 |
+| `TestDecision_R2_NeedsAtLeastTwoOptions` | `internal/domain/model/decision_test.go` | domain | ★★ R2：一个选项的「决策」不是在问，是在**通知**——而通知不该占用用户「停下来做个决定」的注意力 |
+| `TestDecision_R4_EveryOptionNeedsImpact` | `internal/domain/model/decision_test.go` | domain | ★★ R4：每个选项必须写明**影响**。没有的话用户在盲选——他看到三个名字，而不知道选哪个会发生什么。错误里说清是哪个选项 |
+| `TestDecision_R3_RecommendationMustExist` | `internal/domain/model/decision_test.go` | domain | R3：「推荐」指向不存在的选项时被拒（界面上那个标记会落在谁身上说不清）；★ 空推荐允许——AI 也可以拿不准 |
+| `TestDecision_R5_AnswersOnlyOnce` | `internal/domain/model/decision_test.go` | domain | ★★ R5：只能答一次，且**第二次不改掉答案**。答过还能改的话，「他当时选了什么」就没有答案——而后面几十个文件都是照着那个选择做的 |
+| `TestDecision_RejectsUnknownOption` | `internal/domain/model/decision_test.go` | domain | ★ 选不存在的选项报错不静默收下——收下的话「他选了什么」会变成一个谁都不认识的字符串 |
+| `TestDecision_R5_IsImmutable` | `internal/domain/model/decision_test.go` | domain | 反射断言只有读方法 + 一个受控迁移（`Answer`）；`Options()` 返回副本 |
+| `TestDecision_R6_UnansweredStaysQueryable` | `internal/domain/model/decision_test.go` | domain | R6：「稍后决定」不丢内容——用户回头点开时看到的不该是半张卡片 |
+| `TestEvidence_R1_KindIsClosed` | `internal/domain/model/evidence_test.go` | domain | M8 U8.1.1 R1：证据四类封闭（diff / test / command / review），第五类被拒 |
+| `TestEvidence_R3_SourceIsRequired` | `internal/domain/model/evidence_test.go` | domain | ★★ R3：来源**必填**。留空的话一条 AI 转述会和一份应用采集的 diff 长得一样——而用户判断「该不该信」全靠这一个字段 |
+| `TestEvidence_R4_AgentReportsAreMarked` | `internal/domain/model/evidence_test.go` | domain | ★★ R4：AI 转述的与应用采集的分得开。让 AI 报告自己干了什么，等于让被考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次 |
+| `TestEvidence_R2_IsImmutable` | `internal/domain/model/evidence_test.go` | domain | R2：反射断言只有读方法；证据被改写过就不再是证据了——「当时到底跑出了什么」没有第二个地方可查 |
+| `TestEvidence_KeepsTheRawBody` | `internal/domain/model/evidence_test.go` | domain | ★ 原始输出**原样存**不截断不美化——截断过的输出在排查时等于没有 |
+| `TestEvidence_R5_ManyToMany` | `internal/domain/model/evidence_test.go` | domain | ★★ R5：一条证据支持多条标准、一条标准可有多条证据；**没有证据的那条留在结果里**（值是空切片）——去掉的话调用方会以为所有标准都有证据 |
+| `TestCriteriaCoverage_IgnoresUnknownCriteria` | `internal/domain/model/evidence_test.go` | domain | ★★ 证据指向契约里没有的标准时不计入——静静收下的话「已覆盖 5 条」里会有一条根本不在契约里 |
+| `TestWriteBoundary_R1_MatchesByPathSegment` | `internal/domain/model/write_boundary_test.go` | domain | ★★ M7 U7.1.1 R1：边界按**路径段**比不是字符串前缀——`internal/acp/` 不该匹配 `internal/acpx/foo.go`，那是用户从没同意过的目录。**负例验过**：退回朴素前缀当场红 |
+| `TestWriteBoundary_R2_ForbiddenWins` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R2：禁止项压过允许项。反过来的话「允许 internal/、禁止 internal/api/gen/」会让生成物被放行——而它正是被单独拎出来禁止的那一个 |
+| `TestWriteBoundary_R3_EmptyIsUnknownNotAllowed` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R3：空边界判 `unknown` **不是** `in_boundary`。把「不知道」当成「没问题」，等于在最该提醒的时候保持沉默 |
+| `TestWriteBoundary_UnlistedIsOutside` | `internal/domain/model/write_boundary_test.go` | domain | 有边界但没命中允许项 = 越界：「没说可以」就是不可以，安全默认是拒绝 |
+| `TestWriteBoundary_FoldsDotDot` | `internal/domain/model/write_boundary_test.go` | domain | ★★ `..` 要折叠——不折叠的话 `internal/acp/../../etc/passwd` 会被判成边界内 |
+| `TestWriteBoundary_NormalizesPaths` | `internal/domain/model/write_boundary_test.go` | domain | 首尾 `/` 与 `./` 不影响判定——AI 给的路径形态我们说了不算 |
+| `TestWriteBoundary_R5_DoesNotNeedTheFileToExist` | `internal/domain/model/write_boundary_test.go` | domain | R5：不看文件存不存在——AI 要**新建**文件时那个路径当然还不存在，而那正是最需要判边界的时刻 |
+| `TestUnitContract_R4_BoundaryIsFrozenToo` | `internal/domain/model/write_boundary_test.go` | domain | ★★ R4：冻结后边界改不动，否则边界随时可以被放宽到全放行 |
+| `TestUnitContract_BoundaryReturnsCopy` | `internal/domain/model/write_boundary_test.go` | domain | `Boundary()` 返回副本——不然调用方能把边界改成全放行 |
+| `TestUnitContract_ReviseCarriesTheBoundary` | `internal/domain/model/write_boundary_test.go` | domain | ★ 修订出的新版本带着边界（副本）。不带的话 v2 一出来就是「什么都不许改」，而用户以为只是改了一条标准 |
+| `TestUnit_R1_RoleIsRequiredAndMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ M6 U6.1.1 R1（裁定三）：单元**必须**有角色且角色要在角色库里，错误里带上角色 id 与单元 id。不写的话到执行时才发现没人认领——而那时用户已经等了几分钟；更糟的是随手派一个，让实现方审查自己的产出（INV-ATT-8 禁止） |
+| `TestSubplan_R2_IsImmutable` | `internal/domain/model/subplan_test.go` | domain | R2：反射断言 Unit / Subplan 只有读方法；`DependsOn()` 返回副本 |
+| `TestSubplan_R3_DependencyMustExist` | `internal/domain/model/subplan_test.go` | domain | ★★ R3：依赖必须指向存在的单元。静静忽略的话那条依赖永远不生效——一个本该等着的单元会提前开工，表现是 AI 对着一个不存在的接口写代码 |
+| `TestSubplan_R4_RejectsDependencyCycle` | `internal/domain/model/subplan_test.go` | domain | ★★ R4：成环被拒，且**错误里把环列出来**。有环就没有「先做哪个」的答案，不拦的话调度会挑一个下手，而那个选择每次运行都可能不同 |
+| `TestSubplan_R5_ProgressComesFromUnits` | `internal/domain/model/subplan_test.go` | domain | ★★ R5：`3/3` 由单元算出来不单独存——存一个字段的话它会和真实状态漂移，而用户看到「3/3」时以为全做完了 |
+| `TestSubplan_DependencyAcrossSubplansIsFine` | `internal/domain/model/subplan_test.go` | domain | 依赖可跨子计划（设计稿里 unit-013 依赖 unit-012 就是这样） |
+| `TestSubplan_RejectsSelfDependency` | `internal/domain/model/subplan_test.go` | domain | 自己依赖自己也是环 |
+| `TestSubplan_AcceptsAcyclicGraph` | `internal/domain/model/subplan_test.go` | domain | 正常 DAG 照常通过（挡住「一律报环」的假实现） |
+| `TestSubplan_RejectsDuplicateUnitID` | `internal/domain/model/subplan_test.go` | domain | 同版计划不许重名单元——依赖指向它时没人说得清指的是哪一个 |
+| `TestSubplan_StatusFromUnits` | `internal/domain/model/subplan_test.go` | domain | 设计稿的 `accepted · 3/3`：全验收 accepted / 没动 pending / 空 empty |
+| `TestRestoreUnit_DoesNotValidateRole` | `internal/domain/model/subplan_test.go` | domain | ★ 重建**不校验角色**：角色库将来删掉一个角色时，不该让历史计划读不出来 |
+| `TestPlanVersion_WithSubplansLeavesTheOriginalAlone` | `internal/domain/model/subplan_test.go` | domain | ★★ 值接收者 + 返回新值 = 仍然不可变。在原值上追加的话「v3 当时拆成了什么」会随时间变化，而计划面板的「变更历史」正是靠它回答「每次为什么改」 |
+| `TestPlanVersion_WithSubplansValidatesTheGraph` | `internal/domain/model/subplan_test.go` | domain | ★ DAG 校验在**装进计划时**做掉，不留到调度时（那时错误会表现成「没有可执行的单元」，用户看不出是计划写错了） |
+| `TestPlanRepo_R1_RoundTripKeepsTheGraph` | `internal/store/plan_repo_test.go` | store | ★★ M6 U6.1.2 R1：角色、依赖、**顺序**都过得了库。顺序按 ord 存——按 id 排的话 unit-10 会排在 unit-02 前面；角色丢了的话执行时没人认领 |
+| `TestPlanRepo_R2_RefusesToRewriteAVersion` | `internal/store/plan_repo_test.go` | store | ★★ R2：改写已有版本被拒，库里那条一个字没变 |
+| `TestPlanRepo_R3_KeepsEveryVersion` | `internal/store/plan_repo_test.go` | store | R3：版本链从新到旧，重规划的**处置**也过库——不然「那次重规划怎么处理已验收的东西」没有答案 |
+| `TestPlanRepo_R4_HasNoRewriteMethods` | `internal/store/plan_repo_test.go` | store | ★★ R4：反射断言没有 Update/Delete 类方法（INV-PLAN-4） |
+| `TestPlanRepo_NoPlanYet` | `internal/store/plan_repo_test.go` | store | 还没规划时列表返回空切片不是错，取最新返回 `ErrNotFound` |
+| `TestPlanRepo_ScopedByWork` | `internal/store/plan_repo_test.go` | store | 两个工作的计划互不干扰 |
+| `TestStartPlanning_R1_RefusesWhileRequirementIsDraft` | `internal/app/work/plan_test.go` | app | ★★ M6 U6.2.1 R1（INV-REQ-1）：需求还是草稿时拒绝规划，且**一轮都没多跑**。需求还在变时做出来的计划做完也对不上，而那时用户已经等了一整轮 |
+| `TestStartPlanning_R2R3_PlanningRunsAsThePlanArchitect` | `internal/app/work/plan_test.go` | app | ★★ R2 R3：冻结后能规划，这一轮由**计划架构师**跑；需求原文贴进 prompt（Agent 那侧没有我们的库）；**明写「每个单元都要派角色」**——不说的话 AI 会给出一份没人认领的计划 |
+| `TestSavePlanVersion_R5_EmitsPlanVersionEvent` | `internal/app/work/plan_test.go` | app | R5：落一版计划发 `plan_version` 事件，带版本号与「N 子计划 · M 单元」 |
+| `TestPlan_R4_ReplanNeedsDispositions` | `internal/app/work/plan_test.go` | app | R4：重规划缺一项处置就拒——漏掉的那项会悄悄失效，而没人知道 |
+| `TestPlanOf_CarriesRoleNames` | `internal/app/work/plan_test.go` | app | ★ 视图带角色显示名，**认不出的角色留空**不编一个（编出来的名字与角色页那张表对不上，用户会以为有两个不同的角色）；进度算出来的 |
+| `TestPlan_UnconfiguredSaysSo` | `internal/app/work/plan_test.go` | app | 没装配计划存储时明确报错 |
+| `TestTurnGate_R1_SerializesTurnsOnOneSession` | `internal/acp/agent/gate_test.go` | acp | ★★ M5 U5.1.5 R1：同一条会话上五轮并发只允许一轮在跑。**真机验出来的**——两个 prompt 打进同一条会话时库里连着两条 `turn_end`，而第二句的回答一个字都没有，用户补充一句之后没有任何回应而界面看起来一切正常 |
+| `TestTurnGate_R2_QueuedTurnGetsItsChance` | `internal/acp/agent/gate_test.go` | acp | R2：排着的那一轮不丢，前一轮结束后拿得到 |
+| `TestTurnGate_R4_CancelledWhileWaitingGivesUp` | `internal/acp/agent/gate_test.go` | acp | ★★ R4：取消时等着的那一轮放弃，且**名额还回去**。用 `sync.Mutex` 这条做不到——mutex 等不了 ctx，用户明明点了停，排在后面的那几轮还是会一句句跑完 |
+| `TestTurnGate_R5_RefusesBeyondTheQueueLimit` | `internal/acp/agent/gate_test.go` | acp | R5：排队深度上限，超了明确拒绝——无限排队的话用户在反复戳一个没反应的界面，而每一句都会真的跑一轮 |
+| `TestTurnGate_ReleaseIsIdempotent` | `internal/acp/agent/gate_test.go` | acp | ★ `release` 调两次只放开一次：多调一次会取走下一轮刚放进去的令牌，那一轮永远等不到自己结束，整条会话从此卡死。写测试时自己踩了一次，当场挂死 60 秒超时 |
+| `TestTurnGate_DifferentSessionsDoNotBlock` | `internal/acp/agent/gate_test.go` | acp | 不同角色的会话互不阻塞 |
+| `TestTurnGate_ReleasesEmptyLanes` | `internal/acp/agent/gate_test.go` | acp | 没人排队时收掉 lane——跑了几百个工作的进程不该留着几百个空 lane |
+| `TestEventRepo_KeepsWhoSaidItAcrossTheDatabase` | `internal/store/event_repo_test.go` | store | ★★ **真机验证抓出来的**：`events` 表当时没有 role 那几列，而前端首次连接**总是**带 `Last-Event-ID: 0` 把历史要回来——用户看到的**第一屏永远没有角色标签**。内存总线直推时角色在，所以所有单测都绿。这条守住角色 + runtime + 需求版本都过得了库 |
+| `TestEventRepo_AppEventsHaveNoRole` | `internal/store/event_repo_test.go` | store | 应用自己发的事件没有角色——**空就是空**，读回来不该被填默认值（填「系统」会让用户以为有个叫系统的角色在干活） |
+| `TestRequirement_FirstSentenceBecomesV1` | `internal/app/work/requirement_test.go` | app | M5 U5.2.1：★★ 用户提的第一句话就是需求快照 v1，且**不是冻结的**（一出来就冻的话用户没机会再看一眼）。不记的话「我当时到底要它做什么」没有答案，而计划与契约都要照着它做 |
+| `TestRequirement_FollowUpsStayInTheSameDraft` | `internal/app/work/requirement_test.go` | app | ★★ 追问过程中接着说改的是**同一版**，库里始终一条记录。每问一个问题就升一版的话，版本链记的不再是「需求变过几次」而是「问过几个问题」 |
+| `TestRequirement_SayingMoreAfterFreezeMakesV2` | `internal/app/work/requirement_test.go` | app | ★★ 完成标志第 4 条：冻结之后再提要求 → v2，而 **v1 一个字没变且还冻着** |
+| `TestRequirement_FreezePersists` | `internal/app/work/requirement_test.go` | app | 冻结落盘——静静成功的话用户点完显示已冻结，而下次打开又变回未冻结 |
+| `TestRequirement_StampedOnTheTurn` | `internal/app/work/requirement_test.go` | app | ★★ 需求版本盖在**这一轮**的 AgentTurn 上，与角色同理：界面另查一次拿到的是「现在」的版本，而用户看的是一条历史消息 |
+| `TestRequirement_UnconfiguredSaysSo` | `internal/app/work/requirement_test.go` | app | ★ 没装配需求存储时**建工作照样成功**（它只是少了一层记录），但冻结明确报 `ErrRequirementsUnavailable` |
+| `TestRequirement_NoneYetIsNotFound` | `internal/app/work/requirement_test.go` | app | 还没有需求时返回 `ErrNotFound`——新工作的常态，界面据此不显示标签而不是显示「v0」 |
+| `TestSay_R1_StaysInTheSameWork` | `internal/app/work/say_test.go` | app | M5 U5.1.3 R1：★★ 说三句只有**一个工作**，三轮都送到同一个 workID + 同一个 worktree（会话池正是按这两样分键的）。第二句开新工作的话，新 worktree 新会话新时间线——前一句彻底不在上下文里，而用户以为自己只是补充了一句 |
+| `TestSay_R2_EverySentenceLandsOnTheTimeline` | `internal/app/work/say_test.go` | app | R2：三句话都进时间线且文本各不相同。漏一句的话用户回头看「我当时说了什么」会少一段，而 AI 的回复还在——他会以为 AI 答非所问 |
+| `TestSay_R4_TerminalWorkRefusesAndSaysWhy` | `internal/app/work/say_test.go` | app | ★★ R4：终态工作拒收，且给出机器可读的 `work_not_accepting_messages`。静默收下的话用户对着一个永远不动的时间线干等，以为 AI 在想事情 |
+| `TestSay_R4_RefusedMeansNothingHappened` | `internal/app/work/say_test.go` | app | ★ 被拒之后**一轮没跑、时间线上也不留那句话**——留下的话会有一句「用户说了什么」而永远没有下文 |
+| `TestSay_RefusesBeforeTheWorktreeIsReady` | `internal/app/work/say_test.go` | app | ★ 工作区还没切好时拒绝：用空 cwd 跑一轮的话，Agent 会在 **duetd 自己的当前目录**里干活 |
+| `TestSay_RejectsBlank` | `internal/app/work/say_test.go` | app | 空话不发——发出去的话 Agent 会为一句空白跑一整轮 |
+| `TestSay_UnknownWorkIsNotFound` | `internal/app/work/say_test.go` | app | 工作不存在时能判定成 `ErrNotFound`（上层据此回 404） |
+| `TestSay_WithoutRunnerDoesNotPanic` | `internal/app/work/say_test.go` | app | 没装配 runner 时不崩（只跑 API 冒烟的场景） |
+| `TestSayInWork_HappyPathIs202` | `internal/api/work_say_test.go` | api | ★ 返回 **202** 而不是 200：一轮要好几分钟，同步等的话请求早超时了。原话一个字不少地转下去 |
+| `TestSayInWork_TerminalIs409` | `internal/api/work_say_test.go` | api | ★★ 终态翻成 **409** 不是 500——500 会让界面提示「再试一次」，而用户一试还是同样的结果 |
+| `TestSayInWork_UnknownIs404` | `internal/api/work_say_test.go` | api | 工作不存在时 404 |
+| `TestSayInWork_RejectsBadInput` | `internal/api/work_say_test.go` | api | 空话 / 缺字段 / 坏 JSON 一律 400，且**不转调** |
+| `TestSayInWork_UnconfiguredSaysSo` | `internal/api/work_say_test.go` | api | 没装配回 503，不是 500 也不是静静成功 |
+| `TestSayInWork_RequiresToken` | `internal/api/work_say_test.go` | api | 没带 token 401，且不转调 |
+| `TestStart_PutsTheUsersOwnWordsOnTheTimeline` | `internal/app/work/service_test.go` | app | M5 U5.3.1 R2：★★ 用户自己说的那句话要进时间线，且**原话一个字不少**。不发的话对话页上只有 AI 的独白——而「它有没有听懂我」正是靠两句话对照看出来的：他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据 |
+| `TestRunTurn_StampsRoleOnEveryEvent` | `internal/acp/agent/role_test.go` | acp | M5 U5.3.1：★★ **每条事件都盖着是谁说的**（role + 显示名 + runtime）。漏盖的话界面上那条消息没有角色标签，用户会以为它是「系统」说的——而他正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。★ 显示名一并给出，让前端查表的话认不出的角色会显示成原始 id |

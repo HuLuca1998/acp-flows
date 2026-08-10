@@ -32,12 +32,36 @@ type UnitContract struct {
 	unitID   string
 	version  int
 	criteria []Criterion
+	// boundary 是这个单元允许改动的范围。
+	//
+	// ★★ 这是契约真正的产物：没有它，「AI 要动文件」只能靠用户逐条判断；
+	// 有了它，越界的那一次会被标出来——而用户要的正是
+	// 「它有没有动不该动的东西」。
+	boundary WriteBoundary
 	frozen   bool
 }
 
 // NewUnitContract 造一份没冻结的契约。
 func NewUnitContract(unitID string, version int) *UnitContract {
 	return &UnitContract{unitID: unitID, version: version}
+}
+
+// RestoreUnitContract 从持久化状态重建，供 store 层用。
+//
+// ★ 与 NewUnitContract 分开：后者造的是一份空白契约要一条条加标准，
+// 前者是把存过的读回来——校验规则变严时不该让老数据读不出来。
+func RestoreUnitContract(
+	unitID string, version int, criteria []Criterion, boundary WriteBoundary, frozen bool,
+) *UnitContract {
+	return &UnitContract{
+		unitID: unitID, version: version,
+		criteria: append([]Criterion(nil), criteria...),
+		boundary: WriteBoundary{
+			Allowed:   append([]string(nil), boundary.Allowed...),
+			Forbidden: append([]string(nil), boundary.Forbidden...),
+		},
+		frozen: frozen,
+	}
 }
 
 // UnitID 返回单元标识。
@@ -65,6 +89,31 @@ func (c *UnitContract) AddCriterion(id, text string) error {
 	return nil
 }
 
+// Boundary 返回写入边界。★ 副本：调用方改它不该动到契约。
+func (c *UnitContract) Boundary() WriteBoundary {
+	return WriteBoundary{
+		Allowed:   append([]string(nil), c.boundary.Allowed...),
+		Forbidden: append([]string(nil), c.boundary.Forbidden...),
+	}
+}
+
+// SetBoundary 设置写入边界。冻结之后返回 ErrContractFrozen。
+func (c *UnitContract) SetBoundary(b WriteBoundary) error {
+	if c.frozen {
+		return fmt.Errorf("%w: %s v%d", ErrContractFrozen, c.unitID, c.version)
+	}
+	c.boundary = WriteBoundary{
+		Allowed:   append([]string(nil), b.Allowed...),
+		Forbidden: append([]string(nil), b.Forbidden...),
+	}
+	return nil
+}
+
+// Judge 判定一次写入在不在这份契约的边界内。
+//
+// ★ 越界**不等于拒绝**：裁决权始终在用户手里。
+func (c *UnitContract) Judge(path string) BoundaryVerdict { return c.boundary.Judge(path) }
+
 // Freeze 冻结契约。**幂等**：用户点两下「冻结」是常态。
 //
 // ★ 一条验收标准都没有时拒绝冻结：空契约冻结之后，「做完了」这件事
@@ -91,5 +140,6 @@ func (c *UnitContract) Revise(version int) (*UnitContract, error) {
 	}
 	next := NewUnitContract(c.unitID, version)
 	next.criteria = c.Criteria() // 副本，改新的不影响旧的
+	next.boundary = c.Boundary() // 同上：边界也带过去，且是副本
 	return next, nil
 }

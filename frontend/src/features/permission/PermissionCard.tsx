@@ -40,7 +40,24 @@ export function PermissionCard({ ask, onDecide, pending = false }: PermissionCar
 
       {/* ★ 只在真的越界时才说。没依据就说的话，用户会对所有提示脱敏，
           真正越界那次他也不会看。 */}
-      {ask.outOfBounds === true && <span className={styles.warn}>{t('permission.outOfBounds')}</span>}
+      {/*
+        ★★ 三态各有说法。**`unknown` 也要说出来**——只在越界时才标的话，
+        用户分不出「边界内」与「还没有契约」，而后者正是他最该多看一眼的
+        时候（AI 在一份没人定过边界的现场里改文件）。
+      */}
+      {ask.boundary !== undefined && ask.boundary !== 'unknown' && (
+        <span
+          className={ask.boundary === 'out_of_boundary' ? styles.warn : styles.inBoundary}
+          data-boundary={ask.boundary}
+        >
+          {t(ask.boundary === 'out_of_boundary' ? 'permission.outOfBounds' : 'permission.inBoundary')}
+        </span>
+      )}
+      {ask.boundary === 'unknown' && ask.path !== undefined && ask.path !== '' && (
+        <span className={styles.unknownBoundary} data-boundary="unknown">
+          {t('permission.boundaryUnknown')}
+        </span>
+      )}
 
       <div className={styles.spacer} />
 

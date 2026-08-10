@@ -45,6 +45,14 @@ export type EventRenderer = {
   detailFrom?: readonly string[]
   /** 状态取自哪个字段；后来的覆盖先前的。 */
   statusFrom?: string
+  /**
+   * 这一条排在哪一侧，缺省 `start`（左）。
+   *
+   * ★ 照设计稿：用户自己说的话右对齐、无头像无角色标签，
+   * 与 AI 说的话分列两侧。挤在同一侧的话，一屏滚下来
+   * 「哪句是我说的、哪句是它说的」要逐条读文字才分得清。
+   */
+  align?: 'start' | 'end'
   /** 兜底渲染器的标记，正常注册的都没有这个字段。 */
   fallback?: boolean
 }
@@ -80,17 +88,38 @@ const RENDERERS = {
     // 这里只是历史记录——不显示路径的话，它就是一条空行。
     detailFrom: ['path', 'tool_call_id'],
   },
-  turn_end: { labelKey: 'timeline.event.turnEnd', shape: 'line' },
+  turn_end: {
+    labelKey: 'timeline.event.turnEnd',
+    shape: 'line',
+    // 同理：`end_turn` 与 `cancelled` 对用户是两件很不同的事
+    detailFrom: ['reason'],
+  },
 
   // ── 来自应用控制层（这些永远可点开到对应的结构化产物）──
+  //
+  // ★★ 用户自己说的那句话。右对齐，**不进过滤器**——
+  // 别的都能关掉，唯独他自己说的话不该消失：把它关掉之后，
+  // 时间线上只剩 AI 的独白，而「它有没有听懂我」正是靠两句话对照看出来的。
+  user_message: {
+    labelKey: 'timeline.event.userMessage',
+    shape: 'bubble',
+    merge: true,
+    align: 'end',
+  },
   plan_version: { labelKey: 'timeline.event.planVersion', shape: 'card' },
   unit_contract: { labelKey: 'timeline.event.unitContract', shape: 'card' },
-  state_change: { labelKey: 'timeline.event.stateChange', shape: 'line' },
+  state_change: {
+    labelKey: 'timeline.event.stateChange',
+    shape: 'line',
+    // ★ 不配 detailFrom 的话，界面上是一行光秃秃的「状态变动」——
+    // 用户看不出**变成了什么**，那一行就成了纯噪音。
+    detailFrom: ['to', 'reason'],
+  },
   injection: { labelKey: 'timeline.event.injection', shape: 'line' },
   memory_candidate: { labelKey: 'timeline.event.memoryCandidate', shape: 'card' },
   decision: { labelKey: 'timeline.event.decision', shape: 'card' },
   evidence: { labelKey: 'timeline.event.evidence', shape: 'card' },
-  checkpoint: { labelKey: 'timeline.event.checkpoint', shape: 'line' },
+  checkpoint: { labelKey: 'timeline.event.checkpoint', shape: 'line', detailFrom: ['reason'] },
 } as const satisfies Record<string, EventRenderer>
 
 /** 已登记的事件类型。由注册表推导，不另外维护一份列表。 */

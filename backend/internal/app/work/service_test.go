@@ -73,7 +73,18 @@ func (r *memWorks) FindWork(_ context.Context, id string) (*model.Work, error) {
 	defer r.mu.Unlock()
 	for _, w := range r.items {
 		if w.ID() == id {
-			return model.NewWorkAt(w.ID(), w.State()), nil
+			out := model.NewWorkAt(w.ID(), w.State())
+			// ★★ **git 现场也要还原**——真 store 的 mapper.WorkToModel 就是这么做的。
+			//
+			// 不还原的话这个替身在撒谎：读回来的工作永远没有工作区，
+			// 而那是生产里不会发生的情况。`Say` 的测试撞到过——
+			// 它被「工作区还没准备好」拒了，而真实路径上工作区明明切好了。
+			out.SetProject(w.ProjectPath())
+			out.SetWorktree(w.WorktreePath(), w.Branch(), w.BaseCommit())
+			// ★ 当前单元也要还原——真 mapper 就是这么做的。
+			// 不还原的话边界判定永远说「不知道」，而契约明明就在库里。
+			_ = out.StartUnit(w.CurrentUnitID())
+			return out, nil
 		}
 	}
 	return nil, model.ErrNotFound
@@ -111,11 +122,15 @@ func (b *recordingBus) types() []string {
 // realWorktrees 用真 gitx——本单元的第一条禁令就是「不往用户项目里写」。
 type realWorktrees struct{ root string }
 
-func (w realWorktrees) CreateWorktree(ctx context.Context, repo, workID string) (string, error) {
+func (w realWorktrees) CreateWorktree(ctx context.Context, repo, workID, baseRef string) (port.Worktree, error) {
 	wt, err := gitx.AddWorktree(ctx, gitx.WorktreeSpec{
-		Repo: repo, Root: w.root, WorkID: workID, Branch: "duet/" + workID,
+		Repo: repo, Root: w.root, WorkID: workID,
+		Branch: "duet/" + workID, BaseRef: baseRef,
 	})
-	return wt.Path, err
+	if err != nil {
+		return port.Worktree{}, err
+	}
+	return port.Worktree{Path: wt.Path, Branch: wt.Branch, BaseCommit: wt.BaseCommit}, nil
 }
 
 func (w realWorktrees) RemoveWorktree(ctx context.Context, repo, path string) error {
@@ -146,7 +161,7 @@ func TestStart_WritesNothingIntoUserProject(t *testing.T) {
 	before := testutil.SnapshotDir(t, project)
 
 	svc := newService(t, &memWorks{}, &recordingBus{})
-	_, err := svc.Start(context.Background(), project, "帮我加个功能")
+	_, err := svc.Start(context.Background(), project, "帮我加个功能", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
@@ -160,11 +175,11 @@ func TestStart_EachWorkGetsItsOwnWorktree(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 	ctx := context.Background()
 
-	a, err := svc.Start(ctx, project, "第一件事")
+	a, err := svc.Start(ctx, project, "第一件事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := svc.Start(ctx, project, "第二件事")
+	b, err := svc.Start(ctx, project, "第二件事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +207,7 @@ func TestStart_TransitionsThroughInitializing(t *testing.T) {
 	bus := &recordingBus{}
 	svc := newService(t, &memWorks{}, bus)
 
-	w, err := svc.Start(context.Background(), project, "做点事")
+	w, err := svc.Start(context.Background(), project, "做点事", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,9 +221,42 @@ func TestStart_TransitionsThroughInitializing(t *testing.T) {
 	if len(types) == 0 {
 		t.Fatal("一个事件都没发——界面不会知道有新工作")
 	}
-	if types[0] != "state_change" {
-		t.Errorf("第一个事件是 %q，想要 state_change", types[0])
+	// ★ 用户自己说的那句话排在最前——那是**最先发生的事**
+	if types[0] != "user_message" {
+		t.Errorf("第一个事件是 %q，想要 user_message", types[0])
 	}
+	if len(types) < 2 || types[1] != "state_change" {
+		t.Errorf("事件序列 = %v，第二条想要 state_change", types)
+	}
+}
+
+// ★★ 用户自己说的那句话**要进时间线**（U5.3.1 R2）。
+//
+// 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么。
+// 而「它有没有听懂我」正是靠两句话对照着看出来的：
+// 他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据。
+func TestStart_PutsTheUsersOwnWordsOnTheTimeline(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	bus := &recordingBus{}
+	svc := newService(t, &memWorks{}, bus)
+
+	const said = "用户能取消正在运行的 turn，取消后现场证据要保留。先别写代码。"
+	if _, err := svc.Start(context.Background(), project, said, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, e := range bus.snapshot() {
+		if e.Type != "user_message" {
+			continue
+		}
+		// ★ 判据是**原话一个字不少**：截断或改写的话，
+		// 用户回头核对「我当时到底怎么说的」会核对到一句不是他说的话。
+		if got, _ := e.Payload["text"].(string); got != said {
+			t.Fatalf("载荷里的原话 = %q，想要 %q", got, said)
+		}
+		return
+	}
+	t.Fatal("时间线上没有用户自己说的那句话——他只看得到 AI 的独白")
 }
 
 // ★ worktree 切失败时进 initializing_failed（**终态，不可恢复**），
@@ -218,7 +266,7 @@ func TestStart_WorktreeFailureIsTerminal(t *testing.T) {
 	repo := &memWorks{}
 	svc := newService(t, repo, &recordingBus{})
 
-	_, err := svc.Start(context.Background(), notARepo, "做点事")
+	_, err := svc.Start(context.Background(), notARepo, "做点事", "")
 	if err == nil {
 		t.Fatal("非 git 目录却建成功了")
 	}
@@ -253,7 +301,7 @@ func TestStart_WorktreeFailureIsTerminal(t *testing.T) {
 func TestStart_RejectsRelativePath(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 
-	if _, err := svc.Start(context.Background(), "work/app", "做点事"); err == nil {
+	if _, err := svc.Start(context.Background(), "work/app", "做点事", ""); err == nil {
 		t.Error("相对路径却建成功了")
 	}
 }
@@ -264,7 +312,7 @@ func TestStart_RejectsEmptyPrompt(t *testing.T) {
 	svc := newService(t, &memWorks{}, &recordingBus{})
 
 	for _, blank := range []string{"", "   ", "\t\n"} {
-		if _, err := svc.Start(context.Background(), project, blank); err == nil {
+		if _, err := svc.Start(context.Background(), project, blank, ""); err == nil {
 			t.Errorf("空需求 %q 却建成功了", blank)
 		}
 	}
@@ -277,7 +325,7 @@ func TestList_ReturnsAll(t *testing.T) {
 	ctx := context.Background()
 
 	for range 3 {
-		if _, err := svc.Start(ctx, project, "做点事"); err != nil {
+		if _, err := svc.Start(ctx, project, "做点事", ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -303,6 +351,8 @@ type fakeRunner struct {
 	delay time.Duration
 	err   error
 	done  chan struct{}
+	// reply 是这一轮「Agent 说的话」，通过 AgentTurn.OnReply 交回去。
+	reply string
 }
 
 func (r *fakeRunner) RunTurn(ctx context.Context, t port.AgentTurn) error {
@@ -322,6 +372,15 @@ func (r *fakeRunner) RunTurn(ctx context.Context, t port.AgentTurn) error {
 	r.mu.Unlock()
 	if r.done != nil {
 		close(r.done)
+	}
+	// ★ 把「这一轮说了什么」交回去——真实现在 RunTurn 末尾做同样的事。
+	// 不调的话，这个替身比真实现「更沉默」，而靠回复驱动的那条链路
+	// （AI 的计划 → 结构化 PlanVersion）在测试里永远走不到。
+	if t.OnReply != nil {
+		r.mu.Lock()
+		reply := r.reply
+		r.mu.Unlock()
+		t.OnReply(reply)
 	}
 	return r.err
 }
@@ -362,7 +421,7 @@ func TestStart_RunsTurnInWorktree(t *testing.T) {
 	runner := &fakeRunner{done: make(chan struct{})}
 
 	view, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(context.Background(), project, "帮我加个功能")
+		Start(context.Background(), project, "帮我加个功能", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
@@ -398,7 +457,7 @@ func TestStart_TurnSurvivesRequestCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	if _, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(ctx, project, "帮我加个功能"); err != nil {
+		Start(ctx, project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	// 模拟 HTTP 处理函数返回：请求的 ctx 立刻被取消
@@ -428,7 +487,7 @@ func TestStart_ReportsTurnFailure(t *testing.T) {
 	runner := &fakeRunner{err: errors.New("claude: 未登录"), done: make(chan struct{})}
 
 	if _, err := newServiceWithRunner(t, &memWorks{}, bus, runner).
-		Start(context.Background(), project, "帮我加个功能"); err != nil {
+		Start(context.Background(), project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	<-runner.done
@@ -459,7 +518,7 @@ func TestStart_NoTurnWhenWorktreeFails(t *testing.T) {
 	runner := &fakeRunner{}
 
 	if _, err := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner).
-		Start(context.Background(), notARepo, "帮我加个功能"); err == nil {
+		Start(context.Background(), notARepo, "帮我加个功能", ""); err == nil {
 		t.Fatal("不是 git 仓库却建成功了")
 	}
 
@@ -474,7 +533,7 @@ func TestStart_NilRunnerDoesNotPanic(t *testing.T) {
 	project := testutil.NewGitRepo(t)
 	if _, err := work.New(&memWorks{}, realWorktrees{root: t.TempDir()},
 		&recordingBus{}, &seqIDs{}, nil).
-		Start(context.Background(), project, "帮我加个功能"); err != nil {
+		Start(context.Background(), project, "帮我加个功能", ""); err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
 	time.Sleep(50 * time.Millisecond)
@@ -484,6 +543,7 @@ func TestStart_NilRunnerDoesNotPanic(t *testing.T) {
 
 // cancelRecorder 记下被要求取消的工作，并可模拟「停不下来」。
 type cancelRecorder struct {
+	released []string
 	mu       sync.Mutex
 	calls    []string
 	err      error
@@ -669,7 +729,7 @@ func TestCancel_UserCancelIsNotAFailure(t *testing.T) {
 	svc := work.New(repo, realWorktrees{root: t.TempDir()}, bus, &seqIDs{}, runner)
 	svc.SetCanceller(&cancelRecorder{})
 
-	view, err := svc.Start(context.Background(), project, "写点长的")
+	view, err := svc.Start(context.Background(), project, "写点长的", "")
 	if err != nil {
 		t.Fatalf("建工作失败: %v", err)
 	}
@@ -691,5 +751,64 @@ func TestCancel_UserCancelIsNotAFailure(t *testing.T) {
 	}
 	if final != constant.WorkStatePaused {
 		t.Errorf("最终状态 = %q, 想要 paused（序列 %v）", final, states)
+	}
+}
+
+// ReleaseWork 记录调用——「停下来之后会话有没有放掉」正是要断言的。
+func (c *cancelRecorder) ReleaseWork(_ context.Context, workID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.released = append(c.released, workID)
+}
+
+// ★★ 暂停之后**常驻会话要放掉**（Q42）。
+//
+// 常驻会话是为了让 AI 记得上文，而一个 paused 的工作不需要那个——
+// 留着的话它会一直占着两三个 Agent 进程，而用户以为它已经停了。
+func TestCancel_ReleasesTheLiveSession(t *testing.T) {
+	repo, bus := &memWorks{}, &recordingBus{}
+	seedWork(t, repo, "work-01", constant.WorkStateExecuting)
+	canceller := &cancelRecorder{}
+	svc := serviceWithCancel(t, repo, bus, canceller)
+
+	if err := svc.Cancel(context.Background(), "work-01"); err != nil {
+		t.Fatalf("取消: %v", err)
+	}
+
+	canceller.mu.Lock()
+	released := append([]string(nil), canceller.released...)
+	canceller.mu.Unlock()
+
+	if len(released) != 1 || released[0] != "work-01" {
+		t.Errorf("暂停之后没放掉会话：released=%v——"+
+			"那个工作会一直占着 Agent 进程，而用户以为它已经停了", released)
+	}
+}
+
+// ★★ 工作要记住**自己属于哪个项目**——左栏的项目树按它归组。
+//
+// 不记的话，用户打开应用看到一个空荡荡的项目，而工作明明就在库里。
+// `design/PARITY.md` 开篇记的正是这一类：「数据有却不显示，等于界面说谎」。
+func TestList_CarriesTheProjectSoTheRailCanGroupThem(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	repo := &memWorks{}
+	svc := newService(t, repo, &recordingBus{})
+	ctx := context.Background()
+
+	if _, err := svc.Start(ctx, project, "做点事", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	views, err := svc.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(views) != 1 {
+		t.Fatalf("列出 %d 条", len(views))
+	}
+	if views[0].Project != project {
+		t.Errorf("列表里的 project = %q，想要 %q——"+
+			"前端按它把工作挂到项目下，不带的话左栏永远是空的",
+			views[0].Project, project)
 	}
 }

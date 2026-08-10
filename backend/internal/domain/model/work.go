@@ -90,6 +90,82 @@ var workTransitions = map[constant.WorkState][]constant.WorkState{
 type Work struct {
 	id    string
 	state constant.WorkState
+
+	// worktreePath 与 baseCommit 是这个工作的 git 现场。
+	//
+	// ★★ **基线必须记下来**：右栏的「领先几个 commit」与验收时的 diff
+	// 都拿它当起点。不记的话，「AI 到底干了什么」只能靠猜——
+	// 而猜出来的答案会随着仓库变化而漂移。
+	worktreePath string
+	baseCommit   string
+	branch       string
+	// currentUnitID 是**现在在做哪个单元**。
+	//
+	// ★★ 有它才谈得上「这次写入在不在边界内」——边界写在单元的契约里，
+	// 不知道是哪个单元就查不到契约，而那时权限卡片只能说「不知道」。
+	//
+	// ★ 空表示还没开始做任何单元（澄清、规划阶段都是空的）。
+	currentUnitID string
+	// projectPath 是这个工作属于哪个项目（**绝对路径**）。
+	//
+	// ★★ 左栏的项目树按它把工作挂到项目下。不记的话，用户打开应用看到
+	// 一个空荡荡的项目——而工作明明就在库里。
+	// （`design/PARITY.md` 开篇记的正是这一类：「数据有却不显示，
+	// 等于界面说谎」。）
+	//
+	// ★ 用**路径**而不是项目 id：项目可以被移除再加回来，那时 id 变了
+	// 而路径没变——按 id 关联的话，那些工作会集体失去归属。
+	projectPath string
+	// title 是这条工作在列表里显示的名字。
+	//
+	// ★★ 取自**用户提的那句需求**（截断），不是 AI 起的名字：
+	// AI 起的名字与他说的话对不上时，他找不到自己那条工作。
+	title string
+}
+
+// Title 返回工作标题；空表示还没记（老数据）。
+func (w *Work) Title() string { return w.title }
+
+// SetTitle 记下标题。
+func (w *Work) SetTitle(t string) { w.title = t }
+
+// ProjectPath 返回这个工作属于哪个项目；空表示还没记（老数据）。
+func (w *Work) ProjectPath() string { return w.projectPath }
+
+// SetProject 记下它属于哪个项目。
+func (w *Work) SetProject(path string) { w.projectPath = path }
+
+// CurrentUnitID 返回现在在做的单元；空表示还没开始做任何单元。
+func (w *Work) CurrentUnitID() string { return w.currentUnitID }
+
+// StartUnit 把「现在在做哪个单元」切到 unitID。
+//
+// ★ 终态的工作切不动：一个已经完成的工作又「开始做某个单元」说不清是什么
+// 意思，而它会让边界判定拿到一份过期的契约。
+func (w *Work) StartUnit(unitID string) error {
+	if IsTerminal(w.state) {
+		return fmt.Errorf("work %s: %s 状态下不能开始单元: %w",
+			w.id, w.state, ErrTerminalState)
+	}
+	w.currentUnitID = unitID
+	return nil
+}
+
+// WorktreePath 返回工作区路径；还没切时为空。
+func (w *Work) WorktreePath() string { return w.worktreePath }
+
+// BaseCommit 返回这个工作的基线 commit；还没切时为空。
+func (w *Work) BaseCommit() string { return w.baseCommit }
+
+// Branch 返回工作所在的分支；还没切时为空。
+func (w *Work) Branch() string { return w.branch }
+
+// SetWorktree 记下切好的工作区。
+//
+// ★ 只在 worktree **真的建好之后**调用——记一个还没建出来的路径的话，
+// 恢复时会指向一个不存在的目录。
+func (w *Work) SetWorktree(path, branch, baseCommit string) {
+	w.worktreePath, w.branch, w.baseCommit = path, branch, baseCommit
 }
 
 // NewWorkAt 用给定状态构造一个 Work。

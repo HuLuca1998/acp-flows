@@ -123,11 +123,45 @@ export interface paths {
         put?: never;
         /**
          * 把一个本地代码文件夹加进来
-         * @description ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-         *     顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-         *     加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         * @description ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+         *
+         *     顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+         *     `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+         *
+         *     ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+         *     `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+         *     「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+         *     不是「永远不写」。
          */
         post: operations["addProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 创建项目前的预演——**只看不动**
+         * @description ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+         *     所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+         *
+         *     返回四块，正好对应设计稿弹层的四个区块：
+         *     将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+         *
+         *     ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+         *     是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+         *     而漂移的方向永远是「预演里没说的那件事被做了」。
+         */
+        post: operations["previewProject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -176,6 +210,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/works/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 开工前的仓库状态——**只看不动**
+         * @description ★★ **一个字节都不写。** 返回的是设计稿「新建工作」弹层要显示的东西：
+         *     仓库脏不脏、有哪些分支可以当基线、当前 HEAD 是什么。
+         *
+         *     ★ 未提交改动**分已跟踪与未跟踪两个数**：合成一条的话，
+         *     「我只是新建了几个还没 add 的文件」和「我改了正在跟踪的代码」
+         *     会长得一模一样，而对用户是两件完全不同的事。
+         *
+         *     ★ 仓库处在 rebase / merge 中途时**报错拒绝开工**——
+         *     那时切 worktree 会把用户正在解的冲突丢在那儿。
+         */
+        post: operations["prepareWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/worktree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个工作的 git 现场——右栏「工作区」照它渲染
+         * @description ★★ **只读。** 返回分支、领先几个 commit、未提交改动（逐个文件带增删）、
+         *     以及**本次工作产生的** commit。
+         *
+         *     ★ 基线之前的 commit 不算：那些是用户自己的历史，
+         *     混进来会让他以为 Duet 改了他早先的提交。
+         */
+        get: operations["getWorkWorktree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/works/{id}/cancel": {
         parameters: {
             query?: never;
@@ -200,6 +286,300 @@ export interface paths {
          *     但工作状态与事件都已经落好。
          */
         post: operations["cancelWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 在这个工作里接着说一句
+         * @description ★★ **同一个工作、同一条会话。** 这正是「连着说三句，AI 记得前两句」
+         *     的那条路：会话按「工作 + 角色」常驻（Q42），第二句进的是上一句的上下文。
+         *
+         *     ★ 不走这个端点而是再 `POST /works` 的话，用户说第二句时开的是一个
+         *     **新工作**：新 worktree、新会话、新时间线——前一句彻底不在上下文里，
+         *     而他以为自己只是补充了一句。
+         *
+         *     用户那句话**原样**进时间线（一条 `user_message` 事件），
+         *     然后后台跑一轮。返回 202 表示「收到了，正在跑」——
+         *     一轮要好几分钟，同步等的话请求早超时了。
+         *
+         *     终态的工作（`completed` / `failed` / `initializing_failed`）拒绝，
+         *     返回 409 `work_not_accepting_messages`：那时再说什么都不会有人听，
+         *     而界面上如果静默成功，用户会对着一个永远不动的时间线干等。
+         */
+        post: operations["sayInWork"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/requirement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作当前的需求快照
+         * @description ★ 还没有需求时返回 404 —— 那是新工作的常态，界面据此不显示标签，
+         *     而不是显示一个「v0」。
+         */
+        get: operations["getWorkRequirement"];
+        put?: never;
+        /**
+         * 冻结当前这一版需求
+         * @description ★★ **由用户点，不由 AI 判断**。AI 说「我觉得问清楚了」和用户说
+         *     「就这样」是两件事——而冻结之后这一版就进了计划与契约，改不动了。
+         *
+         *     ★ 还有待确认的事实时返回 409 `requirement_open_facts_remain`：
+         *     带着没问清的问题往下走，AI 会自己替用户做决定，
+         *     而那些决定会一路固化进计划与契约，等他发现时已经改了几十个文件。
+         *
+         *     冻结之后再说一句话会产生 `v(n+1)` —— 冻结的那一版原样留着。
+         */
+        post: operations["freezeWorkRequirement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作当前的计划（子计划 DAG + 单元）
+         * @description ★ 还没规划时返回 404 —— 那是新工作的常态，界面据此不显示计划面板。
+         *
+         *     ★★ 每个单元都带**由哪个角色做**（裁定三）。不带的话，
+         *     用户看不出「这条谁在干」，而那正是他判断「该不该信这个产出」的依据
+         *     （实现方审查自己的产出是 INV-ATT-8 明令禁止的）。
+         */
+        get: operations["getWorkPlan"];
+        put?: never;
+        /**
+         * 让计划架构师产出一版计划
+         * @description ★★ **需求没冻结时拒绝**（INV-REQ-1），返回 409
+         *     `requirement_not_frozen`：需求还在变的时候做出来的计划，做完也对不上，
+         *     而那时用户已经等了一整轮还得从头再来。
+         *
+         *     返回 202 表示「收到了，正在规划」——结果通过事件流回到界面。
+         */
+        post: operations["startWorkPlanning"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/plan/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 计划的变更历史，**从新到旧**
+         * @description ★ 设计稿计划面板的「变更历史」：改过几版、每次为什么改。
+         *     旧版本一个字不改（INV-PLAN-4）——覆盖掉的话「上周那版拆成了什么」
+         *     永远没有答案。
+         */
+        get: operations["getWorkPlanHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/contract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 一个单元的当前契约 */
+        get: operations["getUnitContract"];
+        put?: never;
+        /**
+         * 让单元设计师产出一版契约
+         * @description ★★ 契约由**单元设计师**产出，不是实现工程师自己写：自己给自己定
+         *     验收标准与边界，等于没有边界——他会写一个刚好装得下自己想改的东西
+         *     的范围（INV-ATT-8 的同一条道理）。
+         *
+         *     产出的是**草稿**。冻结是用户的动作——自动冻结的话，用户还没看过
+         *     这份契约，AI 就已经照着它开始改文件了。
+         */
+        post: operations["designUnitContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/contract/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 冻结这一版契约
+         * @description ★ 一条验收标准都没有时拒绝冻结（409 `contract_empty`）：
+         *     空契约冻结之后，「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+         */
+        post: operations["freezeUnitContract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/acceptance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 一个单元的验收：标准与证据对照
+         * @description ★★ 每条验收标准旁边是**它有没有证据**（设计稿的 `✓ ev-441` / `○ 无证据`）。
+         *
+         *     没证据**不等于通过**——把它当成通过的话，一个什么都没做的单元
+         *     也能「全部通过」。
+         */
+        get: operations["getUnitAcceptance"];
+        put?: never;
+        /**
+         * 采集这个单元的 diff 证据
+         * @description ★★ **应用自己去读 git，不问 AI**。让 AI 报告自己改了什么，等于让被
+         *     考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次，
+         *     用户就再也不知道该信哪一条。
+         */
+        post: operations["collectUnitEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 验收通过——提交改动并落检查点
+         * @description ★★ **通过由用户点，不由 AI 判断。** 没有任何路径能自动走到这里。
+         *
+         *     ★ 一条验收标准都没有证据时返回 409 `nothing_accepted`：
+         *     允许的话，「验收」这个动作就没有内容了——用户点通过时以为自己
+         *     核对过什么，而实际上什么都没有。
+         *
+         *     ★ 没有改动时返回 409 `nothing_to_commit`，**不造空提交**：
+         *     一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收。
+         *
+         *     提交发生在**工作自己的 worktree** 上，用户的分支一字不动。
+         */
+        post: operations["acceptUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/units/{unitId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 让这个单元开工
+         * @description ★★ 契约**没冻结时拒绝**（409 `contract_not_frozen`）：没冻结就开工
+         *     的话，AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——
+         *     产出对不上任何一版契约。
+         *
+         *     这一轮由**单元自己派的那个角色**跑（裁定三）。
+         */
+        post: operations["startUnit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 这个工作**还没答**的决策
+         * @description ★★ 左栏那个亮蓝点靠它：不列的话，用户不知道有件事在等他，
+         *     而工作停在 `waiting_user` 永远不动。
+         */
+        get: operations["listPendingDecisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/works/{id}/decisions/{decisionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 回答一条决策
+         * @description ★★ **只能答一次**（409 `decision_answered`）：答过还能改的话，
+         *     「他当时选了什么」就没有答案，而后面几十个文件的改动都是照着
+         *     那个选择做的。
+         *
+         *     答完之后，如果没有别的待决策，工作从 `waiting_user` 回到执行态。
+         *     ★ 还有别的没答完时**继续等**——一次答一条。
+         */
+        post: operations["answerDecision"];
         delete?: never;
         options?: never;
         head?: never;
@@ -273,6 +653,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 角色与 Runtime 绑定表
+         * @description 八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+         *
+         *     ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+         *     `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+         *     返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+         *     要展示实际档名时用 `mode_name`，它是后端翻译好的。
+         */
+        get: operations["listRoles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Skill 库 */
+        get: operations["listSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 记忆库 */
+        get: operations["listMemories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 人工审核一条候选记忆
+         * @description ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+         *     且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+         *
+         *     错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+         *     变成了以后每一轮的前提，而用户从没看过那句话。
+         */
+        post: operations["reviewMemory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -323,12 +786,18 @@ export interface components {
             /** @description 涉及的文件路径。Agent 不一定给得出（比如执行命令）。 */
             path?: string;
             /**
-             * @description 是否越出了这个单元声明的写入边界。
+             * @description 这次写入在不在当前单元契约的写入边界内。
              *
-             *     ★ **没有依据时不要填 true。**「写入边界外」是一句很重的话，
-             *     乱说的话用户会对所有提示脱敏，真正越界那次他也不会看。
+             *     ★★ **三态而不是 bool**：bool 表达不了「不知道」，而契约还没冻结时
+             *     那条请求会长得和「边界内」一模一样——那正是用户最需要看清楚
+             *     AI 要动什么的时刻。
+             *
+             *     ★ 没有依据时是 `unknown`，**不要说成越界**：「写入边界外」
+             *     是一句很重的话，乱说的话用户会对所有提示脱敏，
+             *     真正越界那次他也不会看。
+             * @enum {string}
              */
-            out_of_bounds?: boolean;
+            boundary?: "in_boundary" | "out_of_boundary" | "unknown";
             options: components["schemas"]["PermissionOption"][];
         };
         Problem: {
@@ -448,6 +917,471 @@ export interface components {
             worktree?: string;
             /** @description 用户的需求原话 */
             prompt?: string;
+            /**
+             * @description 列表里显示的名字，**取自用户提的那句需求**（截断）。
+             *
+             *     ★★ 左栏显示 `work-01` 的话，用户看不出那条工作是干嘛的——
+             *     而他可能同时开着五六条。
+             *
+             *     ★ 不用 AI 起的名字：起的名字与他说的话对不上时，
+             *     他在列表里找不到自己那条工作。
+             * @example 用户能取消正在运行的 turn，取消后现场证据要保留
+             */
+            title?: string;
+        };
+        WorktreeState: {
+            /** @example duet/work-08 */
+            branch: string;
+            /**
+             * @description 这个工作的起点。★ 空串表示**不知道基线**——
+             *     那时 `ahead` 与 `commits` 都不可信，界面不该显示它们。
+             * @example 7c1de90
+             */
+            base_commit?: string;
+            /** @description 相对基线领先几个 commit */
+            ahead: number;
+            /**
+             * @description 未提交的改动，**逐个文件带增删行数**。
+             *     只说「改了 3 个文件」的话，用户判断不出这次改动有多大。
+             */
+            changes: components["schemas"]["FileChange"][];
+            /** @description 本次工作产生的 commit，最近的排最前 */
+            commits: components["schemas"]["CommitInfo"][];
+        };
+        Requirement: {
+            /**
+             * @description 版本号，从 1 开始。**只增不改**（INV-REQ-2）
+             * @example 1
+             * @example 2
+             */
+            version: number;
+            /**
+             * @description 需求条目。
+             *
+             *     ★ 当前阶段**就是用户说过的话**——需求分析师把它精炼成可验证条目
+             *     要等 AI 的结构化产出。在那之前，「用户说过什么」是我们能给出的
+             *     最诚实的一版需求：它不编造、不猜测，用户回头核对时看到的是自己的原话。
+             */
+            items: string[];
+            /**
+             * @description 待确认的事实清单。**非空时不能冻结**（INV-REQ-1）——
+             *     带着没问清的问题往下走，AI 会自己替用户做决定。
+             */
+            open_facts: string[];
+            /** @description 冻结之后一个字都不能改，要改就出新版本 */
+            frozen: boolean;
+        };
+        Plan: {
+            /** @example 5 */
+            version: number;
+            /** @example 取消运行中的 Agent turn */
+            title: string;
+            /**
+             * @description 设计稿的「N 子计划」。★ **算出来的**，不是存的字段——
+             *     存的话它会和真实内容漂移，而用户看到「7 单元」时以为真有七个。
+             */
+            subplan_count: number;
+            /** @description 设计稿的「M 单元」，同样算出来 */
+            unit_count: number;
+            /**
+             * @description 重规划时每一项已验收工作的处置（仍有效 / 需补充 / 需回滚 / 已废弃）。
+             *     ★ 缺一项就不许重规划——漏掉的那项会悄悄失效，而没人知道。
+             */
+            dispositions?: {
+                [key: string]: string;
+            };
+            subplans: components["schemas"]["Subplan"][];
+        };
+        Subplan: {
+            /** @example subplan-01 */
+            id: string;
+            /** @example ACP Runtime 抽象层 */
+            title: string;
+            /**
+             * @description 由单元推导：全验收 `accepted`、一个都没动 `pending`、其余 `in_progress`。
+             *     ★ 不单独存——存的话它与进度会各说各话。
+             * @example accepted
+             * @example in_progress
+             * @example pending
+             * @example empty
+             */
+            status: string;
+            /** @description 设计稿 `accepted · 3/3` 的分子 */
+            done: number;
+            /** @description 分母 */
+            total: number;
+            units: components["schemas"]["PlanUnit"][];
+        };
+        PlanUnit: {
+            /** @example unit-012 */
+            id: string;
+            title: string;
+            /**
+             * @description ★★ **由哪个角色做**（裁定三）。必填——不写的话到执行时才发现
+             *     没人认领，而那时用户已经等了几分钟。
+             * @example implementer
+             * @example unit_reviewer
+             */
+            role_id: string;
+            /**
+             * @description 角色显示名。★ 一并给出而不是让前端查表：认不出的角色
+             *     前端查表会显示成一个原始 id。**认不出时留空**，不编一个。
+             * @example 实现工程师
+             */
+            role_display_name?: string;
+            /** @description 设计稿的「依赖 unit-012」 */
+            depends_on: string[];
+            /** @description 设计稿的「契约未冻结」 */
+            contract_frozen: boolean;
+            accepted: boolean;
+        };
+        Contract: {
+            /** @example unit-012 */
+            unit_id: string;
+            /** @example 3 */
+            version: number;
+            /** @description 冻结之后一个字都不能改，要改就出新版本（INV-UC-2） */
+            frozen: boolean;
+            /**
+             * @description 验收标准。★ **一条都没有时不许冻结**：空契约冻结之后，
+             *     「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+             */
+            criteria: {
+                /** @example ac-1 */
+                id: string;
+                text: string;
+            }[];
+            boundary: components["schemas"]["WriteBoundary"];
+        };
+        /**
+         * @description 写入边界。★★ 用**路径前缀**不是正则：正则能表达更多，但边界是用户
+         *     唯一的防线，而一条他自己都读不懂的正则不构成防线——他会直接点「允许」。
+         */
+        WriteBoundary: {
+            /** @description 允许改的前缀。**空表示什么都不许改**，不是什么都许。 */
+            allowed: string[];
+            /** @description 明确禁止的前缀，**压过 allowed** */
+            forbidden: string[];
+        };
+        Acceptance: {
+            /** @example unit-012 */
+            unit_id: string;
+            /** @description 契约里的验收标准，**顺序照契约**——用户是照着那张表一条条核对的。 */
+            criteria: {
+                /** @example ac-1 */
+                id: string;
+                text: string;
+                /**
+                 * @description 支持这条标准的证据。**空表示「无证据」，不表示通过**——
+                 *     把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。
+                 */
+                evidence_ids: string[];
+            }[];
+            evidence: components["schemas"]["Evidence"][];
+        };
+        Evidence: {
+            /** @example ev-441 */
+            id: string;
+            unit_id: string;
+            /**
+             * @description 四类封闭，与设计稿的「Git diff · 测试输出 · 命令记录 · 审查意见」一致
+             * @enum {string}
+             */
+            kind: "diff" | "test" | "command" | "review";
+            /**
+             * @description 是谁采集的。★★ `app` 是应用直接读出来的，`agent` 是 AI 转述的。
+             *
+             *     分不出来源的话，一条转述会和一份真 diff 长得一样——
+             *     而用户判断「该不该信」全靠这一个字段。
+             * @enum {string}
+             */
+            source: "app" | "agent";
+            /** @example 3 个文件 +64 −12 */
+            summary: string;
+            /** @description 原始输出。★ **原样**，不截断不美化——截断过的输出在排查时等于没有。 */
+            body?: string;
+            /** @description 是不是应用直接采集的。界面据此把 AI 转述的标出来。 */
+            trustworthy: boolean;
+            /** @description 这条证据支持哪几条验收标准 */
+            criteria: string[];
+        };
+        Decision: {
+            /** @example dec-01 */
+            id: string;
+            /** @description 所属单元；空表示这是计划层面的决定 */
+            unit_id?: string;
+            /**
+             * @description ★ `D2`/`D3` **必须问用户**（改变外部行为、回滚已验收的东西）；
+             *     `D0`/`D1` 是 AI 自己就能定的。全问会把他烦死，
+             *     全不问他会在几十个文件之后才发现。
+             * @enum {string}
+             */
+            level: "D0" | "D1" | "D2" | "D3";
+            /** @example 取消之后要不要回滚已写入的文件？ */
+            question: string;
+            /** @description ★★ **至少两个**：一个选项的「决策」不是在问，是在通知。 */
+            options: {
+                /** @example a */
+                id: string;
+                /** @example 不回滚，仅停止 */
+                text: string;
+                /**
+                 * @description ★★ **选了它会怎样**。必填——没有它用户在盲选：
+                 *     他看到三个名字，而不知道选哪个会发生什么。
+                 * @example 已写入的文件留着，下次从这里接着干
+                 */
+                impact: string;
+                /**
+                 * @description AI 推荐的那个。★★ **只是标记，不是预选**：
+                 *     预选中的话，用户会顺手点确定——而那正好绕过了
+                 *     「让他自己决定」这件事。
+                 */
+                recommended: boolean;
+            }[];
+            /** @description 他选的那个选项 id；空表示还没答（「稍后决定」） */
+            answered_with?: string;
+        };
+        FileChange: {
+            path: string;
+            added: number;
+            removed: number;
+        };
+        CommitInfo: {
+            /** @example a1c9f30 */
+            sha: string;
+            subject: string;
+            /**
+             * @description 相对时间原文（`2 minutes ago`）。★ 由 git 算而不是我们算：
+             *     它处理了时区，我们自己算会在跨时区时差一天。
+             */
+            when: string;
+        };
+        WorkPreparation: {
+            /** @example main */
+            current_branch: string;
+            /** @description 本地分支，可以当基线 */
+            branches: string[];
+            /** @example 7c1de98 */
+            head_commit: string;
+            /**
+             * @description **已跟踪文件**里被改动的数量（含已暂存）。
+             *     ★ 与未跟踪分开数——对用户是两件不同的事。
+             */
+            tracked_dirty: number;
+            /** @description 未跟踪文件的数量（逐个文件数，不是逐个目录） */
+            untracked: number;
+        };
+        ProjectPreview: {
+            path: string;
+            /** @description 默认显示名，取目录名 */
+            name?: string;
+            /**
+             * @description ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+             *     在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+             */
+            is_git_repo: boolean;
+            /** @description 将要做的每一步，**按执行顺序** */
+            actions: components["schemas"]["ProjectAction"][];
+            /**
+             * @description 在项目里发现的已有 Skill（扫 `**\/skills`，跳过 node_modules 与 target）。
+             *     每条带**项目内的相对路径**当来源——用户要能照着去找。
+             */
+            skills: components["schemas"]["Skill"][];
+            remote?: components["schemas"]["GitRemote"];
+            gh?: components["schemas"]["GhStatus"];
+        };
+        ProjectAction: {
+            /** @enum {string} */
+            kind: "create_dir" | "create_file" | "append_lines";
+            path: string;
+            /** @description 为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。 */
+            reason: string;
+            /**
+             * @description 为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+             *     用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+             */
+            already_there: boolean;
+            /** @description 将写入或追加的内容 */
+            lines?: string[];
+        };
+        /**
+         * @description `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+         *     本地仓库、还没推过的项目都很常见。
+         */
+        GitRemote: {
+            /**
+             * @description 原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+             *     丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+             *     ★ URL 里夹的凭据已被摘掉。
+             */
+            url?: string;
+            /** @example github.com */
+            host?: string;
+            /** @example owner/repo */
+            slug?: string;
+            is_github?: boolean;
+        };
+        /**
+         * @description 本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+         *     `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+         */
+        GhStatus: {
+            /**
+             * @description ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+             *     那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+             * @enum {string}
+             */
+            status: "ready" | "not_installed" | "not_authenticated" | "probe_failed";
+            /** @example 2.62.0 */
+            version?: string;
+            /** @description 登录的账号名。★ 取不到就留空，**不猜** */
+            account?: string;
+            /**
+             * @description 用户可以直接敲的一整条命令
+             * @example brew install gh
+             * @example gh auth login
+             */
+            remedy?: string;
+        };
+        Role: {
+            /**
+             * @description 角色标识，不是封闭枚举（用户可加自定义角色）
+             * @example implementer
+             * @example unit_reviewer
+             * @example memory_curator
+             */
+            id: string;
+            /** @example 实现工程师 */
+            display_name: string;
+            /**
+             * @description 承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+             *     漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+             * @example [
+             *       "implement"
+             *     ]
+             */
+            operations: string[];
+            /** @description 职责 */
+            duty?: string;
+            /** @description 性格与提示语气 */
+            personality?: string;
+            /** @description 边界——这个角色明令不做的事。**是可测的约束，不是文案** */
+            boundary?: string;
+            /** @description 产出物 */
+            output?: string;
+            /**
+             * @description **语义**档位，不是某一端的档名。
+             *     存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+             *     保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+             * @enum {string}
+             */
+            session_mode: "read_only" | "guarded_write" | "unrestricted";
+            /**
+             * @description 后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+             *     前端不许自己翻译——那需要认识品牌名。
+             * @example default
+             * @example plan
+             * @example read-only
+             */
+            mode_name?: string;
+            /**
+             * @description 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+             * @enum {string}
+             */
+            permission_policy: "ask_each" | "auto_allow_read";
+            /** @description 当前绑定的 Runtime（推荐绑定可被用户覆盖） */
+            runtime_name: string;
+            is_preset: boolean;
+            /**
+             * @description 绑定查不到或档位翻译不出来时的原因。
+             *     ★ 出问题的角色**照样返回**，只是带着这一条——
+             *     跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+             */
+            problem?: string;
+        };
+        Skill: {
+            /** @example rust-test-first */
+            name: string;
+            /** @description 目录名；frontmatter 缺 name 时它就是显示名 */
+            dir: string;
+            /**
+             * @description `主.次` 两段，与应用版本的三段不是一回事
+             * @example 2.1
+             */
+            version?: string;
+            description?: string;
+            /** @example cargo >= 1.80 */
+            compatibility?: string;
+            /** @enum {string} */
+            scope: "project" | "global";
+            /**
+             * @description 扫到它的目录约定。**必须给**——不标来源的话，
+             *     用户不知道 Duet 翻了他哪些目录。
+             * @example .acpflows/skills
+             * @example .claude/skills
+             */
+            source: string;
+            /**
+             * @description ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+             * @enum {string}
+             */
+            status: "draft" | "active" | "deprecated";
+            validation_ok: boolean;
+            /**
+             * @description 没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+             *     静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+             * @example 校验未通过：frontmatter 缺 description
+             */
+            validation_reason?: string;
+            /** @description 命中计数 */
+            hit_count?: number;
+        };
+        /**
+         * @description ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+         *     那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+         *     对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+         * @enum {string}
+         */
+        MemoryStatus: "candidate" | "active" | "discarded" | "invalid" | "obsolete";
+        Memory: {
+            /** @example mem-203 */
+            id: string;
+            /** @enum {string} */
+            kind: "constraint" | "experience" | "fact";
+            /**
+             * @description 项目名（L2）或 `*`（L3 跨项目）
+             * @example acp-engine
+             * @example *
+             */
+            scope: string;
+            status: components["schemas"]["MemoryStatus"];
+            /**
+             * @description 依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+             *     空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+             * @example [
+             *       "ev-412",
+             *       "unit-009"
+             *     ]
+             */
+            source_refs: string[];
+            /** @example memory_curator */
+            created_by?: string;
+            /**
+             * @description 是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+             *     空值表示还没人拍板。
+             */
+            confirmed_by?: string;
+            /** @description 废弃理由（obsolete 才有） */
+            reason?: string;
+            /** @description 被本条取代的记忆 */
+            supersedes?: string;
+            /**
+             * @description 能不能进**新的**注入清单。只有 active 能进——
+             *     候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+             */
+            injectable: boolean;
+            /** @description 变更历史条数，只增不减 */
+            history_len?: number;
         };
         Runtime: {
             /**
@@ -522,9 +1456,52 @@ export interface components {
             /** @enum {string} */
             source: "acp" | "app";
             /** @enum {string} */
-            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
+            type: "message_chunk" | "thought_chunk" | "tool_call" | "request_permission" | "turn_end" | "user_message" | "plan_version" | "unit_contract" | "state_change" | "injection" | "memory_candidate" | "decision" | "evidence" | "checkpoint";
             /** Format: date-time */
             ts: string;
+            /**
+             * @description 这一条是**哪个角色**说的（`implementer` / `requirement_analyst` …）。
+             *
+             *     ★★ 由后端给，**前端不许按 Runtime 名猜**：
+             *     一个 Runtime 可以承担多个角色（`claude` 同时是需求分析师和审查员），
+             *     按名字猜的话，界面上两个角色会长得一模一样——
+             *     而用户正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。
+             * @example requirement_analyst
+             * @example implementer
+             */
+            role?: string;
+            /**
+             * @description 角色的显示名（`需求分析师`）。★ 一并给出而不是让前端查表：
+             *     前端查表的话，认不出的角色会显示成一个原始 id。
+             * @example 需求分析师
+             */
+            role_display_name?: string;
+            /**
+             * @description 承担这一条的 Runtime，与 role 一起构成设计稿的 `Claude · 需求分析师`
+             * @example claude
+             * @example codex
+             */
+            runtime?: string;
+            /**
+             * @description 说这句话的时候，需求是**第几版**。0 表示这个工作还没有需求快照。
+             *
+             *     ★★ 与 `role` 同样由后端盖上，**前端不许自己去查**：
+             *     前端另查一次的话，拿到的是「现在」的版本，
+             *     而用户看的是一条历史消息——他会以为当时就已经是 v3 了。
+             *
+             *     设计稿把它画成角色名旁边的一枚等宽小标签（`requirement v2 已冻结`），
+             *     不是一条独立的时间线记录。
+             * @example 1
+             * @example 2
+             */
+            requirement_version?: number;
+            /**
+             * @description 说这句话的时候，那一版需求冻结了没有。
+             *
+             *     ★ 冻结与否决定用户下一步能不能做（没冻结就不能进计划），
+             *     所以它和版本号一样要跟着消息走。
+             */
+            requirement_frozen?: boolean;
             /**
              * @description 按 `type` 变化的载荷。**开放形状**（`additionalProperties: true`）——
              *     ACP 的原始字段原样带上，前端认得的自己取，认不得的排查时也能看到全貌。
@@ -717,6 +1694,12 @@ export interface operations {
                      * @example /Users/me/work/my-app
                      */
                     path: string;
+                    /**
+                     * @description 是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                     *     并追加 `.gitignore`。**默认不做。**
+                     * @default false
+                     */
+                    initialize?: boolean;
                 };
             };
         };
@@ -728,6 +1711,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Project"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    previewProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example /Users/me/work/my-app */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPreview"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -791,6 +1802,15 @@ export interface operations {
                     project: string;
                     /** @description 用户的需求原话 */
                     prompt: string;
+                    /**
+                     * @description 从哪儿开分支：分支名或 commit。留空时用仓库当前 HEAD。
+                     *
+                     *     ★ 让用户选基线的理由：他可能想从 `develop` 开工，
+                     *     而当前分支上正躺着他没提交完的东西。
+                     * @example develop
+                     * @example 7c1de98
+                     */
+                    base_ref?: string;
                 };
             };
         };
@@ -802,6 +1822,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Work"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    prepareWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 项目的本地绝对路径 */
+                    project: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkPreparation"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkWorktree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorktreeState"];
                 };
             };
             default: components["responses"]["Problem"];
@@ -819,6 +1890,374 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 已停下 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    sayInWork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 工作标识 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 用户说的那句话，**原样**转发给 Agent 并进时间线 */
+                    text: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 收到了，正在跑 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    freezeWorkRequirement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已冻结 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Requirement"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plan"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startWorkPlanning: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在规划 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getWorkPlanHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        versions: components["schemas"]["Plan"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    designUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在设计 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    freezeUnitContract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已冻结 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contract"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    getUnitAcceptance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Acceptance"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    collectUnitEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 采集完了 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Acceptance"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    acceptUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已提交 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description 那次提交的短 sha，检查点绑着它
+                         * @example abc1234
+                         */
+                        commit: string;
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    startUnit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                unitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 收到了，正在做 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listPendingDecisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        decisions: components["schemas"]["Decision"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    answerDecision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                decisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 他选的那个选项 id，**原样回传** */
+                    option_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已记下 */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -904,6 +2343,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CapabilityMatrix"];
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listRoles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        roles: components["schemas"]["Role"][];
+                    };
+                };
+            };
+        };
+    };
+    listSkills: {
+        parameters: {
+            query?: {
+                /** @description 不传时返回全局库 */
+                scope?: "project" | "global";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        skills: components["schemas"]["Skill"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMemories: {
+        parameters: {
+            query?: {
+                /**
+                 * @description 项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+                 *     ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+                 */
+                scope?: string;
+                status?: components["schemas"]["MemoryStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        memories: components["schemas"]["Memory"][];
+                    };
+                };
+            };
+            default: components["responses"]["Problem"];
+        };
+    };
+    reviewMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    decision: "confirm" | "reject";
+                    /** @description 是谁做的决定。**必填**，空值一律拒绝 */
+                    actor: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Memory"];
                 };
             };
             default: components["responses"]["Problem"];

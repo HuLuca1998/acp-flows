@@ -7,7 +7,7 @@
 **Skill 页**。L4 Skill 库：版本化发布与回滚。
 
 对应验收点 **V13**，施工图见
-[`M5-polish.md`](../../../../docs/plan/milestones/M5-polish.md)。
+[`M2-roles-skills-memory.md`](../../../../docs/plan/milestones/M2-roles-skills-memory.md)。
 
 ## 不负责什么
 

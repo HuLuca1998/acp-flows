@@ -7,6 +7,7 @@ package work
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -26,16 +27,54 @@ type View struct {
 	Project  string
 	Worktree string
 	Prompt   string
+	// Title 是列表里显示的名字，取自用户提的那句需求。
+	Title string
+	// Branch 与 BaseCommit 是这个工作的 git 现场。
+	//
+	// ★ 右栏「领先几个 commit」与验收时的 diff 都要 BaseCommit 当起点，
+	// 不记的话「这个工作到底改了什么」没有答案。
+	Branch     string
+	BaseCommit string
 }
 
 // Service 是工作用例。
 type Service struct {
 	repo      port.WorkRepo
 	worktrees port.Worktrees
+	// status 探测开工前的仓库状态。为 nil 时 Prepare 报错——
+	// **不返回一个空状态**：那会让弹层显示「仓库很干净」而实际没查过。
+	status    port.RepoStatusProbe
 	bus       port.WorkEventBus
 	ids       port.IDGen
 	runner    port.AgentRunner
 	canceller port.AgentCanceller
+	// requirements 存需求快照。可以为 nil（只跑 API 冒烟时），
+	// 那时工作照建，只是没有需求版本——**不是让整轮对话失败**。
+	requirements port.Requirements
+	// plans 存计划版本。可以为 nil，那时产不出计划但工作照建。
+	plans port.Plans
+	// contracts 存单元契约。边界判定要靠它——为 nil 时一律判「说不清」，
+	// **不是**「没问题」。
+	contracts port.Contracts
+	// evidence 存证据。为 nil 时采集照跑但不落盘——
+	// 那时用户重开应用证据就没了，所以装配必须给它。
+	evidence port.Evidence
+	// committer 把改动提交到工作分支。为 nil 时验收会明确报错——
+	// **不是**「通过了但什么都没提交」。
+	committer port.Committer
+	// decisions 存决策。为 nil 时提问会明确报错——
+	// **不是**「AI 自己选一个往下走」。
+	decisions port.Decisions
+	// memories 存记忆索引；memoryBodies 存正文（INV-MEM-8）。
+	// 都可以为 nil，那时候选照解析但不落库。
+	memories     port.MemoryRepo
+	memoryBodies MemoryBodies
+	// hits 记命中计数。为 nil 时注入照跑但不计数。
+	hits MemoryHits
+	// skills 列出可注入的 Skill；skillHits 记它们的计数。
+	// 都可以为 nil，那时不注入 Skill。
+	skills    SkillSource
+	skillHits SkillHits
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。
@@ -62,7 +101,10 @@ func New(
 //
 // ★ 失败的工作**也要落库**。不落的话，用户点了「开始」之后什么都没发生，
 // 他不知道是没点上还是失败了。
-func (s *Service) Start(ctx context.Context, project, prompt string) (View, error) {
+// Start 开一个工作。
+//
+// ★ baseRef 是用户选的基线（分支名或 commit），留空时用仓库当前 HEAD。
+func (s *Service) Start(ctx context.Context, project, prompt, baseRef string) (View, error) {
 	if !filepath.IsAbs(project) {
 		return View{}, fmt.Errorf("%w: %q", model.ErrProjectPathNotAbsolute, project)
 	}
@@ -73,12 +115,30 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 
 	id := s.ids.NextID(idPrefix)
 	w := model.NewWork(id)
+	// ★ 记下它属于哪个项目——左栏的项目树按它把工作挂到项目下。
+	// 不记的话用户看到一个空荡荡的项目，而工作明明就在库里。
+	w.SetProject(project)
+	// ★ 标题就是他那句话（截断）——AI 起的名字与他说的话对不上时，
+	// 他在列表里找不到自己那条工作。
+	w.SetTitle(workTitle(prompt))
 	if err := s.repo.SaveWork(ctx, w); err != nil {
 		return View{}, fmt.Errorf("保存工作 %s: %w", id, err)
 	}
+	// ★★ **先把用户自己说的那句话记下来**，排在一切之前。
+	//
+	// 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么。
+	// 而「它有没有听懂我」正是靠两句话对照着看出来的：
+	// 他说「先别写代码」，AI 上来就改文件，这个对照是他唯一的判据。
+	//
+	// ★ 排在 state_change 之前：那句话是**最先发生的事**。
+	s.emit(ctx, id, "user_message", map[string]any{"text": prompt})
 	s.emit(ctx, id, "state_change", map[string]any{"to": string(w.State())})
 
-	worktree, err := s.worktrees.CreateWorktree(ctx, project, id)
+	// ★ 用户那句话就是需求快照 v1 的第一条。
+	// 记在跑之前：这一轮产出的事件要盖上「说这句话时需求是 v1」。
+	s.recordSaid(ctx, id, prompt)
+
+	wt, err := s.worktrees.CreateWorktree(ctx, project, id, baseRef)
 	if err != nil {
 		// 切失败进终态。**不可恢复**：worktree 没切成就没有可执行的现场
 		// （ADR 0006 Q1），假装能重试只会让用户反复点一个注定失败的按钮。
@@ -90,6 +150,13 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 		}
 		return View{}, fmt.Errorf("为工作 %s 切工作区: %w", id, err)
 	}
+
+	// ★★ **切好之后立刻记下现场**，且在状态迁移之前。
+	//
+	// 记晚了的话，中间任何一次失败都会留下一个「有 worktree 但不知道
+	// 基线在哪」的工作——那时右栏算不出「AI 干了什么」，
+	// 而用户看到的是一个空面板。
+	w.SetWorktree(wt.Path, wt.Branch, wt.BaseCommit)
 
 	if err := w.Transition(constant.WorkStateClarifying); err != nil {
 		return View{}, fmt.Errorf("工作 %s 状态迁移: %w", id, err)
@@ -105,10 +172,11 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 	// 而在用户那儿的表现是返回的状态时对时不对。
 	view := View{
 		ID: id, State: w.State(),
-		Project: project, Worktree: worktree, Prompt: prompt,
+		Project: project, Worktree: wt.Path, Prompt: prompt,
+		Branch: wt.Branch, BaseCommit: wt.BaseCommit,
 	}
 
-	s.runTurn(ctx, id, worktree, prompt)
+	s.runTurn(ctx, id, wt.Path, prompt, w.State())
 
 	return view, nil
 }
@@ -121,7 +189,67 @@ func (s *Service) Start(ctx context.Context, project, prompt string) (View, erro
 //
 // 用 WithoutCancel 而不是 context.Background()：它保留了链路上的值
 // （日志的 trace id 之类），只是不跟着取消。
-func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) {
+func (s *Service) runTurn(
+	ctx context.Context, workID, worktree, prompt string, state constant.WorkState,
+) {
+	s.runTurnWith(ctx, workID, worktree, prompt, state, nil)
+}
+
+// runTurnWith 跑一轮，并在结束时把 Agent 说过的话交给 onReply。
+//
+// ★ onReply 在**后台那个 goroutine 里**被调用：调用方不许在里面做慢操作，
+// 也不许假设自己还在原来的请求上下文里。
+// runTurnAs 跑一轮，角色**由调用方指定**。
+//
+// ★ 与 runTurn 的区别：那个按工作状态选角色，而单元执行要用
+// **单元自己派的那个**（裁定三）——一个单元可能派给审查员，
+// 而工作状态是 executing。
+func (s *Service) runTurnAs(ctx context.Context, workID, worktree, prompt, roleID string) {
+	s.runTurnAsWithReply(ctx, workID, worktree, prompt, roleID, nil)
+}
+
+// runTurnAsWithReply 跑一轮，角色由调用方指定，并在结束时交回它说的话。
+func (s *Service) runTurnAsWithReply(
+	ctx context.Context, workID, worktree, prompt, roleID string, onReply func(string),
+) {
+	if s.runner == nil {
+		return
+	}
+	turnCtx := context.WithoutCancel(ctx)
+
+	go func() {
+		defer s.clearCancelling(workID)
+
+		version, frozen := s.requirementOf(turnCtx, workID)
+		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
+			WorkID: workID, Cwd: worktree,
+			// ★★ 注入在**这里**发生，不在调用方：漏掉一条路径的话，
+			// 那条路径上的 AI 就是不带记忆干活的，而没有任何地方会报错。
+			Prompt: s.applyInjection(turnCtx, workID, prompt),
+			RoleID: roleID, SystemPrompt: systemPromptFor(roleID),
+			RequirementVersion: version, RequirementFrozen: frozen,
+			// ★★ 每一轮都过一遍记忆提取。不套的话，`reply.ParseMemoryReply`
+			// 是一段永远不会被调用的代码——测试全绿，而真实路径上
+			// 一条候选都不会出现。这个项目已经八次栽在这上面。
+			OnReply: s.withMemoryCapture(turnCtx, workID, onReply),
+		})
+		if err == nil || s.isCancelling(workID) {
+			return
+		}
+		if errors.Is(err, port.ErrTurnQueueFull) || errors.Is(err, port.ErrTurnAbandoned) {
+			s.emit(turnCtx, workID, "turn_end", map[string]any{
+				"reason": "queue_full", "detail": err.Error(),
+			})
+			return
+		}
+		s.failWork(turnCtx, workID, err)
+	}()
+}
+
+func (s *Service) runTurnWith(
+	ctx context.Context, workID, worktree, prompt string,
+	state constant.WorkState, onReply func(string),
+) {
 	if s.runner == nil {
 		return
 	}
@@ -132,12 +260,30 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 		// Cancel 里——只有它知道自己什么时候真的跑完。
 		defer s.clearCancelling(workID)
 
+		// ★ 需求版本在**这一轮开始时**读一次，盖在它产出的每条事件上。
+		// 放在 goroutine 里而不是请求线程上：这是一次 IO，
+		// 而用户点完「发送」该立刻看到界面动起来。
+		version, frozen := s.requirementOf(turnCtx, workID)
+
 		err := s.runner.RunTurn(turnCtx, port.AgentTurn{
 			WorkID: workID,
+			// ★★ **角色决定这条会话有多大权限。** 澄清需求阶段是
+			// 需求分析师——只读，它读得到代码与记忆但一个字节都写不了。
+			// 不传的话 acp 层退到实现工程师（受控写），
+			// 那意味着用户以为自己只是在聊天，而对面能改他的文件。
+			RoleID: roleForState(state),
+			// ★★ 同上：对话轮也可能冒出经验，而它恰恰是最常冒的那一类
+			// （用户刚纠正了它一个误解）。
+			OnReply:      s.withMemoryCapture(turnCtx, workID, onReply),
+			SystemPrompt: systemPromptFor(roleForState(state)),
 			// ★ 传的是工作自己的 worktree，不是用户的项目目录——
 			// 后者等于让 AI 直接在他的分支上改文件。
-			Cwd:    worktree,
-			Prompt: prompt,
+			Cwd: worktree,
+			// ★★ 同上：对话轮也要带着记忆，它恰恰是最需要的那一类
+			// （用户的规矩多半是在对话里定下来的）。
+			Prompt:             s.applyInjection(turnCtx, workID, prompt),
+			RequirementVersion: version,
+			RequirementFrozen:  frozen,
 		})
 		if err == nil {
 			return
@@ -147,6 +293,17 @@ func (s *Service) runTurn(ctx context.Context, workID, worktree, prompt string) 
 		// 但对用户是完全不同的两件事——他明明是自己点的停，
 		// 界面却说「失败」。真机走查撞到过。
 		if s.isCancelling(workID) {
+			return
+		}
+
+		// ★★ 排队满 / 排队时被放弃**同样不算失败**。
+		//
+		// 推到 failed 的话，用户只是手快点了几下就得重开一个工作——
+		// 而他那几句话其实一句都没丢，只是没排上。
+		if errors.Is(err, port.ErrTurnQueueFull) || errors.Is(err, port.ErrTurnAbandoned) {
+			s.emit(turnCtx, workID, "turn_end", map[string]any{
+				"reason": "queue_full", "detail": err.Error(),
+			})
 			return
 		}
 
@@ -180,7 +337,14 @@ func (s *Service) List(ctx context.Context) ([]View, error) {
 	// 空结果返回空切片而不是 nil：api 层要序列化成 [] 而不是 null
 	out := make([]View, 0, len(works))
 	for _, w := range works {
-		out = append(out, View{ID: w.ID(), State: w.State()})
+		out = append(out, View{
+			ID: w.ID(), State: w.State(),
+			// ★★ 项目要带出来：前端按它把工作挂到项目下，
+			// 不带的话左栏永远是空的
+			Project: w.ProjectPath(), Worktree: w.WorktreePath(),
+			Title:  w.Title(),
+			Branch: w.Branch(), BaseCommit: w.BaseCommit(),
+		})
 	}
 	return out, nil
 }
@@ -197,4 +361,23 @@ func (s *Service) emit(ctx context.Context, workID, typ string, payload map[stri
 	_ = s.bus.PublishWorkEvent(ctx, port.WorkEvent{
 		WorkID: workID, Source: "app", Type: typ, Payload: payload,
 	})
+}
+
+// workTitle 把用户那句需求截成一行标题。
+//
+// ★ 按**字符**截不按字节——按字节截会把中文切成乱码。
+// ★ 取第一行：他可能贴了一整段，而列表里只放得下一行。
+func workTitle(prompt string) string {
+	line := prompt
+	if i := strings.IndexAny(line, "\r\n"); i >= 0 {
+		line = line[:i]
+	}
+	line = strings.TrimSpace(line)
+
+	const maxRunes = 40
+	runes := []rune(line)
+	if len(runes) <= maxRunes {
+		return line
+	}
+	return string(runes[:maxRunes]) + "…"
 }

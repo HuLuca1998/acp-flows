@@ -72,6 +72,13 @@ func (s *Service) Cancel(ctx context.Context, workID string) error {
 		return fmt.Errorf("取消工作 %s: %w", workID, cancelErr)
 	}
 
+	// ★★ 停下来了就把常驻会话放掉（Q42）。
+	//
+	// 常驻会话是为了让 AI 记得上文，而一个 paused 的工作不需要那个——
+	// 留着的话它会一直占着两三个 Agent 进程，而用户以为它已经停了。
+	// 下次继续时重新开一条，那时 `session.Resume` 才有用武之地。
+	s.canceller.ReleaseWork(ctx, workID)
+
 	if err := w.Transition(constant.WorkStatePaused); err != nil {
 		return fmt.Errorf("工作 %s 状态迁移: %w", workID, err)
 	}
@@ -111,6 +118,8 @@ func ErrorCode(err error) string {
 		return "work_cancel_not_allowed"
 	case errors.Is(err, ErrNoCanceller):
 		return "work_cancel_unavailable"
+	case errors.Is(err, ErrNotAcceptingMessages):
+		return "work_not_accepting_messages"
 	case errors.Is(err, model.ErrNotFound):
 		return "work_not_found"
 	default:

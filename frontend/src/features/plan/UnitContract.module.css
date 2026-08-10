@@ -1,0 +1,119 @@
+/* 一个单元的契约。颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.reveal,
+.freeze {
+  padding: 1px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-500);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+/* 冻结是**不可逆**的一下，给它 accent 的描边——用户该知道这次点击不一样 */
+.freeze {
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  color: var(--color-accent-300);
+}
+
+.freeze:disabled {
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  margin-top: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--s-raised);
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.version {
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.frozen {
+  color: var(--color-accent-400);
+  font-size: 10.5px;
+}
+
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterion {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  color: var(--color-neutral-400);
+  font-size: 11.5px;
+}
+
+.critID {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* ★★ 边界摆在明处——它是用户唯一的防线 */
+.boundary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin-top: 2px;
+}
+
+.boundaryTitle {
+  color: var(--color-neutral-700);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.allowed,
+.forbidden,
+.nothingAllowed {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.allowed {
+  color: var(--color-pass);
+}
+
+.forbidden {
+  color: var(--color-fail);
+}
+
+.nothingAllowed {
+  color: var(--color-neutral-500);
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.error {
+  color: var(--color-fail);
+  font-size: 11px;
+}

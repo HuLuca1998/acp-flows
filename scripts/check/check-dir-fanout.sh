@@ -51,6 +51,58 @@ EXEMPT = {
     # （比如将来有五六个 check-perf-*）。到那时再分，分法也会自然清楚。
     "scripts/check": "每个文件是一个独立检查入口，与 Makefile target 一一对应；"
                      "分子目录会让「新检查放哪」变成没有好答案的问题。超过 25 个时重新考虑",
+    # ★ HTTP 边界层：一个文件 = openapi 的一个资源族（works / projects /
+    # memories / skills / roles / runtimes / events / permission / resume /
+    # update），「新端点放哪」有唯一答案——看它属于哪个资源。
+    #
+    # 分子目录要先把 writeProblem / writeJSON / Config / NewRouter 提成一个
+    # 新包，而那个包除了「被所有人 import」之外没有身份——它不回答
+    # 「这是什么」，只回答「谁需要它」。那不是分包，那是把耦合改个名字。
+    #
+    # **什么时候该重新考虑**：某个资源族自己长到三四个文件（那时它自成一包，
+    # 比如 api/work/），或总数超过 22。到那时分法也会自然清楚。
+    # ★ 领域模型：一个文件 = 一个聚合或值对象（work / plan / subplan /
+    # requirement / unit_contract / evidence / memory / skill / role / project…），
+    # 「新聚合放哪」有唯一答案——新建一个同名文件。
+    #
+    # **分不动的原因是它们互相引用**：`Unit` 校验角色要 `RoleByID`，
+    # `CriteriaCoverage` 要 `Criterion`，`PlanVersion` 装 `Subplan`。
+    # 拆成「一个包一个聚合」会立刻循环依赖；拆成「聚合包 + 共享包」的话，
+    # 那个共享包会装下所有互相引用的类型——也就是大部分，
+    # 而剩下的几个孤岛不值得一个新包。
+    #
+    # **什么时候该重新考虑**：出现一族**互不引用**的类型（比如将来的
+    # 报表统计值对象），或总数超过 25。
+    # ★ 前端模型：一个文件 = openapi 的一个 schema 族，内容是三五行的
+    # 重导出（`export type Work = components['schemas']['Work']`）。
+    # 「新类型放哪」有唯一答案——新建一个与 schema 同名的文件。
+    #
+    # **合并成一个 `models/index.ts` 可能更好**（16 个三行文件 → 一个 60 行
+    # 文件），但那会让 `from '@/models/work'` 变成 `from '@/models'`，
+    # 而「这个类型属于哪个资源」就从 import 语句里消失了。
+    # 改动面也是全仓库的 import。
+    #
+    # **什么时候该重新考虑**：超过 22 个，或出现一个文件装多个 schema 的情况
+    # （那说明「一个文件一个 schema」这条规矩已经名存实亡）。
+    # ★ 迁移文件天然是一条**递增序列**：`0001_init.sql` → `0015_add_decisions.sql`。
+    # 「新迁移放哪」有唯一答案——下一个编号。
+    #
+    # 分子目录（按年份？按模块？）只会让「下一个编号是几」变成要先翻两层
+    # 目录才答得出的问题，而编号连续正是这套机制的全部依据。
+    #
+    # **什么时候该重新考虑**：从来不需要——这个目录只会一直增长，
+    # 而它的组织方式是编号，不是层级。这条豁免是永久的。
+    "backend/internal/store/migration": "迁移是一条递增序列，「新的放哪」= 下一个编号；"
+                                        "分层只会让「下一个编号是几」变得难答。永久豁免",
+    "frontend/src/models": "一个文件 = openapi 的一个 schema 族（三五行重导出），"
+                           "「新类型放哪」有唯一答案；合并会让「属于哪个资源」从 import 里消失。"
+                           "超过 22 个时重新考虑",
+    "backend/internal/domain/model": "一个文件 = 一个聚合或值对象，「新聚合放哪」有唯一答案；"
+                                     "它们互相引用（Unit→RoleByID、Coverage→Criterion），"
+                                     "分包会立刻循环依赖。出现互不引用的一族、或超过 25 个时重新考虑",
+    "backend/internal/api": "一个文件 = openapi 的一个资源族，「新端点放哪」有唯一答案；"
+                            "分子目录要先把 Problem/JSON/Config 提成一个没有身份的公共包。"
+                            "某个资源族长到三四个文件、或总数超过 22 时重新考虑",
 }
 
 # 测试文件与源文件的配对后缀，按语言。

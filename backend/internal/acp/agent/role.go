@@ -1,0 +1,88 @@
+package agent
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"strings"
+
+	"github.com/HuLuca1998/acp-flows/backend/internal/acp/runtime"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
+)
+
+// DefaultRoleID 是没指定角色时用的那个。
+//
+// ★★ 为什么是**实现工程师**而不是「不收权」：
+//
+// 「不收权」听起来像个中性的默认值，实际上是最松的那一档——
+// codex 的默认档 `agent` 是 workspace-write 沙箱，**沙箱内的写操作
+// 连审批都不触发**（acp-field-notes.md §3 实测：客户端全拒 +
+// 默认档 → 权限请求 0 次、文件照建）。
+//
+// 装配漏了一根线的表现必须是「权限最小」，不能是「什么都放行」。
+//
+// ★ 为什么不是只读：Q42 裁定与用户对话的会话只读，但那要等 `M5`——
+// 现在的链路是「用户提需求 → AI 直接改文件」，还没有需求/计划/契约的分层。
+// 现在就改只读会让整条流程失效，那是把 `M2` 的活扩成 `M5` 的。
+// 实现工程师是**现状的忠实描述**，而且比现状严。
+const DefaultRoleID = "implementer"
+
+// modeIDFor 算出某个角色在某个 Runtime 上该设的档名。
+//
+// ★ 两步：角色 → 语义档（domain 的知识）→ 那一端的档名（adapter 的知识）。
+// 合成一步的话，上层就得认识 `plan` / `read-only` 这些品牌相关的取值了。
+func modeIDFor(roleID, runtimeName string) (string, error) {
+	if roleID == "" {
+		roleID = DefaultRoleID
+	}
+	role, err := model.RoleByID(roleID)
+	if err != nil {
+		// ★ 认不出就报错，**不回落到默认角色**。
+		//
+		// 回落的后果是「本该由审查员做的事被实现工程师做了」——
+		// 而实现方审查自己的产出正是 INV-ATT-8 明令禁止的。
+		// 这种错误没有任何症状：审查照常「通过」。
+		return "", fmt.Errorf("agent: 认不出角色 %q: %w", roleID, err)
+	}
+	modeID, err := runtime.ModeNameOn(runtimeName, role.SessionMode())
+	if err != nil {
+		return "", fmt.Errorf(
+			"agent: 角色 %s（%s）要的 %q 档在 %s 上翻译不出来: %w",
+			role.ID(), role.DisplayName(), role.SessionMode(), runtimeName, err)
+	}
+	return modeID, nil
+}
+
+// sinkFor 造一个会给事件盖上角色的 Sink。
+//
+// ★ 角色的显示名从角色库查——查不到就只带 id。
+// **不编一个显示名**：编出来的名字与角色页上那张表对不上，
+// 用户会以为有两个不同的角色。
+func (r *ProcessRunner) sinkFor(
+	ctx context.Context, log *slog.Logger, roleID, runtimeName string, t port.AgentTurn,
+) busSink {
+	sink := busSink{
+		bus: r.Bus, ctx: ctx, log: log, role: roleID, runtime: runtimeName,
+		// ★ 只有这一轮想回读时才攒——不然每轮都白攒一份文本
+		said: saidFor(t),
+		// ★ 需求版本跟着这一轮走，与角色同理：界面另查一次的话，
+		// 拿到的是「现在」的版本，而用户看的是一条历史消息。
+		reqVersion: t.RequirementVersion, reqFrozen: t.RequirementFrozen,
+	}
+	if role, err := model.RoleByID(roleID); err == nil {
+		sink.roleName = role.DisplayName()
+	}
+	return sink
+}
+
+// saidFor 只在这一轮要回读时给一个累积器。
+//
+// ★ 不需要时返回 nil：每轮都攒一份文本是白花的内存，
+// 而一轮长对话的文本可以到几十 KB。
+func saidFor(t port.AgentTurn) *strings.Builder {
+	if t.OnReply == nil {
+		return nil
+	}
+	return &strings.Builder{}
+}

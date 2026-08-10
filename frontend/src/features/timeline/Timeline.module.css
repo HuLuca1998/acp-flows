@@ -1,87 +1,239 @@
 /* 时间线。照 design/ACP Duet 1a.dc.html 的对话主区。
- * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+ *
+ * ★★ 这一屏的主体是**AI 说的话**（13.5px 正文），工具调用是它下面收起来
+ * 的一个抽屉。反过来的话（每条工具调用一张平级卡片），用户要找的那句话
+ * 会被自己的工具输出淹掉——那是日志，不是对话。
+ *
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。
+ */
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+
+  /* 设计稿的轮与轮之间是 24px：对话要**喘得过气**，
+     挤在一起的话一屏塞满字，用户不知道从哪读起。 */
+  gap: var(--space-5);
   min-width: 0;
 }
 
-.item {
+/* 一轮 = 头像 + 内容，横向排。 */
+.row {
   display: flex;
   gap: var(--space-3);
+  align-items: flex-start;
   min-width: 0;
-  color: var(--color-neutral-400);
-  font-size: 12.5px;
-  line-height: 1.6;
 }
 
-/* 三种形态，与 event-registry 的 EventShape 一一对应。
- * 加一种形态时这里加一条，注册表里改一个字段——没有第三处要改。 */
+/* 用户自己说的话靠右。 */
+.row[data-align='end'] {
+  justify-content: flex-end;
+}
 
-/* 气泡：文本流。设计规范 §01——卡片一律 inset 描边，不用 border */
-.bubble {
-  padding: var(--space-3) var(--space-4);
+/* 头像方块。照设计稿：22×22、圆角、等宽两个字母。
+   ★★ 一屏扫过去**不读文字**就分得清哪几条是同一个人说的。 */
+.avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-900);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-700);
+  color: var(--color-neutral-300);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Claude 用 accent 一系，与设计稿的 CL 方块一致。
+   ★ 按 **runtime** 分色而不是按角色：一个 Runtime 承担多个角色，
+   按角色分的话同一个 AI 会有八种颜色，反而认不出来。 */
+.avatar[data-runtime='claude'] {
+  background: var(--color-accent-900);
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  color: var(--color-accent-400);
+}
+
+/* 内容区。照设计稿：左侧 2px 色条 + 12px 内缩。 */
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-left: var(--space-3);
+  box-shadow: inset 2px 0 0 var(--s-claude-edge);
+}
+
+/* 应用自己发的（state_change 这类）没有角色，也就不该有色条——
+   有色条的话它看起来像某个角色在说话。 */
+.body[data-speaker='app'] {
+  padding-left: 0;
+  box-shadow: none;
+}
+
+/* 头部：角色名 + 需求版本标签。 */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* 角色标签。设计稿形态：`Claude · 需求分析师`。 */
+.role {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  color: var(--color-accent-400);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.runtime {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+/* 需求版本标签。设计稿：角色名旁边一枚 10px 等宽小标签。 */
+.requirement {
+  display: inline-flex;
+  gap: 5px;
+  align-items: baseline;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* 冻结是个**状态变化**，给它一点存在感：用户要一眼看出
+   「这一版定下来了」——那意味着接下来的计划都照着它做。 */
+.requirement[data-frozen='true'] .frozen {
+  color: var(--color-accent-400);
+}
+
+/* ★★ AI 说的话：**13.5px 正文**，与设计稿一致。
+   用等宽小字的话，这一屏看起来像日志，而它其实是一段对话。 */
+.say {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 13.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* 用户自己说的话：右对齐气泡。照设计稿 max-width 540px、圆角 14px。 */
+.mine {
+  max-width: 540px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ★★ 干的活收在一个抽屉里，**默认收起**。 */
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.toolsToggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-neutral-600);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.toolsToggle:hover {
+  color: var(--color-accent-300);
+}
+
+/* 抽屉：一整块，行与行之间 1px 分隔——照设计稿。 */
+.toolList {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  min-width: 0;
   border-radius: var(--radius-md);
   background: var(--s-inset);
   box-shadow: inset 0 0 0 1px var(--color-neutral-900);
 }
 
-/* 卡片：有结构的一坨，比气泡更重一层 */
-.card {
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--s-raised);
-  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
-}
-
-/* 单行：一句话说完的状态变化，不给背景免得喧宾夺主 */
-.line {
+.tool {
+  display: flex;
+  gap: 9px;
   align-items: baseline;
-  color: var(--color-neutral-600);
-  font-size: 11.5px;
+  min-width: 0;
+  padding: 6px 11px;
+  border-bottom: 1px solid var(--color-surface);
 }
 
-.label {
+.tool:last-child {
+  border-bottom: 0;
+}
+
+.toolKind {
+  flex: none;
+  color: var(--color-neutral-500);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.toolDetail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-neutral-300);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* 跑完了还写着「进行中」是最容易让人误判的一种界面。 */
+.tool[data-status='completed'] .toolDetail {
+  color: var(--color-neutral-500);
+}
+
+.tool[data-status='failed'] .toolDetail {
+  color: var(--color-fail);
+}
+
+/* 单行：一句话说完的状态变化，不给背景免得喧宾夺主。 */
+.line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}
+
+.lineLabel {
   flex: none;
   color: var(--color-neutral-700);
-  font-size: 10.5px;
+  font-size: 10px;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
-/* 摘要：这一条到底在干什么（工具调用的标题、文件路径……）。
-   照设计稿——每条事件行都是「图标 + 类型 + 等宽标识 + 一句人话」，
-   等宽字体让路径与标识一眼可辨。 */
-.detail {
+.lineDetail {
   min-width: 0;
   overflow-wrap: anywhere;
-  color: var(--color-neutral-400);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-}
-
-/* 状态用颜色提示，不占额外的行。
-   跑完了还写着「进行中」是最容易让人误判的一种界面。 */
-.item[data-status='completed'] .detail {
   color: var(--color-neutral-500);
-}
-
-.item[data-status='failed'] .detail {
-  color: var(--color-fail);
-}
-
-.text {
-  /* min-width: 0 不能省：一段长文本会把整行撑开，
-     进而把主区顶出横向滚动条。 */
-  min-width: 0;
-
-  /* 长内容换行而不是溢出——时间线是读的，不是扫的 */
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .empty {

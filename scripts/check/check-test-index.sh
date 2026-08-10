@@ -39,8 +39,17 @@ if [[ -d backend ]] && find backend -name '*_test.go' -print -quit | grep -q .; 
   if [[ ! -f $go_idx ]]; then
     echo "✗ 缺少测试索引: $go_idx"; fail=1
   else
+    # ★ 取到左括号为止，**不要**用 [A-Za-z0-9_]*。
+    #
+    # 2026-08-08 踩过：Go 允许测试函数名里有中文，而字符类会在第一个
+    # 中文字节处停下，于是 `TestPresetRoles_八个角色…` 被抽成
+    # `TestPresetRoles_`——然后报「未登记」。错误信息里那半截名字
+    # 在源码里根本搜不到，人得先想明白是截断才查得下去。
+    #
+    # 这已经是多字节这族问题的第四次了（前三次见
+    # scripts/check/lib/done_unit_paths.py 的文件头）。
     actual=$(find backend -name '*_test.go' -not -path '*/node_modules/*' -exec \
-      grep -hoE '^func +Test[A-Za-z0-9_]*' {} + 2>/dev/null \
+      grep -hoE '^func +Test[^ (]*' {} + 2>/dev/null \
       | awk '{print $2}' | sort -u || true)
     listed=$(index_entries "$go_idx")
     report backend "有测试但未登记进 INDEX.md" $(comm -23 <(echo "$actual") <(echo "$listed"))

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { Timeline } from './Timeline'
@@ -16,6 +16,27 @@ function ev(type: string, text?: string): TimelineEvent {
     type: type as TimelineEvent['type'],
     ts: '2026-08-08T00:00:00Z',
     ...(text === undefined ? {} : { payload: { text } }),
+  }
+}
+
+/**
+ * 带角色的事件。
+ *
+ * ★ 复用 `ev()` 而不是另写一份：另写的话，将来契约加一个必填字段时
+ * 会有两处要改，而漏掉一处只有 tsc 会红。
+ */
+function roleEv(
+  type: string,
+  role: string,
+  roleName: string,
+  text?: string,
+  runtime?: string,
+): TimelineEvent {
+  return {
+    ...ev(type, text),
+    role,
+    role_display_name: roleName,
+    ...(runtime === undefined ? {} : { runtime }),
   }
 }
 
@@ -45,6 +66,7 @@ describe('时间线', () => {
   // 合并的话用户会以为 AI 只动了一个文件。
   it('工具调用不合并，两次就是两条', () => {
     render(<Timeline events={[ev('tool_call'), ev('tool_call')]} />)
+    openTools()
 
     expect(document.querySelectorAll('[data-event-type="tool_call"]')).toHaveLength(2)
   })
@@ -112,6 +134,9 @@ describe('时间线', () => {
       <Timeline events={[ev('message_chunk', 'x'), ev('tool_call'), ev('state_change')]} />,
     )
 
+    // ★ 卡片形态**默认收起**（照设计稿的抽屉），展开才看得到
+    openTools()
+
     expect(document.querySelector('[data-shape="bubble"]')).not.toBeNull()
     expect(document.querySelector('[data-shape="card"]')).not.toBeNull()
     expect(document.querySelector('[data-shape="line"]')).not.toBeNull()
@@ -132,14 +157,59 @@ function toolEv(payload: Record<string, unknown>): TimelineEvent {
   }
 }
 
+/**
+ * 展开「它顺手做了 N 件事」的抽屉。
+ *
+ * ★★ 工具调用**默认收起**（照设计稿）：用户要看的是「它说了什么」，
+ * 而不是它跑过的每一条 grep——真机上一轮几十条，摊开的话那句话被淹掉。
+ * 所以断言工具调用内容的测试都得先点开。
+ */
+function renderAndOpen(ui: React.ReactElement): void {
+  render(ui)
+  openTools()
+}
+
+function openTools(): void {
+  const toggle = document.querySelector('[aria-expanded="false"]')
+  if (toggle instanceof HTMLElement) {
+    // ★ 用 fireEvent 而不是 `el.click()`：后者不走 React 的事件系统，
+    // 状态更新不包在 act 里——点了等于没点，而测试会红在一个
+    // 看起来毫不相关的地方（「找不到那段文字」）。
+    fireEvent.click(toggle)
+  }
+}
+
 describe('工具调用', () => {
+  // ★★ 抽屉默认收起，且**说清里面有几件事**。
+  //
+  // 不说数量的话，用户不知道值不值得点开——而那正是他要判断的。
+  it('工具调用默认收起，标签里带着数量', () => {
+    render(
+      <Timeline
+        events={[
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read README.md' }),
+          toolEv({ acp_kind: 'tool_call', toolCallId: 't2', title: 'Read AGENTS.md' }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText(/顺手做了 2 件事/)).toBeInTheDocument()
+    expect(
+      screen.queryByText('Read README.md'),
+      '工具调用摊开着——一轮几十条的话，AI 说的那句话会被淹掉',
+    ).not.toBeInTheDocument()
+
+    openTools()
+    expect(screen.getByText('Read README.md')).toBeInTheDocument()
+  })
+
   // ★★ 一次工具调用是**一张卡片**，不是四张。
   //
   // ACP 会为同一次调用连发 tool_call + 若干 tool_call_update（状态变化），
   // 它们共用一个 toolCallId。不归并的话，用户看到四条一模一样的「工具调用」，
   // 以为 AI 动了四个文件——真机上撞到的第一个问题。
   it('同一个 toolCallId 归并成一张卡片', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
@@ -159,7 +229,7 @@ describe('工具调用', () => {
 
   // 不同的调用不能并到一起——并了的话用户以为 AI 只动了一个文件。
   it('不同的 toolCallId 各占一张卡片', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ acp_kind: 'tool_call', toolCallId: 't1', title: 'Read a.md' }),
@@ -178,14 +248,14 @@ describe('工具调用', () => {
   // 只显示「工具调用」四个字的话，信息量是零——设计稿里每条事件行都是
   // 「图标 + 类型 + 等宽标识 + 一句人话」，光有类型标签比设计稿差。
   it('显示 Agent 给的标题', () => {
-    render(<Timeline events={[toolEv({ toolCallId: 't1', title: 'Edit src/main.go' })]} />)
+    renderAndOpen(<Timeline events={[toolEv({ toolCallId: 't1', title: 'Edit src/main.go' })]} />)
 
     expect(screen.getByText('Edit src/main.go')).toBeInTheDocument()
   })
 
   // 没有 title 时退到文件路径——总比只显示「工具调用」强。
   it('没有标题时退到文件路径', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[toolEv({ toolCallId: 't1', rawInput: { file_path: '/repo/README.md' } })]}
       />,
@@ -196,7 +266,7 @@ describe('工具调用', () => {
 
   // ★ 最终状态要盖住中间态：一次调用完成之后，卡片上不该还写着「进行中」。
   it('状态取最后一次更新', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read a.md', status: 'in_progress' }),
@@ -215,7 +285,7 @@ describe('工具调用', () => {
   // tool_call_update 只带 kind，结果卡片上显示的是「tool_call_update」——
   // 用户看不出 AI 读的是哪个文件，等于白归并了。
   it('状态更新不会把标题顶掉', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read README.md', kind: 'read' }),
@@ -236,7 +306,7 @@ describe('工具调用', () => {
   // 具体的「Read README.md」——两者都在 title 上。只让「更好的档」覆盖的话，
   // 卡片会停在「Read File」，用户仍然看不出读的是哪个文件。
   it('后来的同档标题会覆盖先前的', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', title: 'Read File', kind: 'read' }),
@@ -254,7 +324,7 @@ describe('工具调用', () => {
 
   // 反过来：真带了更好的标题时要更新。
   it('后来带了标题时会补上', () => {
-    render(
+    renderAndOpen(
       <Timeline
         events={[
           toolEv({ toolCallId: 't1', kind: 'read' }),
@@ -268,8 +338,241 @@ describe('工具调用', () => {
 
   // 载荷里什么都没有时不能白屏，也不能显示一个空卡片。
   it('载荷是空的也不崩', () => {
-    render(<Timeline events={[toolEv({})]} />)
+    renderAndOpen(<Timeline events={[toolEv({})]} />)
 
     expect(screen.getByText(/工具调用/)).toBeInTheDocument()
+  })
+})
+
+// M5 U5.3.1 · 消息按角色分栏
+//
+// ★★ 用户正是靠角色标签判断「现在是谁在说话、他能不能动我的文件」。
+
+describe('角色标签', () => {
+  // ★ 标签形态照设计稿：`Claude · 需求分析师`。
+  it('显示角色与它用的 Runtime', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题', 'claude'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('需求分析师')).toBeInTheDocument()
+    expect(screen.getByText('claude')).toBeInTheDocument()
+  })
+
+  // ★★ **角色不同就不合并**：那是两个人在说话。
+  //
+  // 并进去的话，需求分析师和实现工程师的话会挤在同一个气泡里，
+  // 而标签只剩一个——用户分不清哪句是谁说的。
+  it('不同角色的连续消息不合并', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '问题问完了。'),
+          roleEv('message_chunk', 'implementer', '实现工程师', '我开始写。'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('需求分析师')).toBeInTheDocument()
+    expect(
+      screen.getByText('实现工程师'),
+      '两个角色的话被并进同一个气泡了——用户分不清哪句是谁说的',
+    ).toBeInTheDocument()
+  })
+
+  // 同一个角色的连续片段照常合并（那是流式文本，不合并会疯狂重排）。
+  it('同角色的连续片段仍然合并', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'implementer', '实现工程师', '前半句'),
+          roleEv('message_chunk', 'implementer', '实现工程师', '后半句'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('前半句后半句')).toBeInTheDocument()
+    expect(screen.getAllByText('实现工程师').length).toBe(1)
+  })
+
+  // ★★ 没有角色的事件**不显示这一块**。
+  //
+  // 填个「系统」上去，会让用户以为有个叫「系统」的角色在干活。
+  it('应用自己发的事件不显示角色', () => {
+    render(
+      <Timeline events={[{ ...ev('state_change'), payload: { to: 'executing' } }]} />,
+    )
+
+    expect(screen.queryByText(/系统/)).not.toBeInTheDocument()
+    // 消息本身照常显示
+    expect(document.querySelector('[data-turn-type="state_change"]')).not.toBeNull()
+  })
+
+  // ★ 认不出的角色**照常显示消息**，只是标签退化成后端给的原文。
+  it('认不出的角色不吞掉消息', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'some_future_role', '某个新角色', '重要的话'),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('重要的话')).toBeInTheDocument()
+    expect(screen.getByText('某个新角色')).toBeInTheDocument()
+  })
+})
+
+// M5 U5.3.1 R2 · 用户消息右对齐气泡
+//
+// ★★ 挤在同一侧的话，一屏滚下来「哪句是我说的、哪句是它说的」
+// 要逐条读文字才分得清。
+
+describe('用户自己说的话', () => {
+  it('和 AI 的话分列两侧', () => {
+    render(
+      <Timeline
+        events={[
+          ev('user_message', '先别写代码，先把范围说清楚。'),
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '好，我先问几个问题。'),
+        ]}
+      />,
+    )
+
+    const mine = document.querySelector('[data-turn-type="user_message"]')
+    const theirs = document.querySelector('[data-turn-type="message_chunk"]')
+    expect(mine?.getAttribute('data-align')).toBe('end')
+    expect(
+      theirs?.getAttribute('data-align'),
+      'AI 的话也排到了右边——两侧分不开，用户要逐条读文字才知道哪句是自己说的',
+    ).toBe('start')
+  })
+
+  // ★ 内容照常显示——对齐方式变了而话没了是更糟的结果。
+  it('原话一个字不少', () => {
+    render(<Timeline events={[ev('user_message', '取消后现场证据要保留')]} />)
+    expect(screen.getByText('取消后现场证据要保留')).toBeInTheDocument()
+  })
+
+  // ★★ 用户消息**没有角色标签**：照设计稿，那一侧不画头像也不写名字。
+  //
+  // 给它安一个「用户 · 你」之类的标签，会让他以为自己也是被编排的一个角色。
+  it('不带角色标签', () => {
+    render(<Timeline events={[ev('user_message', '我说的话')]} />)
+
+    const mine = document.querySelector('[data-turn-type="user_message"]')
+    expect(mine?.querySelector('[data-role]')).toBeNull()
+  })
+})
+
+// M5 U5.3.1 R3 · `requirement v1` `已冻结` 标签
+//
+// ★★ 说这句话时需求是第几版——它决定用户下一步能做什么
+// （没冻结就不能进计划）。
+
+describe('需求版本标签', () => {
+  function reqEv(version: number, frozen: boolean): TimelineEvent {
+    return {
+      ...roleEv('message_chunk', 'requirement_analyst', '需求分析师', '需求快照已更新'),
+      requirement_version: version,
+      requirement_frozen: frozen,
+    }
+  }
+
+  it('显示版本号与冻结态', () => {
+    render(<Timeline events={[reqEv(2, true)]} />)
+
+    expect(screen.getByText('requirement v2')).toBeInTheDocument()
+    expect(screen.getByText('已冻结')).toBeInTheDocument()
+  })
+
+  // 没冻结时只显示版本号——写个「未冻结」上去会让人以为那是个警告。
+  it('没冻结时不显示「已冻结」', () => {
+    render(<Timeline events={[reqEv(1, false)]} />)
+
+    expect(screen.getByText('requirement v1')).toBeInTheDocument()
+    expect(screen.queryByText('已冻结')).not.toBeInTheDocument()
+  })
+
+  // ★★ 还没有需求快照时**整块不显示**——「requirement v0」比不显示更糟。
+  it('还没有需求快照时不显示这一块', () => {
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题')]}
+      />,
+    )
+
+    expect(screen.getByText('我先问几个问题')).toBeInTheDocument()
+    expect(screen.queryByText(/requirement v/)).not.toBeInTheDocument()
+  })
+
+  // ★ 版本号来自**事件载荷**，不是前端另查一次。
+  //
+  // 另查拿到的是「现在」的版本，而用户看的是一条历史消息——
+  // 他会以为当时就已经是 v3 了。
+  it('每条消息各自带着当时的版本', () => {
+    render(<Timeline events={[reqEv(1, true), reqEv(2, false)]} />)
+
+    expect(screen.getByText('requirement v1')).toBeInTheDocument()
+    expect(screen.getByText('requirement v2')).toBeInTheDocument()
+  })
+})
+
+// M5 U5.3.2 · 消息带头像
+//
+// ★★ 一屏扫过去**不读文字**就分得清哪几条是同一个人说的——
+// 只有标签的话，用户要逐条读文字才认得出来。
+
+describe('头像', () => {
+  it('有角色的消息带头像，缩写由 Runtime 名推出来', () => {
+    render(
+      <Timeline
+        events={[
+          roleEv('message_chunk', 'requirement_analyst', '需求分析师', '我先问几个问题', 'claude'),
+        ]}
+      />,
+    )
+
+    const avatar = document.querySelector('[data-runtime="claude"]')
+    expect(avatar, '没有头像——用户要逐条读文字才分得清说话的人').not.toBeNull()
+    expect(avatar?.textContent).toBe('CL')
+  })
+
+  // ★★ 缩写**由名字推导**，不硬编码对照表：加一个 Runtime 时不该还要
+  // 回来补一行——漏补的话那个 Runtime 的头像是空白，用户看到一个没有身份的方块。
+  it('没见过的 Runtime 也有两个字母', () => {
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'implementer', '实现工程师', '我开始写', 'codex')]}
+      />,
+    )
+    expect(document.querySelector('[data-runtime="codex"]')?.textContent).toBe('CX')
+
+    render(
+      <Timeline
+        events={[roleEv('message_chunk', 'implementer', '实现工程师', '我开始写', 'gemini')]}
+      />,
+    )
+    const unknown = document.querySelector('[data-runtime="gemini"]')
+    expect(unknown?.textContent).toHaveLength(2)
+  })
+
+  // ★ 没有角色的事件**不画头像**——画一个的话，用户会以为有个角色在说话。
+  it('应用自己发的事件没有头像', () => {
+    render(<Timeline events={[{ ...ev('state_change'), payload: { to: 'executing' } }]} />)
+
+    expect(document.querySelector('[data-runtime]')).toBeNull()
+  })
+
+  // ★ 用户自己说的话也不画——他不是被编排的一个角色。
+  it('用户消息没有头像', () => {
+    render(<Timeline events={[ev('user_message', '先别写代码')]} />)
+
+    const mine = document.querySelector('[data-turn-type="user_message"]')
+    expect(mine?.querySelector('[data-runtime]')).toBeNull()
   })
 })

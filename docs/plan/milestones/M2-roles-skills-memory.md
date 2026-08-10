@@ -1,0 +1,251 @@
+# M2 · 它有了角色、技能和记性
+
+> ★ **2026-08-08 里程碑按引用关系重排**（见 `design/DEPENDENCIES.md`）。
+> 旧的 `M2`（提需求、看 AI 干活）连同它的 `U2.*` 编号已归档到
+> [`archive/M2-talk-and-observe.md`](archive/M2-talk-and-observe.md)——
+> 那里面做完的东西没有白做，落位见 [`roadmap.md`](../roadmap.md) 的对照表。
+>
+> 本文件的 `U2.*` 是**重排后的新编号**。查旧记录时以归档目录为准。
+
+## 目标
+
+**用户看得到 Duet 有哪几个「员工」、每个员工用什么 Runtime、能读到哪些技能和记忆。**
+
+★ 这一步用户**看得到但还用不上**——它是后面所有事的地基：
+创建项目要扫 skills、对话 AI 要读记忆、计划里每条要派角色。
+
+## 完成标志
+
+用户自己做这五件事，全部成功：
+
+1. 打开「角色与 Runtime」页 → 看到**八个内置角色**的表，每行有
+   「承担的操作」「性格与语气」「Runtime」「会话模式」「权限裁决」
+
+   > 实操（2026-08-09）：浏览器打开 `/`，点左栏「角色与 Runtime」——
+   > 八行齐全，六列对上设计稿。`agent` 那格用强调色而只读档是灰的，
+   > **谁能动我的文件一眼看得出**。设计稿底部那两块说明也照原文做了。
+
+2. 打开「Skill」页 → 看到**全局 Skill 库**（`~/.acpflows`），每条带版本号、
+   状态（active / draft），**校验没过时说明为什么**
+
+   > 实操（2026-08-09）：往 `~/.duet-dev/.acpflows/skills/` 放两个真目录
+   > （一个齐全、一个缺 `description`）→ 页面列出两条：
+   > `rust-test-first v2.1` 带描述与兼容性；`git-worktree-guard v0.4` 标红
+   > 并写着「校验未通过：frontmatter 缺 description」。
+   > 库路径显示的是**真实路径**——这是走查时抓到的 bug，原本写死成 `~/.acpflows`。
+
+3. 打开「记忆」页 → 看到**跨项目记忆**（`~/.acpflows`），每条带类型
+   （constraint / experience）与状态（active / 候选 / 已失效）
+
+   > 实操（2026-08-09）：库里放一条 active（`mem-203 constraint`）+
+   > 一条候选（`cand-07 experience`）→ 页面列出两条，
+   > 候选那条**没有「会被注入」标记**，且带着「收下 / 不要」两个按钮。
+
+4. **记忆页能按状态筛**（全部 / active / 候选 / 已失效），三页都**不再是骨架占位**
+
+   > 实操（2026-08-09）：点「候选 1」→ 只剩那一条；点「收下」→
+   > 候选 1→0、全部 1→2。
+   >
+   > ★ **这一条原本写错了**：写的是「三个页面都能筛选」，
+   > 而**设计稿里角色页根本没有筛选器**（八个角色是全集，筛什么）。
+   > Skill 页设计稿有项目选择器，但项目级 Skill 要等 `M3` 才有项目可选。
+   > 照着一条错的标志验，只会逼出一个设计稿上没有的控件。
+
+5. 角色的「会话模式」显示实际档位，选了只读的角色**开会话时真的收权**——
+   让它改文件，**磁盘上不会有那个改动**
+
+   > 实操（2026-08-09）：`go run ./cmd/restrictprobe claude` 与 `codex`，
+   > 走生产代码那条路收权后发一句「建个文件」，**判据在磁盘上**：
+   > - claude（`plan`）：它自己说「不能直接写文件」，工作目录 0 项
+   > - codex（`read-only`）：**仍然去试**（`Attempting patch application
+   >   despite read-only`），那次写触发了审批被拒，`stopReason=cancelled`，
+   >   工作目录 0 项
+   >
+   > ★★ codex 那条把两道防线的关系验清楚了：档位的作用不是「让它不想写」，
+   > 而是**让写操作变成需要审批的**——客户端裁决这才有了落点。
+   > 复验结论记进了 `acp-field-notes.md` §2。
+   >
+   > ★ 「能选档位」这半句**没做到**：M2 只读，下拉是禁用态（归 `U11.1.1`）。
+   > 已记进 `design/PARITY.md`。
+
+## 已经就绪的地基
+
+| 已完成 | 提交 | M2 用它来做什么 |
+|---|---|---|
+| ACP 传输层与会话 | `29a45c1` `1dc00bf` | 发 `set_config_option` 收权 |
+| Runtime 探测注册表 | `ba73425` | 角色绑定 Runtime 时列出可选项 |
+| 权限裁决三策略 | `1dc00bf` | ★ **要从会话层迁到角色层** |
+| `platform.Paths` | `M0` | `~/.acpflows` 的位置 |
+
+## 全局停止条件
+
+1. 发现某个 Runtime 不支持 `set_config_option` **也不支持** `set_mode` ——
+   那意味着收不了权，**必须停下来问用户**，不能假装收了
+2. 需要写 `~/.claude` 或 `~/.codex` —— 那是红线（`acp-field-notes.md` §4）
+3. 角色数量或职责与 `design/INVENTORY.md` §八 对不上 → 先补设计条目
+
+---
+
+## S2.1 · 角色库
+
+### ✓ U2.1.1 · 角色模型与内置八角色
+
+| | |
+|---|---|
+| `goal` | 有一份「谁是谁、用什么 Runtime、什么权限」的可查数据 |
+| `allowed_changes` | `backend/internal/domain/model/role.go` · `backend/internal/app/role/**` |
+| `forbidden_changes` | `domain` 出现 `context.Context` 或 `time.Now()`；把权限档硬编码成某一端的取值 |
+| `stop_conditions` | 设计稿的角色职责与 `docs/spec/` 里的描述冲突 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 内置**八**个角色，与设计稿逐字一致 | 断言八个名称与 `operations` 逐条对上 `domain-model.md` §16.1 |
+| R1b | **11 个 AI 操作全被覆盖**（INV-ROLE-6） | 断言八个角色的 `operations` 并集 == 11 个操作全集 |
+| R2 | 角色 → Runtime 的绑定可查可改 | 断言改完读回来是新值 |
+| R3 | **权限档是两端映射，不是硬编码** | 断言同一个「只读」在 claude 上是 `plan`、在 codex 上是 `read-only` |
+| R4 | 认不出的角色名一律拒绝 | 断言返回明确错误，**不静默回落到默认角色** |
+| R5 | 覆盖率 ≥ 90%（domain 层） | `make cover` |
+
+**已完成**（`e4067e7`）。实际做出来与计划的两处差异，都是检查逼出来的：
+
+- **品牌名不能进 domain**（`check-naming` 拦下）。映射表与推荐绑定挪到
+  `backend/internal/acp/runtime/mode.go`——这正好是设计稿的原则
+  「角色先定义、再绑定 Runtime」：绑定是关系，不是角色自身的属性。
+  所以 `Role` **不含** runtime 字段。
+- **`Role` 存语义档不存档名**。计划里只写了「不硬编码成某一端的取值」，
+  实际发现更深一层：存档名的话，用户把角色从 claude 换到 codex 时
+  `plan` 这一档不存在，INV-ROLE-4 会拒绝保存——**他就换不了 Runtime**，
+  而 INV-ROLE-1 明说改绑不该改变任何行为。两条不变量只有存语义才能同时成立。
+
+★ 审查员与记忆管理员按 **Q42** 收紧成只读（设计稿写的是 claude 的 `default`）。
+
+### ✓ U2.1.2 · 用 `set_config_option` 收权
+
+| | |
+|---|---|
+| `goal` | 选了只读的角色，Agent 那侧真的写不了文件 |
+| `allowed_changes` | `backend/internal/acp/session/**` · `backend/internal/acp/runtime/**` |
+| `forbidden_changes` | 用已废弃的 `set_mode` 作为首选；收权失败却继续开工 |
+| `stop_conditions` | 两个方法都不支持 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | **首选 `session/set_config_option`** | 断言发出的方法名是它，不是 `set_mode` |
+| R2 | 参数名是 `configId` 不是 `optionId` | 断言线上帧的字段名 |
+| R3 | 按 `category` 取选项，不按 `id` | 断言两端 `id` 不同（`effort` vs `reasoning_effort`）时都能取到 |
+| R4 | 不支持时**降级**到 `set_mode` | 断言降级路径发出的是 `set_mode` |
+| R5 | **两个都不支持 → 报错拒绝开工** | 断言返回错误且**没有**发出 `session/prompt` |
+| R6 | 设了档位当场回读校验 | 断言响应里的 `configOptions` 含设定值 |
+
+**已完成**。★ 补了一条计划里没有的 R6b：**发出去成功了 ≠ 设进去了**。
+R6 查的是「发之前就知道不可用」，R6b 查的是「Agent 收下、回成功、值没变」——
+只有前者的话，Agent 悄悄忽略一个合法请求时我们照样一路绿灯。
+为此给 Fake 加了 `IgnoreConfigWrites()`：它模仿真 Agent 最难查的那种失败。
+
+---
+
+## S2.2 · Skill 库
+
+### ✓ U2.2.1 · 全局 Skill 库与校验
+
+| | |
+|---|---|
+| `goal` | 用户看得到有哪些技能可用，坏的那些说得出坏在哪 |
+| `allowed_changes` | `backend/internal/fsstore/skill/**` · `backend/internal/app/skill/**` |
+| `forbidden_changes` | 写用户项目里的 skill 文件（只读，红线 3） |
+| `stop_conditions` | SKILL.md 的必填字段与 `docs/spec/` 不一致 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 扫 `~/.acpflows/skills`，解析 frontmatter | 断言 name / description / version 都读得出 |
+| R2 | **缺 `description` 判 draft 并说明原因** | 断言状态是 draft 且原因文本含「description」 |
+| R3 | frontmatter 坏了**不影响其余条目** | 断言一条坏的旁边那条照样 active |
+| R4 | 版本号可比较 | 断言 `v2.1` > `v1.4` |
+| R5 | **不写用户的文件** | 扫完断言**全目录内容哈希 + 文件清单**不变 |
+
+**已完成**。三处与计划不同：
+
+- R5 的判据从「mtime 未变」改成**全目录内容哈希**。mtime 挡不住「读了再原样写回」，
+  而内容哈希连「顺手补个默认 frontmatter」也挡得住。
+- 补了 R6「目录不存在 = 空列表不是错误」。绝大多数项目没有 `.claude/skills`，
+  当成错误的话 `M3` 创建项目的预演会因为一个完全正常的状态而失败。
+- 补了符号链接与 CRLF 两条。前者是安全边界（一个指向 `~` 的链接就能让扫描
+  漫游整个家目录），后者是排错成本（读不到 frontmatter 的症状是「缺 name」，
+  会把人引向一个根本没写错的文件）。
+
+---
+
+## S2.3 · 记忆库
+
+### ✓ U2.3.1 · 跨项目记忆库
+
+| | |
+|---|---|
+| `goal` | 用户看得到 Duet 记住了什么，能筛掉不要的 |
+| `allowed_changes` | `backend/internal/store/**` 的 memory 表 · `backend/internal/app/memory/**` |
+| `forbidden_changes` | 记忆内容由 AI 直接写库（必须经审核，见 `M10`） |
+| `stop_conditions` | 记忆类型的全集与设计稿对不上 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 类型是封闭枚举（constraint / experience …） | 断言穷举，新增时测试会红 |
+| R2 | 状态三态：active / 候选 / 已失效 | 断言按状态筛选各得其所 |
+| R3 | 跨项目与项目级**分开存** | 断言项目级的不出现在跨项目列表里 |
+| R4 | **候选态的不参与注入** | 断言注入清单里没有候选条目 |
+
+**已完成**（domain + store + app + api + 记忆页，2026-08-09 真机走完「AI 提候选 → 人拍板」全程）。
+
+★ 补了计划里没有的三条硬约束，都来自规格 §14.5：
+
+- **INV-MEM-2 绝不自动写入**：唯一的构造入口只造得出 `candidate`，
+  晋升必须带一个**人**的 actor。这条在三份文档里被写死过，
+  错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断变成以后每轮的前提。
+- **INV-MEM-6 没有 Delete**：反射守着（对**指针类型**取方法集）。
+  删掉的话，半年前那次运行「当时用的是哪条记忆」永远查不到。
+- **INV-MEM-8 模型不存正文**：正文只在 md 文件里。两边各存一份的话
+  迟早对不上，而到时候「哪一份是真的」没有答案。
+
+★ 状态是**五态**不是设计稿那三档：筛选器的「已失效」同时装着
+`invalid` 与 `obsolete`——对用户长得一样，对系统不一样（废弃要带理由）。
+
+---
+
+## S2.4 · 三个页面
+
+### ✓ U2.4.1 · 角色 / Skill / 记忆页面
+
+| | |
+|---|---|
+| `goal` | 三页不再是骨架占位 |
+| `allowed_changes` | `frontend/src/features/{roles,skill,memory}/**` · i18n |
+| `forbidden_changes` | 编造数据（没有就显示空态）；偏离设计稿的表结构 |
+| `stop_conditions` | 设计稿找不到某个字段的展示形态 |
+
+**验收标准**
+
+| # | 标准 | 断言 |
+|---|---|---|
+| R1 | 角色表七列齐全 | 断言表头逐字对上 `INVENTORY.md` §八 |
+| R2 | Skill 条目显示版本与校验原因 | 断言 draft 那条显示「缺 description」 |
+| R3 | 记忆按状态筛选 | 断言点「候选」后只剩候选条目 |
+| R4 | **查询失败时说出来**，不显示空列表 | 断言出现错误提示而非「还没有」 |
+| R5 | 三页都能切英文 | 断言无硬编码中文 |
+
+**角色页与 Skill 页已完成**（2026-08-09 真机验过，八个角色 + 两条真 skill 都渲染出来了）。
+记忆页也完成了。
+
+★ 与设计稿的差距**逐项记进了 `design/PARITY.md`**，每一条都指向单元号：
+角色页三个下拉做成禁用态、底部三个按钮与隔离开关未做（`U11.1.1`）；
+Skill 页只做了两栏中的左栏，详情栏与命中计数归 `U10.1.1`。
+
+★ 两处**有理由的偏离**：设计稿的 `auto` 是 codex 旧档名；
+说明文案里 `set_mode` 改成 `set_config_option`——照抄的话，
+用户按那句话去查日志会找不到那条帧。

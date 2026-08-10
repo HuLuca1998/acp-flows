@@ -89,3 +89,17 @@
   font-family: var(--font-mono);
   font-size: 10.5px;
 }
+
+/* 边界内：给一句轻的确认，不抢眼——大多数请求都在边界内，
+   做得太重的话用户会开始忽略这一行。 */
+.inBoundary {
+  color: var(--color-pass);
+  font-size: 11px;
+}
+
+/* ★★ 「还没有契约」也要说出来：只在越界时才标的话，用户分不出
+   「边界内」与「没人定过边界」，而后者正是他最该多看一眼的时候。 */
+.unknownBoundary {
+  color: var(--color-neutral-500);
+  font-size: 11px;
+}

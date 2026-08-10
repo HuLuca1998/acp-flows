@@ -15,7 +15,17 @@ import globals from 'globals'
  * 加规则时同步更新上述文档——规则与文档对不上时以文档为准，说明规则写错了。
  */
 export default tseslint.config(
-  { ignores: ['dist', 'src/api/gen', 'node_modules', 'coverage'] },
+  {
+    ignores: [
+      'dist',
+      'src/api/gen',
+      'node_modules',
+      'coverage',
+      // 设计稿的本地对照副本（design/PARITY.md 说明怎么用）——
+      // 它是别人的产物，不该受我们的 lint 规则约束
+      'public/design',
+    ],
+  },
 
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

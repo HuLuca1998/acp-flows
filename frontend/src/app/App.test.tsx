@@ -67,7 +67,7 @@ describe('应用骨架', () => {
     // 对话页已经做实（U2.4.1），不再是骨架占位。
     // 没有项目时它引导用户先去加一个——这就是「默认进了对话主区」的证据。
     expect(screen.getByText(/先添加一个项目/)).toBeInTheDocument()
-    expect(screen.getByRole('complementary', { name: '上下文面板' })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: '工作区' })).toBeInTheDocument()
   })
 
   it('五个导航页都能打开，没有一个白屏', async () => {
@@ -87,7 +87,7 @@ describe('应用骨架', () => {
 
     const nav = screen.getByRole('navigation', { name: '主导航' })
     await user.click(within(nav).getByRole('button', { name: '报表' }))
-    expect(screen.queryByRole('complementary', { name: '上下文面板' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary', { name: '工作区' })).not.toBeInTheDocument()
   })
 
   it('当前页在左栏高亮，且高亮项唯一', async () => {
@@ -149,9 +149,14 @@ describe('骨架占位', () => {
     expect(main).not.toMatch(/\d/)
   })
 
+  // ★ 用 queryAll 而不是 getAll：这是一条**全称命题**（「每个骨架都…」），
+  // 一个骨架都没有时它应当为真——而 `getAllByTestId` 在空集合上会抛错。
+  //
+  // 2026-08-09 撞上过：角色/Skill/记忆三页做完之后默认页上再没有骨架，
+  // 这条测试红了，而代码是对的。骨架越做越少是**进展**，不是回归。
   it('每个骨架都说明了这里将来是什么', () => {
     render(<App />)
-    for (const el of screen.getAllByTestId('skeleton')) {
+    for (const el of screen.queryAllByTestId('skeleton')) {
       expect(el.textContent ?? '').toMatch(/将来/)
     }
   })
@@ -227,3 +232,4 @@ describe('窗口栏面包屑', () => {
   // 「不让窗口白掉」这个保证靠的是 App.tsx 里那个 catch 本身，
   // 理由写在它旁边。
 })
+

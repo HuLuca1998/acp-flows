@@ -128,3 +128,21 @@
   font-size: 12.5px;
   line-height: 1.6;
 }
+
+/* 面包屑第三段：当前工作。
+   ★ 没有它的话，用户开着三条工作时看不出自己在哪一条里。 */
+.crumbWork {
+  overflow: hidden;
+  max-width: 260px;
+  color: var(--color-neutral-300);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 状态词**显示英文原值**，不翻译（术语表硬要求）——
+   用户在文档、日志、界面上看到的必须是同一个词。 */
+.crumbState {
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}

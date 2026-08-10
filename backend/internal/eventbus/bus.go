@@ -33,6 +33,20 @@ type Event struct {
 	Type    string          `json:"type"`
 	TS      time.Time       `json:"ts"`
 	Payload json.RawMessage `json:"payload,omitempty"`
+	// Role / RoleDisplayName / Runtime 说明**这一条是谁说的**。
+	//
+	// ★ 三个都可能为空：应用自己发的事件（state_change、checkpoint）
+	// 没有角色。**空就是空**，别填「系统」——那会让用户以为
+	// 有个叫「系统」的角色在干活。
+	Role            string `json:"role,omitempty"`
+	RoleDisplayName string `json:"role_display_name,omitempty"`
+	Runtime         string `json:"runtime,omitempty"`
+	// RequirementVersion / RequirementFrozen 是说这句话时需求的样子。
+	//
+	// ★ 0 表示还没有需求快照，界面据此**不显示标签**——
+	// 显示一个「requirement v0」比不显示更糟。
+	RequirementVersion int  `json:"requirement_version,omitempty"`
+	RequirementFrozen  bool `json:"requirement_frozen,omitempty"`
 }
 
 // Store 是事件的持久化抽象。接口定义在使用方（Go 的惯例）。

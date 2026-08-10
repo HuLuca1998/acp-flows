@@ -1,6 +1,6 @@
 # M5 · 越用越顺手
 
-> 对应验收点 **V13 · V14 · V15**（[`../acceptance.md`](../acceptance.md)）。
+> 对应验收点 **V13 · V14 · V15**（[`../acceptance.md`](../../acceptance.md)）。
 
 ## 目标
 
@@ -19,7 +19,7 @@
 1. 记忆**自动写入**而未经用户审核
 2. 报表数字由估算得出而非真实统计
 3. 跨项目记忆携带了项目私有信息而未去标识化
-4. 撞上 [`../open-questions.md`](../open-questions.md) 未决项
+4. 撞上 [`../open-questions.md`](../../open-questions.md) 未决项
 
 ---
 

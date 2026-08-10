@@ -87,6 +87,34 @@ func (s *Store) Works() *WorkRepo { return &WorkRepo{db: s.db, clk: s.clk} }
 // Projects 返回项目仓储。
 func (s *Store) Projects() *ProjectRepo { return &ProjectRepo{db: s.db, clk: s.clk} }
 
+// Memories 返回记忆仓储。
+//
+// ★★ 它**没有 Delete**（INV-MEM-6）：失效不等于删除。
+func (s *Store) Memories() *MemoryRepo { return &MemoryRepo{db: s.db, clk: s.clk} }
+
+// SkillHits 记 Skill 的命中计数。
+//
+// ★ 与 Memories 不同，这里**没有对应的 skills 表**——Skill 是扫盘产物，
+// 我们只存自己观察到的一件事：它被注入过几次。
+func (s *Store) SkillHits() *SkillHitsRepo { return &SkillHitsRepo{db: s.db, clk: s.clk} }
+
+// Requirements 返回需求快照仓储。
+//
+// ★★ 它**没有 Update 也没有 Delete**（INV-REQ-2）：版本链只增不改。
+func (s *Store) Requirements() *RequirementRepo { return &RequirementRepo{db: s.db, clk: s.clk} }
+
+// Plans 返回计划仓储。★ 没有 Update/Delete：计划改了就存新版本。
+func (s *Store) Plans() *PlanRepo { return &PlanRepo{db: s.db, clk: s.clk} }
+
+// Contracts 返回契约仓储。★ 没有 Update/Delete：冻结后改不动。
+func (s *Store) Contracts() *ContractRepo { return &ContractRepo{db: s.db, clk: s.clk} }
+
+// Evidence 返回证据仓储。★ 没有 Update/Delete：证据改写过就不是证据了。
+func (s *Store) Evidence() *EvidenceRepo { return &EvidenceRepo{db: s.db, clk: s.clk} }
+
+// Decisions 返回决策仓储。★ 答过的一个字都不能改。
+func (s *Store) Decisions() *DecisionRepo { return &DecisionRepo{db: s.db, clk: s.clk} }
+
 // Events 返回事件仓储。
 func (s *Store) Events() *EventRepo { return &EventRepo{db: s.db} }
 

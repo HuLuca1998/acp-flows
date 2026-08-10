@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
+	"github.com/HuLuca1998/acp-flows/backend/internal/app/project"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
 )
 
@@ -18,6 +19,10 @@ type projectService interface {
 	Remove(ctx context.Context, id string) error
 	// Remedy 返回用户需要敲的命令；不需要做什么时为空。
 	Remedy(p *model.Project) string
+	// PreviewInit 算出「把这个目录交给 Duet 会发生什么」。**一个字节都不写。**
+	PreviewInit(ctx context.Context, path string) (*project.Preview, error)
+	// InitializeAt 照预演给出的同一份计划执行。
+	InitializeAt(path string) error
 }
 
 // projectBody 对应 openapi 的 Project。
@@ -38,6 +43,11 @@ type projectsBody struct {
 
 type addProjectRequest struct {
 	Path string `json:"path"`
+	// Initialize 为真时照 `/projects/preview` 的计划创建 `.acpflows/`。
+	//
+	// ★ **默认 false**：静默往用户的仓库里写东西是最快失去信任的方式。
+	// 前端必须先调 preview 把要做的事讲给他听。
+	Initialize bool `json:"initialize"`
 }
 
 // projectProblems 把领域错误映射成机器可读的错误码。
@@ -119,6 +129,18 @@ func handleAddProject(svc projectService) http.HandlerFunc {
 			return
 		}
 
+		if req.Initialize {
+			// ★ 登记成功之后才初始化，且**初始化失败不回滚登记**：
+			// 项目已经在列表里了，用户能看到它、能重试初始化。
+			// 连登记一起撤的话，他点了「创建」却什么都没发生，
+			// 而错误信息一闪而过。
+			if initErr := svc.InitializeAt(p.Path()); initErr != nil {
+				writeProblem(w, http.StatusInternalServerError,
+					"project_init_failed", initErr.Error())
+				return
+			}
+		}
+
 		// 201 而不是 200：新建了一个资源。
 		writeJSON(w, http.StatusCreated, toProjectBody(svc, p))
 	}
@@ -163,4 +185,26 @@ func toProjectBody(svc projectService, p *model.Project) projectBody {
 		body.Remedy = &remedyBody{Command: cmd}
 	}
 	return body
+}
+
+// previewRequest 是 POST /v1/projects/preview 的请求体。
+type previewRequest struct {
+	Path string `json:"path"`
+}
+
+// projectActionBody 对应 openapi 的 ProjectAction。
+type projectActionBody struct {
+	Kind         string   `json:"kind"`
+	Path         string   `json:"path"`
+	Reason       string   `json:"reason"`
+	AlreadyThere bool     `json:"already_there"`
+	Lines        []string `json:"lines,omitempty"`
+}
+
+// gitRemoteBody 对应 openapi 的 GitRemote。
+type gitRemoteBody struct {
+	URL      string `json:"url,omitempty"`
+	Host     string `json:"host,omitempty"`
+	Slug     string `json:"slug,omitempty"`
+	IsGitHub bool   `json:"is_github"`
 }

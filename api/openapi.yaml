@@ -164,9 +164,15 @@ paths:
       operationId: addProject
       summary: 把一个本地代码文件夹加进来
       description: |
-        ★ **这个动作往用户的项目目录里写零个字节。** 只登记路径。
-        顺手初始化 `.acpflows/` 目录结构是很自然的想法，但用户刚把自己的仓库
-        加进来、`git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+        ★★ **默认往用户的项目目录里写零个字节**，只登记路径。
+
+        顺手初始化 `.acpflows/` 是很自然的想法，但用户刚把自己的仓库加进来、
+        `git status` 就多出一堆没见过的东西，是最快失去信任的方式。
+
+        ★ 要初始化就传 `initialize: true`，而**那之前必须先调
+        `/projects/preview` 把要做的事讲给他听**。这条不是建议：
+        「先说再做」是 `M3` 的全部意义——防的是**静默写**，
+        不是「永远不写」。
       requestBody:
         required: true
         content:
@@ -179,12 +185,50 @@ paths:
                   type: string
                   description: 本地绝对路径
                   examples: ['/Users/me/work/my-app']
+                initialize:
+                  type: boolean
+                  default: false
+                  description: |
+                    是否照 `/projects/preview` 给出的计划创建 `.acpflows/`
+                    并追加 `.gitignore`。**默认不做。**
       responses:
         '201':
           description: 已添加
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Project' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /projects/preview:
+    post:
+      tags: [project]
+      operationId: previewProject
+      summary: 创建项目前的预演——**只看不动**
+      description: |
+        ★★ **一个字节都不写。** 用户交出来的是他自己的代码仓库，
+        所以「先说再做」不是一个体贴的附加功能，而是这一步的全部意义。
+
+        返回四块，正好对应设计稿弹层的四个区块：
+        将创建什么 · 将追加什么 · 发现的已有 Skill · GitHub remote 与 `gh` 状态。
+
+        ★ 「将创建」的条目与 `POST /projects` 带 `initialize` 时**实际执行的
+        是同一份计划**——预演与执行各算一遍的话它们必然漂移，
+        而漂移的方向永远是「预演里没说的那件事被做了」。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string, examples: ['/Users/me/work/my-app'] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProjectPreview' }
         default: { $ref: '#/components/responses/Problem' }
 
   /projects/{id}:
@@ -240,12 +284,76 @@ paths:
                 prompt:
                   type: string
                   description: 用户的需求原话
+                base_ref:
+                  type: string
+                  description: |
+                    从哪儿开分支：分支名或 commit。留空时用仓库当前 HEAD。
+
+                    ★ 让用户选基线的理由：他可能想从 `develop` 开工，
+                    而当前分支上正躺着他没提交完的东西。
+                  examples: [develop, 7c1de98]
       responses:
         '201':
           description: 已创建
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Work' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/prepare:
+    post:
+      tags: [work]
+      operationId: prepareWork
+      summary: 开工前的仓库状态——**只看不动**
+      description: |
+        ★★ **一个字节都不写。** 返回的是设计稿「新建工作」弹层要显示的东西：
+        仓库脏不脏、有哪些分支可以当基线、当前 HEAD 是什么。
+
+        ★ 未提交改动**分已跟踪与未跟踪两个数**：合成一条的话，
+        「我只是新建了几个还没 add 的文件」和「我改了正在跟踪的代码」
+        会长得一模一样，而对用户是两件完全不同的事。
+
+        ★ 仓库处在 rebase / merge 中途时**报错拒绝开工**——
+        那时切 worktree 会把用户正在解的冲突丢在那儿。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project]
+              properties:
+                project: { type: string, description: 项目的本地绝对路径 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorkPreparation' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/worktree:
+    get:
+      tags: [work]
+      operationId: getWorkWorktree
+      summary: 一个工作的 git 现场——右栏「工作区」照它渲染
+      description: |
+        ★★ **只读。** 返回分支、领先几个 commit、未提交改动（逐个文件带增删）、
+        以及**本次工作产生的** commit。
+
+        ★ 基线之前的 commit 不算：那些是用户自己的历史，
+        混进来会让他以为 Duet 改了他早先的提交。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WorktreeState' }
         default: { $ref: '#/components/responses/Problem' }
 
   # ── Runtime ─────────────────────────────────────────────────
@@ -274,6 +382,366 @@ paths:
       responses:
         '204':
           description: 已停下
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/messages:
+    post:
+      tags: [work]
+      operationId: sayInWork
+      summary: 在这个工作里接着说一句
+      description: |
+        ★★ **同一个工作、同一条会话。** 这正是「连着说三句，AI 记得前两句」
+        的那条路：会话按「工作 + 角色」常驻（Q42），第二句进的是上一句的上下文。
+
+        ★ 不走这个端点而是再 `POST /works` 的话，用户说第二句时开的是一个
+        **新工作**：新 worktree、新会话、新时间线——前一句彻底不在上下文里，
+        而他以为自己只是补充了一句。
+
+        用户那句话**原样**进时间线（一条 `user_message` 事件），
+        然后后台跑一轮。返回 202 表示「收到了，正在跑」——
+        一轮要好几分钟，同步等的话请求早超时了。
+
+        终态的工作（`completed` / `failed` / `initializing_failed`）拒绝，
+        返回 409 `work_not_accepting_messages`：那时再说什么都不会有人听，
+        而界面上如果静默成功，用户会对着一个永远不动的时间线干等。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: 工作标识
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  description: 用户说的那句话，**原样**转发给 Agent 并进时间线
+      responses:
+        '202':
+          description: 收到了，正在跑
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/requirement:
+    get:
+      tags: [work]
+      operationId: getWorkRequirement
+      summary: 这个工作当前的需求快照
+      description: |
+        ★ 还没有需求时返回 404 —— 那是新工作的常态，界面据此不显示标签，
+        而不是显示一个「v0」。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: freezeWorkRequirement
+      summary: 冻结当前这一版需求
+      description: |
+        ★★ **由用户点，不由 AI 判断**。AI 说「我觉得问清楚了」和用户说
+        「就这样」是两件事——而冻结之后这一版就进了计划与契约，改不动了。
+
+        ★ 还有待确认的事实时返回 409 `requirement_open_facts_remain`：
+        带着没问清的问题往下走，AI 会自己替用户做决定，
+        而那些决定会一路固化进计划与契约，等他发现时已经改了几十个文件。
+
+        冻结之后再说一句话会产生 `v(n+1)` —— 冻结的那一版原样留着。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已冻结
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Requirement' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/plan:
+    get:
+      tags: [work]
+      operationId: getWorkPlan
+      summary: 这个工作当前的计划（子计划 DAG + 单元）
+      description: |
+        ★ 还没规划时返回 404 —— 那是新工作的常态，界面据此不显示计划面板。
+
+        ★★ 每个单元都带**由哪个角色做**（裁定三）。不带的话，
+        用户看不出「这条谁在干」，而那正是他判断「该不该信这个产出」的依据
+        （实现方审查自己的产出是 INV-ATT-8 明令禁止的）。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Plan' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: startWorkPlanning
+      summary: 让计划架构师产出一版计划
+      description: |
+        ★★ **需求没冻结时拒绝**（INV-REQ-1），返回 409
+        `requirement_not_frozen`：需求还在变的时候做出来的计划，做完也对不上，
+        而那时用户已经等了一整轮还得从头再来。
+
+        返回 202 表示「收到了，正在规划」——结果通过事件流回到界面。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: 收到了，正在规划
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/plan/history:
+    get:
+      tags: [work]
+      operationId: getWorkPlanHistory
+      summary: 计划的变更历史，**从新到旧**
+      description: |
+        ★ 设计稿计划面板的「变更历史」：改过几版、每次为什么改。
+        旧版本一个字不改（INV-PLAN-4）——覆盖掉的话「上周那版拆成了什么」
+        永远没有答案。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [versions]
+                properties:
+                  versions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Plan' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/contract:
+    get:
+      tags: [work]
+      operationId: getUnitContract
+      summary: 一个单元的当前契约
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contract' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: designUnitContract
+      summary: 让单元设计师产出一版契约
+      description: |
+        ★★ 契约由**单元设计师**产出，不是实现工程师自己写：自己给自己定
+        验收标准与边界，等于没有边界——他会写一个刚好装得下自己想改的东西
+        的范围（INV-ATT-8 的同一条道理）。
+
+        产出的是**草稿**。冻结是用户的动作——自动冻结的话，用户还没看过
+        这份契约，AI 就已经照着它开始改文件了。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '202': { description: 收到了，正在设计 }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/contract/freeze:
+    post:
+      tags: [work]
+      operationId: freezeUnitContract
+      summary: 冻结这一版契约
+      description: |
+        ★ 一条验收标准都没有时拒绝冻结（409 `contract_empty`）：
+        空契约冻结之后，「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已冻结
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contract' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/acceptance:
+    get:
+      tags: [work]
+      operationId: getUnitAcceptance
+      summary: 一个单元的验收：标准与证据对照
+      description: |
+        ★★ 每条验收标准旁边是**它有没有证据**（设计稿的 `✓ ev-441` / `○ 无证据`）。
+
+        没证据**不等于通过**——把它当成通过的话，一个什么都没做的单元
+        也能「全部通过」。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Acceptance' }
+        default: { $ref: '#/components/responses/Problem' }
+
+    post:
+      tags: [work]
+      operationId: collectUnitEvidence
+      summary: 采集这个单元的 diff 证据
+      description: |
+        ★★ **应用自己去读 git，不问 AI**。让 AI 报告自己改了什么，等于让被
+        考核的人填自己的考勤表——它不需要撒谎，只需要「记错了」一次，
+        用户就再也不知道该信哪一条。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 采集完了
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Acceptance' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/accept:
+    post:
+      tags: [work]
+      operationId: acceptUnit
+      summary: 验收通过——提交改动并落检查点
+      description: |
+        ★★ **通过由用户点，不由 AI 判断。** 没有任何路径能自动走到这里。
+
+        ★ 一条验收标准都没有证据时返回 409 `nothing_accepted`：
+        允许的话，「验收」这个动作就没有内容了——用户点通过时以为自己
+        核对过什么，而实际上什么都没有。
+
+        ★ 没有改动时返回 409 `nothing_to_commit`，**不造空提交**：
+        一个「验收通过」却什么都没改的单元，说明该被质疑的是那次验收。
+
+        提交发生在**工作自己的 worktree** 上，用户的分支一字不动。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: 已提交
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [commit]
+                properties:
+                  commit:
+                    type: string
+                    description: 那次提交的短 sha，检查点绑着它
+                    examples: ['abc1234']
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/units/{unitId}/start:
+    post:
+      tags: [work]
+      operationId: startUnit
+      summary: 让这个单元开工
+      description: |
+        ★★ 契约**没冻结时拒绝**（409 `contract_not_frozen`）：没冻结就开工
+        的话，AI 干到一半契约变了，而它已经照着旧的那份改了十几个文件——
+        产出对不上任何一版契约。
+
+        这一轮由**单元自己派的那个角色**跑（裁定三）。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: unitId, in: path, required: true, schema: { type: string } }
+      responses:
+        '202': { description: 收到了，正在做 }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/decisions:
+    get:
+      tags: [work]
+      operationId: listPendingDecisions
+      summary: 这个工作**还没答**的决策
+      description: |
+        ★★ 左栏那个亮蓝点靠它：不列的话，用户不知道有件事在等他，
+        而工作停在 `waiting_user` 永远不动。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [decisions]
+                properties:
+                  decisions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Decision' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /works/{id}/decisions/{decisionId}:
+    post:
+      tags: [work]
+      operationId: answerDecision
+      summary: 回答一条决策
+      description: |
+        ★★ **只能答一次**（409 `decision_answered`）：答过还能改的话，
+        「他当时选了什么」就没有答案，而后面几十个文件的改动都是照着
+        那个选择做的。
+
+        答完之后，如果没有别的待决策，工作从 `waiting_user` 回到执行态。
+        ★ 还有别的没答完时**继续等**——一次答一条。
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: decisionId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [option_id]
+              properties:
+                option_id:
+                  type: string
+                  description: 他选的那个选项 id，**原样回传**
+      responses:
+        '204': { description: 已记下 }
         default: { $ref: '#/components/responses/Problem' }
 
   /works/{id}/permission:
@@ -353,6 +821,126 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CapabilityMatrix' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  # ── 角色 · Skill · 记忆（M2）────────────────────────────────
+  /roles:
+    get:
+      tags: [role]
+      operationId: listRoles
+      summary: 角色与 Runtime 绑定表
+      description: |
+        八个预置角色。**顺序就是设计稿角色表的行序**，界面照这个顺序渲染。
+
+        ★ `session_mode` 是**语义档**（`read_only` / `guarded_write` /
+        `unrestricted`），不是某一端的档名——两端档名一个都不重合，
+        返回档名的话前端就得认识 `plan` / `read-only` 这些品牌相关的取值。
+        要展示实际档名时用 `mode_name`，它是后端翻译好的。
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles]
+                properties:
+                  roles:
+                    type: array
+                    items: { $ref: '#/components/schemas/Role' }
+
+  /skills:
+    get:
+      tags: [skill]
+      operationId: listSkills
+      summary: Skill 库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string, enum: [project, global] }
+          description: 不传时返回全局库
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [skills]
+                properties:
+                  skills:
+                    type: array
+                    items: { $ref: '#/components/schemas/Skill' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /memories:
+    get:
+      tags: [memory]
+      operationId: listMemories
+      summary: 记忆库
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema: { type: string }
+          description: |
+            项目名（L2）或 `*`（L3 跨项目）。不传时返回全部。
+            ★ 项目之间**永不串味**（INV-MEM-1）——两个项目的约定常常正好相反。
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/MemoryStatus' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [memories]
+                properties:
+                  memories:
+                    type: array
+                    items: { $ref: '#/components/schemas/Memory' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /memories/{id}/review:
+    post:
+      tags: [memory]
+      operationId: reviewMemory
+      summary: 人工审核一条候选记忆
+      description: |
+        ★★ **绝不自动写入**（INV-MEM-2）。`candidate → active` 只能走这个端点，
+        且必须带上 `actor`——AI 没有任何路径能自己把候选变成生效。
+
+        错了的后果不是「多一条记忆」，而是 AI 把自己的一次臆断
+        变成了以后每一轮的前提，而用户从没看过那句话。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, actor]
+              properties:
+                decision:
+                  type: string
+                  enum: [confirm, reject]
+                actor:
+                  type: string
+                  description: 是谁做的决定。**必填**，空值一律拒绝
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Memory' }
         default: { $ref: '#/components/responses/Problem' }
 
 components:
@@ -444,13 +1032,19 @@ components:
         path:
           type: string
           description: 涉及的文件路径。Agent 不一定给得出（比如执行命令）。
-        out_of_bounds:
-          type: boolean
+        boundary:
+          type: string
+          enum: [in_boundary, out_of_boundary, unknown]
           description: |
-            是否越出了这个单元声明的写入边界。
+            这次写入在不在当前单元契约的写入边界内。
 
-            ★ **没有依据时不要填 true。**「写入边界外」是一句很重的话，
-            乱说的话用户会对所有提示脱敏，真正越界那次他也不会看。
+            ★★ **三态而不是 bool**：bool 表达不了「不知道」，而契约还没冻结时
+            那条请求会长得和「边界内」一模一样——那正是用户最需要看清楚
+            AI 要动什么的时刻。
+
+            ★ 没有依据时是 `unknown`，**不要说成越界**：「写入边界外」
+            是一句很重的话，乱说的话用户会对所有提示脱敏，
+            真正越界那次他也不会看。
         options:
           type: array
           items: { $ref: '#/components/schemas/PermissionOption' }
@@ -605,8 +1199,518 @@ components:
         prompt:
           type: string
           description: 用户的需求原话
+        title:
+          type: string
+          description: |
+            列表里显示的名字，**取自用户提的那句需求**（截断）。
+
+            ★★ 左栏显示 `work-01` 的话，用户看不出那条工作是干嘛的——
+            而他可能同时开着五六条。
+
+            ★ 不用 AI 起的名字：起的名字与他说的话对不上时，
+            他在列表里找不到自己那条工作。
+          examples: ['用户能取消正在运行的 turn，取消后现场证据要保留']
 
     # ── Runtime ───────────────────────────────────────────────
+    WorktreeState:
+      type: object
+      required: [branch, ahead, changes, commits]
+      properties:
+        branch: { type: string, examples: ['duet/work-08'] }
+        base_commit:
+          type: string
+          description: |
+            这个工作的起点。★ 空串表示**不知道基线**——
+            那时 `ahead` 与 `commits` 都不可信，界面不该显示它们。
+          examples: ['7c1de90']
+        ahead:
+          type: integer
+          description: 相对基线领先几个 commit
+        changes:
+          type: array
+          description: |
+            未提交的改动，**逐个文件带增删行数**。
+            只说「改了 3 个文件」的话，用户判断不出这次改动有多大。
+          items: { $ref: '#/components/schemas/FileChange' }
+        commits:
+          type: array
+          description: 本次工作产生的 commit，最近的排最前
+          items: { $ref: '#/components/schemas/CommitInfo' }
+
+    Requirement:
+      type: object
+      required: [version, items, open_facts, frozen]
+      properties:
+        version:
+          type: integer
+          description: 版本号，从 1 开始。**只增不改**（INV-REQ-2）
+          examples: [1, 2]
+        items:
+          type: array
+          description: |
+            需求条目。
+
+            ★ 当前阶段**就是用户说过的话**——需求分析师把它精炼成可验证条目
+            要等 AI 的结构化产出。在那之前，「用户说过什么」是我们能给出的
+            最诚实的一版需求：它不编造、不猜测，用户回头核对时看到的是自己的原话。
+          items: { type: string }
+        open_facts:
+          type: array
+          description: |
+            待确认的事实清单。**非空时不能冻结**（INV-REQ-1）——
+            带着没问清的问题往下走，AI 会自己替用户做决定。
+          items: { type: string }
+        frozen:
+          type: boolean
+          description: 冻结之后一个字都不能改，要改就出新版本
+
+    Plan:
+      type: object
+      required: [version, title, subplan_count, unit_count, subplans]
+      properties:
+        version: { type: integer, examples: [5] }
+        title: { type: string, examples: ['取消运行中的 Agent turn'] }
+        subplan_count:
+          type: integer
+          description: |
+            设计稿的「N 子计划」。★ **算出来的**，不是存的字段——
+            存的话它会和真实内容漂移，而用户看到「7 单元」时以为真有七个。
+        unit_count: { type: integer, description: 设计稿的「M 单元」，同样算出来 }
+        dispositions:
+          type: object
+          description: |
+            重规划时每一项已验收工作的处置（仍有效 / 需补充 / 需回滚 / 已废弃）。
+            ★ 缺一项就不许重规划——漏掉的那项会悄悄失效，而没人知道。
+          additionalProperties: { type: string }
+        subplans:
+          type: array
+          items: { $ref: '#/components/schemas/Subplan' }
+
+    Subplan:
+      type: object
+      required: [id, title, status, done, total, units]
+      properties:
+        id: { type: string, examples: ['subplan-01'] }
+        title: { type: string, examples: ['ACP Runtime 抽象层'] }
+        status:
+          type: string
+          description: |
+            由单元推导：全验收 `accepted`、一个都没动 `pending`、其余 `in_progress`。
+            ★ 不单独存——存的话它与进度会各说各话。
+          examples: [accepted, in_progress, pending, empty]
+        done: { type: integer, description: 设计稿 `accepted · 3/3` 的分子 }
+        total: { type: integer, description: 分母 }
+        units:
+          type: array
+          items: { $ref: '#/components/schemas/PlanUnit' }
+
+    PlanUnit:
+      type: object
+      required: [id, title, role_id, depends_on, contract_frozen, accepted]
+      properties:
+        id: { type: string, examples: ['unit-012'] }
+        title: { type: string }
+        role_id:
+          type: string
+          description: |
+            ★★ **由哪个角色做**（裁定三）。必填——不写的话到执行时才发现
+            没人认领，而那时用户已经等了几分钟。
+          examples: [implementer, unit_reviewer]
+        role_display_name:
+          type: string
+          description: |
+            角色显示名。★ 一并给出而不是让前端查表：认不出的角色
+            前端查表会显示成一个原始 id。**认不出时留空**，不编一个。
+          examples: [实现工程师]
+        depends_on:
+          type: array
+          description: 设计稿的「依赖 unit-012」
+          items: { type: string }
+        contract_frozen:
+          type: boolean
+          description: 设计稿的「契约未冻结」
+        accepted: { type: boolean }
+
+    Contract:
+      type: object
+      required: [unit_id, version, frozen, criteria, boundary]
+      properties:
+        unit_id: { type: string, examples: ['unit-012'] }
+        version: { type: integer, examples: [3] }
+        frozen:
+          type: boolean
+          description: 冻结之后一个字都不能改，要改就出新版本（INV-UC-2）
+        criteria:
+          type: array
+          description: |
+            验收标准。★ **一条都没有时不许冻结**：空契约冻结之后，
+            「做完了」这件事没有任何判据——AI 说做完了就是做完了。
+          items:
+            type: object
+            required: [id, text]
+            properties:
+              id: { type: string, examples: ['ac-1'] }
+              text: { type: string }
+        boundary:
+          $ref: '#/components/schemas/WriteBoundary'
+
+    WriteBoundary:
+      type: object
+      required: [allowed, forbidden]
+      description: |
+        写入边界。★★ 用**路径前缀**不是正则：正则能表达更多，但边界是用户
+        唯一的防线，而一条他自己都读不懂的正则不构成防线——他会直接点「允许」。
+      properties:
+        allowed:
+          type: array
+          description: 允许改的前缀。**空表示什么都不许改**，不是什么都许。
+          items: { type: string, examples: ['internal/acp/'] }
+        forbidden:
+          type: array
+          description: 明确禁止的前缀，**压过 allowed**
+          items: { type: string, examples: ['internal/api/gen/'] }
+
+    Acceptance:
+      type: object
+      required: [unit_id, criteria, evidence]
+      properties:
+        unit_id: { type: string, examples: ['unit-012'] }
+        criteria:
+          type: array
+          description: |
+            契约里的验收标准，**顺序照契约**——用户是照着那张表一条条核对的。
+          items:
+            type: object
+            required: [id, text, evidence_ids]
+            properties:
+              id: { type: string, examples: ['ac-1'] }
+              text: { type: string }
+              evidence_ids:
+                type: array
+                description: |
+                  支持这条标准的证据。**空表示「无证据」，不表示通过**——
+                  把没证据当成通过的话，一个什么都没做的单元也能「全部通过」。
+                items: { type: string, examples: ['ev-441'] }
+        evidence:
+          type: array
+          items: { $ref: '#/components/schemas/Evidence' }
+
+    Evidence:
+      type: object
+      required: [id, unit_id, kind, source, summary, trustworthy, criteria]
+      properties:
+        id: { type: string, examples: ['ev-441'] }
+        unit_id: { type: string }
+        kind:
+          type: string
+          enum: [diff, test, command, review]
+          description: 四类封闭，与设计稿的「Git diff · 测试输出 · 命令记录 · 审查意见」一致
+        source:
+          type: string
+          enum: [app, agent]
+          description: |
+            是谁采集的。★★ `app` 是应用直接读出来的，`agent` 是 AI 转述的。
+
+            分不出来源的话，一条转述会和一份真 diff 长得一样——
+            而用户判断「该不该信」全靠这一个字段。
+        summary: { type: string, examples: ['3 个文件 +64 −12'] }
+        body:
+          type: string
+          description: 原始输出。★ **原样**，不截断不美化——截断过的输出在排查时等于没有。
+        trustworthy:
+          type: boolean
+          description: 是不是应用直接采集的。界面据此把 AI 转述的标出来。
+        criteria:
+          type: array
+          description: 这条证据支持哪几条验收标准
+          items: { type: string }
+
+    Decision:
+      type: object
+      required: [id, level, question, options]
+      properties:
+        id: { type: string, examples: ['dec-01'] }
+        unit_id: { type: string, description: 所属单元；空表示这是计划层面的决定 }
+        level:
+          type: string
+          enum: [D0, D1, D2, D3]
+          description: |
+            ★ `D2`/`D3` **必须问用户**（改变外部行为、回滚已验收的东西）；
+            `D0`/`D1` 是 AI 自己就能定的。全问会把他烦死，
+            全不问他会在几十个文件之后才发现。
+        question: { type: string, examples: ['取消之后要不要回滚已写入的文件？'] }
+        options:
+          type: array
+          description: |
+            ★★ **至少两个**：一个选项的「决策」不是在问，是在通知。
+          items:
+            type: object
+            required: [id, text, impact, recommended]
+            properties:
+              id: { type: string, examples: ['a'] }
+              text: { type: string, examples: ['不回滚，仅停止'] }
+              impact:
+                type: string
+                description: |
+                  ★★ **选了它会怎样**。必填——没有它用户在盲选：
+                  他看到三个名字，而不知道选哪个会发生什么。
+                examples: ['已写入的文件留着，下次从这里接着干']
+              recommended:
+                type: boolean
+                description: |
+                  AI 推荐的那个。★★ **只是标记，不是预选**：
+                  预选中的话，用户会顺手点确定——而那正好绕过了
+                  「让他自己决定」这件事。
+        answered_with:
+          type: string
+          description: 他选的那个选项 id；空表示还没答（「稍后决定」）
+
+    FileChange:
+      type: object
+      required: [path, added, removed]
+      properties:
+        path: { type: string }
+        added: { type: integer }
+        removed: { type: integer }
+
+    CommitInfo:
+      type: object
+      required: [sha, subject, when]
+      properties:
+        sha: { type: string, examples: ['a1c9f30'] }
+        subject: { type: string }
+        when:
+          type: string
+          description: |
+            相对时间原文（`2 minutes ago`）。★ 由 git 算而不是我们算：
+            它处理了时区，我们自己算会在跨时区时差一天。
+
+    WorkPreparation:
+      type: object
+      required: [current_branch, branches, head_commit, tracked_dirty, untracked]
+      properties:
+        current_branch: { type: string, examples: [main] }
+        branches:
+          type: array
+          items: { type: string }
+          description: 本地分支，可以当基线
+        head_commit: { type: string, examples: ['7c1de98'] }
+        tracked_dirty:
+          type: integer
+          description: |
+            **已跟踪文件**里被改动的数量（含已暂存）。
+            ★ 与未跟踪分开数——对用户是两件不同的事。
+        untracked:
+          type: integer
+          description: 未跟踪文件的数量（逐个文件数，不是逐个目录）
+
+    ProjectPreview:
+      type: object
+      required: [path, is_git_repo, actions, skills]
+      properties:
+        path: { type: string }
+        name:
+          type: string
+          description: 默认显示名，取目录名
+        is_git_repo:
+          type: boolean
+          description: |
+            ★ 不是 git 仓库时**如实报告并继续**，绝不擅自 `git init`——
+            在别人的目录里建仓库是不可逆的，而他可能有自己的打算。
+        actions:
+          type: array
+          description: 将要做的每一步，**按执行顺序**
+          items: { $ref: '#/components/schemas/ProjectAction' }
+        skills:
+          type: array
+          description: |
+            在项目里发现的已有 Skill（扫 `**/skills`，跳过 node_modules 与 target）。
+            每条带**项目内的相对路径**当来源——用户要能照着去找。
+          items: { $ref: '#/components/schemas/Skill' }
+        remote: { $ref: '#/components/schemas/GitRemote' }
+        gh: { $ref: '#/components/schemas/GhStatus' }
+
+    ProjectAction:
+      type: object
+      required: [kind, path, reason, already_there]
+      properties:
+        kind: { type: string, enum: [create_dir, create_file, append_lines] }
+        path: { type: string }
+        reason:
+          type: string
+          description: |
+            为什么要做这一步。**每一步都要说得出**——不然用户凭什么点确认。
+        already_there:
+          type: boolean
+          description: |
+            为真表示这一步不用做了。★ **仍然列出来**而不是悄悄跳过：
+            用户要看到的是「最终会变成什么样」，不是「这次改了几个字节」。
+        lines:
+          type: array
+          items: { type: string }
+          description: 将写入或追加的内容
+
+    GitRemote:
+      type: object
+      description: |
+        `origin` 的识别结果。★ 没有 remote 时字段为空——**不编造**。
+        本地仓库、还没推过的项目都很常见。
+      properties:
+        url:
+          type: string
+          description: |
+            原样的 remote 地址。★ 非 GitHub 的（GitLab / 自建）也带出来：
+            丢掉的话，用 GitLab 的用户会看到「没有 remote」而他明明配了一个。
+            ★ URL 里夹的凭据已被摘掉。
+        host: { type: string, examples: [github.com] }
+        slug: { type: string, examples: ['owner/repo'] }
+        is_github: { type: boolean }
+
+    GhStatus:
+      type: object
+      required: [status]
+      description: |
+        本机 GitHub CLI 的状态。★★ **Duet 不保管令牌**（Q41）——
+        `gh` 自己把它存在 keychain 里，这里只报「装了吗、登录了吗」。
+      properties:
+        status:
+          type: string
+          enum: [ready, not_installed, not_authenticated, probe_failed]
+          description: |
+            ★ **四态**：只用两个布尔表达不了「检测本身失败了」，
+            那时界面会把一个可能是假的结论告诉用户，还附上一句「请先安装」。
+        version: { type: string, examples: ['2.62.0'] }
+        account:
+          type: string
+          description: 登录的账号名。★ 取不到就留空，**不猜**
+        remedy:
+          type: string
+          description: 用户可以直接敲的一整条命令
+          examples: ['brew install gh', 'gh auth login']
+
+    Role:
+      type: object
+      required: [id, display_name, operations, session_mode, permission_policy, runtime_name, is_preset]
+      properties:
+        id:
+          type: string
+          description: 角色标识，不是封闭枚举（用户可加自定义角色）
+          examples: [implementer, unit_reviewer, memory_curator]
+        display_name: { type: string, examples: [实现工程师] }
+        operations:
+          type: array
+          items: { type: string }
+          description: |
+            承担的 AI 操作。11 个操作**每个恰好有一个角色认领**（INV-ROLE-6）——
+            漏派的话跑到那一步才发现没人干，而那时计划已经排好了。
+          examples: [[implement]]
+        duty: { type: string, description: 职责 }
+        personality: { type: string, description: 性格与提示语气 }
+        boundary:
+          type: string
+          description: 边界——这个角色明令不做的事。**是可测的约束，不是文案**
+        output: { type: string, description: 产出物 }
+        session_mode:
+          type: string
+          enum: [read_only, guarded_write, unrestricted]
+          description: |
+            **语义**档位，不是某一端的档名。
+            存档名的话，用户把角色从 claude 换到 codex 时那个档不存在，
+            保存会被拒——而「改绑 Runtime 不该改变任何行为」是硬要求。
+        mode_name:
+          type: string
+          description: |
+            后端翻译好的、在**当前绑定的 Runtime** 上的实际档名，只用于展示。
+            前端不许自己翻译——那需要认识品牌名。
+          examples: [default, plan, read-only]
+        permission_policy:
+          type: string
+          enum: [ask_each, auto_allow_read]
+          description: 权限裁决。★ 只有这两个取值，设计稿里**没有**「一律拒绝」
+        runtime_name:
+          type: string
+          description: 当前绑定的 Runtime（推荐绑定可被用户覆盖）
+        is_preset: { type: boolean }
+        problem:
+          type: string
+          description: |
+            绑定查不到或档位翻译不出来时的原因。
+            ★ 出问题的角色**照样返回**，只是带着这一条——
+            跳过的话用户看到七个角色，而他不知道少了哪一个、为什么少。
+
+    Skill:
+      type: object
+      required: [name, dir, scope, source, status, validation_ok]
+      properties:
+        name: { type: string, examples: [rust-test-first] }
+        dir: { type: string, description: 目录名；frontmatter 缺 name 时它就是显示名 }
+        version:
+          type: string
+          description: '`主.次` 两段，与应用版本的三段不是一回事'
+          examples: ['2.1']
+        description: { type: string }
+        compatibility: { type: string, examples: ['cargo >= 1.80'] }
+        scope: { type: string, enum: [project, global] }
+        source:
+          type: string
+          description: |
+            扫到它的目录约定。**必须给**——不标来源的话，
+            用户不知道 Duet 翻了他哪些目录。
+          examples: ['.acpflows/skills', '.claude/skills']
+        status:
+          type: string
+          enum: [draft, active, deprecated]
+          description: ★ 扫出来的一律是 `draft`（INV-SKL-1）——扫盘就直接 active 的话，用户往目录里丢个文件就等于让它进了注入清单
+        validation_ok: { type: boolean }
+        validation_reason:
+          type: string
+          description: |
+            没通过时**必须**说清为什么（INV-SKL-2），且直接可显示。
+            静默拒绝的话用户只能删了重建，而重建出来还是 draft。
+          examples: ['校验未通过：frontmatter 缺 description']
+        hit_count: { type: integer, description: 命中计数 }
+
+    MemoryStatus:
+      type: string
+      enum: [candidate, active, discarded, invalid, obsolete]
+      description: |
+        ★ **五态**。设计稿筛选器只有三档（active / 候选 / 已失效），
+        那是**界面的分组**：「已失效」同时装着 `invalid` 与 `obsolete`——
+        对用户长得一样，对系统不一样（废弃要带理由、可指向 supersedes）。
+
+    Memory:
+      type: object
+      required: [id, kind, scope, status, source_refs, injectable]
+      properties:
+        id: { type: string, examples: [mem-203] }
+        kind: { type: string, enum: [constraint, experience, fact] }
+        scope:
+          type: string
+          description: 项目名（L2）或 `*`（L3 跨项目）
+          examples: [acp-engine, '*']
+        status: { $ref: '#/components/schemas/MemoryStatus' }
+        source_refs:
+          type: array
+          items: { type: string }
+          description: |
+            依据，指向 Evidence 或 Unit。**必填**（INV-MEM-3）——
+            空着的话 AI 的一句臆断就能变成以后每一轮的前提。
+          examples: [[ev-412, unit-009]]
+        created_by: { type: string, examples: [memory_curator] }
+        confirmed_by:
+          type: string
+          description: |
+            是谁确认的。★ `candidate → active` **必须有人的动作**（INV-MEM-2），
+            空值表示还没人拍板。
+        reason: { type: string, description: 废弃理由（obsolete 才有） }
+        supersedes: { type: string, description: 被本条取代的记忆 }
+        injectable:
+          type: boolean
+          description: |
+            能不能进**新的**注入清单。只有 active 能进——
+            候选进了就等于自动写入，而失效的仍要能在历史记录里解析出来。
+        history_len: { type: integer, description: 变更历史条数，只增不减 }
+
     Runtime:
       type: object
       required: [name, installed, status]
@@ -692,6 +1796,11 @@ components:
             - request_permission
             - turn_end
             # 来自应用控制层（这些永远可点开到对应的结构化产物）
+            #
+            # ★★ user_message 是**用户自己说的那句话**。
+            # 不发的话，对话页上只有 AI 的回复——用户看不到自己说了什么，
+            # 而「它有没有听懂我」正是靠两句话对照着看出来的。
+            - user_message
             - plan_version
             - unit_contract
             - state_change
@@ -701,6 +1810,45 @@ components:
             - evidence
             - checkpoint
         ts: { type: string, format: date-time }
+        role:
+          type: string
+          description: |
+            这一条是**哪个角色**说的（`implementer` / `requirement_analyst` …）。
+
+            ★★ 由后端给，**前端不许按 Runtime 名猜**：
+            一个 Runtime 可以承担多个角色（`claude` 同时是需求分析师和审查员），
+            按名字猜的话，界面上两个角色会长得一模一样——
+            而用户正是靠这个标签判断「现在是谁在说话、他能不能动我的文件」。
+          examples: [requirement_analyst, implementer]
+        role_display_name:
+          type: string
+          description: |
+            角色的显示名（`需求分析师`）。★ 一并给出而不是让前端查表：
+            前端查表的话，认不出的角色会显示成一个原始 id。
+          examples: [需求分析师]
+        runtime:
+          type: string
+          description: 承担这一条的 Runtime，与 role 一起构成设计稿的 `Claude · 需求分析师`
+          examples: [claude, codex]
+        requirement_version:
+          type: integer
+          description: |
+            说这句话的时候，需求是**第几版**。0 表示这个工作还没有需求快照。
+
+            ★★ 与 `role` 同样由后端盖上，**前端不许自己去查**：
+            前端另查一次的话，拿到的是「现在」的版本，
+            而用户看的是一条历史消息——他会以为当时就已经是 v3 了。
+
+            设计稿把它画成角色名旁边的一枚等宽小标签（`requirement v2 已冻结`），
+            不是一条独立的时间线记录。
+          examples: [1, 2]
+        requirement_frozen:
+          type: boolean
+          description: |
+            说这句话的时候，那一版需求冻结了没有。
+
+            ★ 冻结与否决定用户下一步能不能做（没冻结就不能进计划），
+            所以它和版本号一样要跟着消息走。
         payload:
           type: object
           description: |

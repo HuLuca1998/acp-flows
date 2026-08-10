@@ -12,6 +12,13 @@ import (
 // ErrNotARepo 表示目标目录不是 git 仓库。
 var ErrNotARepo = errors.New("gitx: not a git repository")
 
+// ErrBranchTaken 表示分支已存在，且**不是这个工作的 worktree 在用**。
+//
+// ★★ 绝不覆盖：用户可能自己手建过同名分支，上面躺着他的提交。
+// `git worktree add -B` 会把它**强制复位到 HEAD**——那些提交就没了，
+// 而他不会立刻发现（分支还在，只是内容变了）。
+var ErrBranchTaken = errors.New("gitx: 分支已存在且被别处占用")
+
 // WorktreeSpec 描述要建一个什么样的 worktree。
 type WorktreeSpec struct {
 	// Repo 是用户的项目目录。
@@ -26,12 +33,22 @@ type WorktreeSpec struct {
 	WorkID string
 	// Branch 是这个工作的分支名。
 	Branch string
+	// BaseRef 是从哪儿开分支：分支名或 commit。留空时用仓库当前 HEAD。
+	//
+	// ★ 让用户选基线是 `M4` 完成标志第 3 条——他可能想从 `develop`
+	// 而不是当前分支开工，而当前分支上可能正躺着他没提交完的东西。
+	BaseRef string
 }
 
 // Worktree 是一个已建好的工作区。
 type Worktree struct {
 	Path   string
 	Branch string
+	// BaseCommit 是创建时的基线 commit（短 SHA）。
+	//
+	// ★ 记下来才能回答「这个工作是从哪儿开始的」——
+	// 右栏的「领先几个 commit」与验收时的 diff 都要它当起点。
+	BaseCommit string
 }
 
 // AddWorktree 为一个工作建独立工作区。
@@ -63,13 +80,45 @@ func AddWorktree(ctx context.Context, spec WorktreeSpec) (Worktree, error) {
 		return Worktree{}, fmt.Errorf("建 worktree 根目录 %s: %w", spec.Root, err)
 	}
 
-	// -B：分支已存在就复位到当前 HEAD，不存在就创建。
-	// 用 -b 的话，恢复一个曾经建过分支的工作会失败。
-	if _, err := run(ctx, spec.Repo, "worktree", "add", "-B", spec.Branch, path); err != nil {
+	// ★★ **分支已存在时不覆盖**。
+	//
+	// 原来这里用 `-B`（存在就复位到 HEAD）。那对「恢复一个曾经建过的工作」
+	// 是对的，但对「用户自己手建过同名分支」是灾难：它上面躺着的提交
+	// 会被静默丢掉，而分支还在——他不会立刻发现。
+	//
+	// 走到这一步说明 worktree 目录不存在（上面已经判过），
+	// 所以一个已存在的同名分支只可能是**别处的**。
+	if branchExists(ctx, spec.Repo, spec.Branch) {
+		return Worktree{}, fmt.Errorf("%w: %s", ErrBranchTaken, spec.Branch)
+	}
+
+	// 基线：用户选的，或仓库当前 HEAD。
+	base := spec.BaseRef
+	if base == "" {
+		base = "HEAD"
+	}
+	baseCommit, err := run(ctx, spec.Repo, "rev-parse", "--short", base)
+	if err != nil {
+		// ★ 基线解析不出来就**不建**：用一个我们没搞懂的起点开工，
+		// 之后「领先几个 commit」「本次工作的 diff」全都是错的。
+		return Worktree{}, fmt.Errorf("解析基线 %q: %w", base, err)
+	}
+
+	if _, err := run(ctx, spec.Repo, "worktree", "add", "-b", spec.Branch, path, base); err != nil {
 		return Worktree{}, fmt.Errorf("建 worktree %s: %w", path, err)
 	}
 
-	return Worktree{Path: path, Branch: spec.Branch}, nil
+	return Worktree{
+		Path:       path,
+		Branch:     spec.Branch,
+		BaseCommit: strings.TrimSpace(baseCommit),
+	}, nil
+}
+
+// branchExists 报告本地有没有这个分支。
+func branchExists(ctx context.Context, repo, branch string) bool {
+	_, err := run(ctx, repo, "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+	return err == nil
 }
 
 // RemoveWorktree 移除一个工作区。

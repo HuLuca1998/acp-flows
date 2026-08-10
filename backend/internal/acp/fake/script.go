@@ -65,10 +65,24 @@ type LoadSessionBehavior struct {
 // NewSessionBehavior 定制 session/new 的响应。
 type NewSessionBehavior struct {
 	// SessionID 为空时用 defaultSessionID。
-	SessionID     string                 `json:"session_id"`
-	Modes         []protocol.SessionMode `json:"modes,omitempty"`
-	CurrentModeID string                 `json:"current_mode_id,omitempty"`
-	Delay         Dur                    `json:"delay,omitempty"`
+	SessionID string                 `json:"session_id"`
+	Modes     []protocol.SessionMode `json:"modes,omitempty"`
+	// ConfigOptions 声明会话级配置项。不声明时 session/new 的响应里
+	// **真的没有** configOptions 字段——被测代码据此判断「这一端不支持
+	// set_config_option」，假的能力声明会让那条判断永远测不出来。
+	ConfigOptions []protocol.ConfigOption `json:"config_options,omitempty"`
+	// IgnoreConfigWrites 让 set_config_option 收下请求但不改值，响应照样成功。
+	IgnoreConfigWrites bool   `json:"ignore_config_writes,omitempty"`
+	CurrentModeID      string `json:"current_mode_id,omitempty"`
+	Delay              Dur    `json:"delay,omitempty"`
+}
+
+// modes 返回脚本声明的会话模式，没声明时为空。
+func (s *Script) modes() []protocol.SessionMode {
+	if s.NewSession == nil {
+		return nil
+	}
+	return s.NewSession.Modes
 }
 
 // Turn 是一轮 session/prompt 的行为。
@@ -195,6 +209,32 @@ func (b *ScriptBuilder) Modes(current string, modes ...protocol.SessionMode) *Sc
 	}
 	b.script.NewSession.CurrentModeID = current
 	b.script.NewSession.Modes = modes
+	return b
+}
+
+// NewSessionConfigOptions 声明 session/new 响应里的配置项。
+//
+// ★ 不调用时响应里**真的没有** configOptions 字段——被测代码据此判断
+// 「这一端不支持 set_config_option」，假的能力声明会让降级路径测不出来。
+func (b *ScriptBuilder) NewSessionConfigOptions(opts ...protocol.ConfigOption) *ScriptBuilder {
+	if b.script.NewSession == nil {
+		b.script.NewSession = &NewSessionBehavior{}
+	}
+	b.script.NewSession.ConfigOptions = opts
+	return b
+}
+
+// IgnoreConfigWrites 让 Agent **收下 set_config_option 但什么都不改**，
+// 响应照样成功。
+//
+// ★ 这是真 Agent 会有的行为，也是收权失败里最难查的一种：
+// 请求成功、日志干净、而会话仍在原来的档位上。
+// 没有这个开关的话，「设完当场回读校验」那条代码就没有测试能证明它有用。
+func (b *ScriptBuilder) IgnoreConfigWrites() *ScriptBuilder {
+	if b.script.NewSession == nil {
+		b.script.NewSession = &NewSessionBehavior{}
+	}
+	b.script.NewSession.IgnoreConfigWrites = true
 	return b
 }
 

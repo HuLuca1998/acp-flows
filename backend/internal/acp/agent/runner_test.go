@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -126,7 +127,10 @@ while IFS= read -r line; do
       printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
     *'"session/new"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
-      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","name":"\u6743\u9650\u6a21\u5f0f","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
     *'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       printf '{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"我看一下"}}}}\n'
@@ -172,7 +176,7 @@ func TestProcessRunner_LeavesNoOrphan(t *testing.T) {
 case "$1" in
   --version) echo "0.63.0"; exit 0 ;;
 esac
-echo $$ > `+pidFile+`
+echo $$ >> `+pidFile+`
 while IFS= read -r line; do
   case "$line" in
     *'"initialize"'*)
@@ -180,7 +184,10 @@ while IFS= read -r line; do
       printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
     *'"session/new"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
-      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","name":"\u6743\u9650\u6a21\u5f0f","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
     *'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
@@ -192,22 +199,62 @@ sleep 300
 		Specs: []runtime.Spec{{Name: "claude", Bin: bin, VersionArgs: []string{"--version"}}},
 		Bus:   &busRecorder{},
 	}
+	// ★ 三轮用**同一个 cwd**：换目录就是换工作，那时开新会话是对的。
+	cwd := t.TempDir()
 
-	if err := r.RunTurn(context.Background(), port.AgentTurn{
-		WorkID: "work-01", Cwd: t.TempDir(), Prompt: "做点事",
-	}); err != nil {
-		t.Fatalf("跑一轮失败: %v", err)
+	// ★★ 连跑三轮——**Q42 要求这是同一条会话**。
+	for i := range 3 {
+		if err := r.RunTurn(context.Background(), port.AgentTurn{
+			WorkID: "work-01", Cwd: cwd, Prompt: "第 " + strconv.Itoa(i+1) + " 句",
+		}); err != nil {
+			t.Fatalf("第 %d 轮失败: %v", i+1, err)
+		}
 	}
 
 	raw, err := os.ReadFile(pidFile)
 	if err != nil {
 		t.Fatalf("脚本没记下 pid: %v", err)
 	}
-	pid := strings.TrimSpace(string(raw))
-	if alive(t, pid) {
-		t.Errorf("这一轮跑完了，Agent 进程 %s 还活着——"+
-			"用户每提一个需求就多一个常驻进程，关掉应用之后它们还在", pid)
+	// ★★ 三轮**只有一个 pid**：每轮一个新进程的话，
+	// 用户「补充一句」时 AI 不记得上一句（Q42），而这个文件里会有三行。
+	pids := strings.Fields(strings.TrimSpace(string(raw)))
+	if len(pids) != 1 {
+		t.Fatalf("三轮起了 %d 个进程（%v）——那意味着每轮都是一条新会话，"+
+			"用户补充一句时 AI 不记得上一句", len(pids), pids)
 	}
+	pid := pids[0]
+
+	// 跑完之后进程**还活着**：那正是「常驻」的意思
+	if !alive(t, pid) {
+		t.Fatalf("跑完就把进程杀了（pid %s）——那就回到了每轮一条新会话", pid)
+	}
+	if n := r.SessionsOf("work-01"); n != 1 {
+		t.Errorf("池子里有 %d 条会话，想要 1 条", n)
+	}
+
+	// ★★ 但 ReleaseWork 之后**必须收干净**。
+	//
+	// 收不干净的话，用户每开一个工作就多一个常驻进程，
+	// 关掉应用之后它们还在。
+	r.ReleaseWork(context.Background(), "work-01")
+	waitDead(t, pid)
+	if n := r.SessionsOf("work-01"); n != 0 {
+		t.Errorf("ReleaseWork 之后池子里还有 %d 条会话", n)
+	}
+}
+
+// waitDead 等一个进程消失，超时即失败。
+func waitDead(t *testing.T, pid string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if !alive(t, pid) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("进程 %s 没被收掉——用户每开一个工作就多一个常驻进程，"+
+		"关掉应用之后它们还在", pid)
 }
 
 // alive 用 kill -0 探一个 pid 还在不在。
@@ -230,10 +277,11 @@ case "$1" in
 esac
 while IFS= read -r line; do
   case "$line" in
-    *'"initialize"'*|*'"session/new"'*|*'"session/prompt"'*)
+    *'"initialize"'*|*'"session/new"'*|*'"session/set_config_option"'*|*'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       case "$line" in
-        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+        *'"session/set_config_option"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
         *'"session/prompt"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
         *) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
       esac ;;
@@ -294,10 +342,11 @@ case "$1" in
 esac
 while IFS= read -r line; do
   case "$line" in
-    *'"initialize"'*|*'"session/new"'*|*'"session/prompt"'*)
+    *'"initialize"'*|*'"session/new"'*|*'"session/set_config_option"'*|*'"session/prompt"'*)
       id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
       case "$line" in
-        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1"}}\n' "$id" ;;
+        *'"session/new"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+        *'"session/set_config_option"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
         *'"session/prompt"'*) printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
         *) printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
       esac ;;
@@ -393,4 +442,63 @@ func waitGone(t *testing.T, pidFile, why string) {
 		time.Sleep(50 * time.Millisecond)
 	}
 	t.Fatalf("%s（pid %s）", why, pid)
+}
+
+// ★★ KillAgent 之后，**池子里那条会话也要摘掉**。
+//
+// 只杀进程不摘会话的话，下一轮会接到一条**进程已经死了**的会话上——
+// 表现是「发出去的 prompt 石沉大海」，用户看着一个转圈的界面，
+// 而我们这边以为一切正常。
+func TestProcessRunner_KillAlsoDropsTheSession(t *testing.T) {
+	pidFile := filepath.Join(t.TempDir(), "pid")
+	bin := fakeAgentScript(t, "claude-agent-acp", `
+case "$1" in
+  --version) echo "0.63.0"; exit 0 ;;
+esac
+echo $$ >> `+pidFile+`
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed 's/.*"id":\([0-9]*\).*/\1/')
+  case "$line" in
+    *'"initialize"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":1}}\n' "$id" ;;
+    *'"session/new"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"sessionId":"s1","configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"plan","options":[{"value":"plan","name":"plan"},{"value":"default","name":"default"}]}]}}\n' "$id" ;;
+    *'"session/set_config_option"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"configOptions":[{"id":"permission_mode","category":"mode","type":"select","currentValue":"default"}]}}\n' "$id" ;;
+    *'"session/prompt"'*)
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$id" ;;
+  esac
+done
+sleep 300
+`)
+	r := &agent.ProcessRunner{
+		Specs: []runtime.Spec{{Name: "claude", Bin: bin, VersionArgs: []string{"--version"}}},
+		Bus:   &busRecorder{},
+	}
+	cwd := t.TempDir()
+
+	if err := r.RunTurn(context.Background(), port.AgentTurn{
+		WorkID: "work-01", Cwd: cwd, Prompt: "第一句",
+	}); err != nil {
+		t.Fatalf("第一轮: %v", err)
+	}
+	if n := r.SessionsOf("work-01"); n != 1 {
+		t.Fatalf("跑完一轮后池子里有 %d 条会话，想要 1 条", n)
+	}
+
+	r.KillAgent("work-01")
+
+	// ★★ 判据一：池子空了
+	if n := r.SessionsOf("work-01"); n != 0 {
+		t.Errorf("KillAgent 之后池子里还有 %d 条会话——"+
+			"下一轮会接到一条进程已经死了的会话上", n)
+	}
+
+	// ★★ 判据二：下一轮**能跑通**（它会开一条新会话，而不是卡在死的那条上）
+	if err := r.RunTurn(context.Background(), port.AgentTurn{
+		WorkID: "work-01", Cwd: cwd, Prompt: "第二句",
+	}); err != nil {
+		t.Errorf("KillAgent 之后下一轮跑不通：%v——"+
+			"说明它接到了那条已经死掉的会话上", err)
+	}
 }

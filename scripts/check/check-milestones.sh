@@ -38,8 +38,14 @@ if not files:
 
 for path in files:
     text = path.read_text(encoding="utf-8")
-    milestone = path.name[:2]              # M0 / M1 ...
-    digit = milestone[1]
+    # ★ 里程碑号可能是两位（M10）。按 [:2] 截的话 M10 会被当成 M1，
+    # 于是 U10.1.1 被判成「编号与里程碑不符」——一条不存在的缺陷。
+    m = re.match(r"M(\d+)", path.name)
+    if m is None:
+        problems.append(f"{path}: 文件名不是 M<数字>- 开头，取不出里程碑号")
+        continue
+    digit = m.group(1)
+    milestone = f"M{digit}"
 
     # ⑤ 里程碑级必备章节
     for sec in MILESTONE_SECTIONS:
@@ -114,6 +120,14 @@ for d in RULING_DIRS:
     for path in sorted(d.rglob("*.md")):
         if path.parent.name == "milestones" and path.name.startswith("M"):
             continue                      # 里程碑自身在上面已经逐单元查过
+        # ★ 归档目录整体豁免。
+        #
+        # 2026-08-08 里程碑按引用关系重排，旧的 M2 连同它的 U2.* 挪进
+        # milestones/archive/。归档文件里的编号指的是**重排前**的东西，
+        # 拿今天的单元表去核对它必然扑空——而改它等于篡改历史记录。
+        # 归档不是施工图，没人会照着它干活，漏了也不会有人走错。
+        if "archive" in path.parts:
+            continue
         lines = path.read_text(encoding="utf-8").splitlines()
 
         # 文件级的「已废弃」声明：某个编号只要在**本文件任何一行**被标注为废弃，
