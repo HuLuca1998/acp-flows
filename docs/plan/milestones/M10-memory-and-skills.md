@@ -168,7 +168,7 @@
 > 命中计数，而 `hit_count` 只加在了 `memories` 表上——`skills` 那边是空的。
 > 单元测试全绿，因为没有一条测试问过「Skill 的计数在哪」。
 
-### ○ U10.4.1 · Skill 页显示命中计数
+### ◐ U10.4.1 · Skill 页显示命中计数
 
 | | |
 |---|---|
@@ -186,3 +186,16 @@
 | R3 | 只有 active 的 Skill 才计数 | 断言 draft 的数字不动 |
 | R4 | 从没用过显示 `0`，不是空白 | 断言默认值是 0 而不是 NULL |
 | R5 | 能切英文 | 断言无硬编码中文 |
+
+**R1 R2 R3 做完了，且接到真实路径上**：`SetSkills(skillstore.Store{...},
+db.SkillHits())`，两处 `RunTurn` 的 prompt 都过 `applyInjection`。
+
+★★ 做的时候发现 **Skill 压根没被注入过**——stop_conditions 里写的
+「注入还没接线，先接注入」正好撞上。所以这个单元做的是两件事：
+先让 active 的 Skill 真的进 prompt，再数它。
+
+★ `skill_hits` 是**单独一张表**：没有 `skills` 表——Skill 是扫盘产物，
+用户可以随时增删改，我们不留副本（与记忆正文同理）。这里只存
+我们自己观察到的一件事：它被注入过几次。
+
+**R4 R5 欠着**（前端那一列还没显示）。

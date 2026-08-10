@@ -388,3 +388,124 @@ func TestService_Injection_ListComesFromWhatWeActuallySent(t *testing.T) {
 			"清单跟着 AI 的说法走了——它说什么就记什么，那这份清单没有任何价值")
 	}
 }
+
+// ── U10.4.1 · Skill 的命中计数 ────────────────────────────────
+//
+// ★ 这个单元是**真机核对逼出来的**：完成标志要求 Skill 页显示命中计数，
+// 而 `hit_count` 只加在了 memories 表上——单元测试全绿，
+// 因为没有一条测试问过「Skill 的计数在哪」。
+
+// fakeSkills 是 Skill 来源的替身。
+type fakeSkills struct{ entries []port.SkillEntry }
+
+func (f fakeSkills) ScanGlobal() ([]port.SkillEntry, error) { return f.entries, nil }
+
+// skillHitCounter 记 Skill 计数的替身。
+type skillHitCounter struct {
+	mu   sync.Mutex
+	hits map[string]int
+}
+
+func newSkillHits() *skillHitCounter { return &skillHitCounter{hits: map[string]int{}} }
+
+func (h *skillHitCounter) BumpSkillHits(_ context.Context, refs []string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, r := range refs {
+		h.hits[r]++
+	}
+	return nil
+}
+
+func (h *skillHitCounter) countOf(ref string) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.hits[ref]
+}
+
+// skillSetup 起一个装好 Skill 来源的工作。
+func skillSetup(
+	t *testing.T, runner *fakeRunner, entries []port.SkillEntry, hits *skillHitCounter,
+) (*work.Service, string) {
+	t.Helper()
+	project := testutil.NewGitRepo(t)
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner)
+	svc.SetRequirements(newMemRequirements())
+	svc.SetMemories(&memMemories{}, newBodies())
+	svc.SetSkills(fakeSkills{entries: entries}, hits)
+
+	view, err := svc.Start(context.Background(), project, "让取消真的停下来", "")
+	require.NoError(t, err)
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+	return svc, view.ID
+}
+
+// activeSkill 造一个用户已经发布的 Skill。
+func activeSkill(dir string) port.SkillEntry {
+	return port.SkillEntry{
+		Name: "go-unit-testing", Dir: dir, Version: "1.2.0",
+		Description: "写 Go 测试前先抽契约", Scope: "global",
+		Status: string(model.SkillActive), ValidationOK: true,
+	}
+}
+
+// R1 ★ 注入一次计数加一；跑两轮就是 2。
+func TestService_SkillHits_CountsPerTurn(t *testing.T) {
+	hits := newSkillHits()
+	runner := &fakeRunner{}
+	svc, workID := skillSetup(t, runner, []port.SkillEntry{activeSkill("go-unit-testing")}, hits)
+
+	require.NoError(t, svc.Say(context.Background(), workID, "接着说"))
+	waitFor(t, "第二轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+
+	assert.Equal(t, 2, hits.countOf("global:go-unit-testing"), "跑了两轮，Skill 命中计数不是 2")
+}
+
+// R2 ★★ 计数**由应用数**，不问 AI。
+//
+// AI 在回复里胡说自己用了别的 Skill，数字不该跟着变。
+func TestService_SkillHits_IgnoresWhatTheAgentClaims(t *testing.T) {
+	hits := newSkillHits()
+	runner := &fakeRunner{reply: "我用了 tdd-unit 这个 skill。"}
+	_, _ = skillSetup(t, runner, []port.SkillEntry{activeSkill("go-unit-testing")}, hits)
+
+	assert.Equal(t, 0, hits.countOf("global:tdd-unit"),
+		"AI 说用了什么就给它记一笔——那这个数字是它自己写的，不是我们观察到的")
+	assert.Equal(t, 1, hits.countOf("global:go-unit-testing"))
+}
+
+// R3 ★★ 只有 active 的才注入、才计数。
+//
+// 扫出来的一律是 draft（INV-SKL-1），那是「可以发布」不是「已经发布」。
+// draft 也注入的话，用户往目录里丢一个半成品文件就等于让它进了每一轮。
+func TestService_SkillHits_DraftIsNeitherInjectedNorCounted(t *testing.T) {
+	hits := newSkillHits()
+	draft := activeSkill("half-baked")
+	draft.Status = string(model.SkillDraft)
+	runner := &fakeRunner{}
+	_, _ = skillSetup(t, runner, []port.SkillEntry{draft}, hits)
+
+	assert.Equal(t, 0, hits.countOf("global:half-baked"), "draft 的 Skill 被计数了")
+	assert.NotContains(t, runner.snapshot()[0].Prompt, "half-baked",
+		"★★ 半成品进了 prompt——用户往目录里丢个文件就等于让它上线了")
+}
+
+// ★★ active 的 Skill 真的进了**发给 Agent 的那段 prompt**。
+//
+// 不进的话，计数数的是一件没发生过的事。
+func TestService_SkillInjection_ReachesThePrompt(t *testing.T) {
+	runner := &fakeRunner{}
+	_, _ = skillSetup(t, runner, []port.SkillEntry{activeSkill("go-unit-testing")}, newSkillHits())
+
+	assert.Contains(t, runner.snapshot()[0].Prompt, "go-unit-testing",
+		"Skill 没进 prompt，那计数数的是一件没发生过的事")
+}
+
+// ★ 一个 active 的都没有时**什么都不发**。
+func TestService_SkillInjection_SilentWhenNothingActive(t *testing.T) {
+	runner := &fakeRunner{}
+	_, _ = skillSetup(t, runner, nil, newSkillHits())
+
+	assert.NotContains(t, runner.snapshot()[0].Prompt, "可用的 Skill",
+		"一个 active 的都没有，却在 prompt 里挂了个空标题")
+}

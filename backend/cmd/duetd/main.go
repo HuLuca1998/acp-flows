@@ -239,6 +239,9 @@ func run() error {
 	// ★★ 命中计数：没有它注入照跑但数字永远是 0，而用户看这个数字
 	// 是为了判断「哪些记忆真的在起作用、哪些该清掉」。
 	workSvc.SetMemoryHits(db.Memories())
+	// ★★ Skill 注入与计数：不装的话 Skill 页那一列永远是 0，
+	// 而用户看这个数字是为了判断哪些 Skill 真在起作用。
+	workSvc.SetSkills(skillstore.Store{Home: paths.DataDir()}, db.SkillHits())
 
 	// 检查点：启动时列出「有哪些工作能接着做」。
 	// ★ 脏检查用真 gitx——工作区被手工改过时要先告知，不静默覆盖。

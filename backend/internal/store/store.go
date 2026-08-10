@@ -92,6 +92,12 @@ func (s *Store) Projects() *ProjectRepo { return &ProjectRepo{db: s.db, clk: s.c
 // ★★ 它**没有 Delete**（INV-MEM-6）：失效不等于删除。
 func (s *Store) Memories() *MemoryRepo { return &MemoryRepo{db: s.db, clk: s.clk} }
 
+// SkillHits 记 Skill 的命中计数。
+//
+// ★ 与 Memories 不同，这里**没有对应的 skills 表**——Skill 是扫盘产物，
+// 我们只存自己观察到的一件事：它被注入过几次。
+func (s *Store) SkillHits() *SkillHitsRepo { return &SkillHitsRepo{db: s.db, clk: s.clk} }
+
 // Requirements 返回需求快照仓储。
 //
 // ★★ 它**没有 Update 也没有 Delete**（INV-REQ-2）：版本链只增不改。

@@ -71,6 +71,10 @@ type Service struct {
 	memoryBodies MemoryBodies
 	// hits 记命中计数。为 nil 时注入照跑但不计数。
 	hits MemoryHits
+	// skills 列出可注入的 Skill；skillHits 记它们的计数。
+	// 都可以为 nil，那时不注入 Skill。
+	skills    SkillSource
+	skillHits SkillHits
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。

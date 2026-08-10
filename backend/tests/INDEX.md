@@ -381,6 +381,11 @@
 | `TestSkillVersion_StringRoundTrip` | `internal/domain/model/skill_test.go` | domain | 解析再转回字符串不变形 |
 | `TestSkillStatus_ClosedEnum` | `internal/domain/model/skill_test.go` | domain | 三态封闭枚举（draft / active / deprecated）；`published` 与空串一律非法 |
 | `TestAllSkillStatuses_ReturnsCopy` | `internal/domain/model/skill_test.go` | domain | 状态全集返回副本 |
+| `TestService_SkillHits_CountsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.4.1 R1：跑两轮 Skill 命中计数是 2（ref 用 `<scope>:<dir>`，不用 name——name 来自 frontmatter，用户改一次名计数就断了） |
+| `TestService_SkillHits_IgnoresWhatTheAgentClaims` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R2：AI 在回复里说「我用了 tdd-unit」，那个 ref 的计数仍是 0——跟着它的说法记的话，这个数字是它自己写的，不是我们观察到的 |
+| `TestService_SkillHits_DraftIsNeitherInjectedNorCounted` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1 R3：draft 既不注入也不计数（INV-SKL-1：扫出来的一律 draft，那是「可以发布」不是「已经发布」）——否则用户往目录里丢个半成品文件就等于让它进了每一轮 prompt。**验过负例**：把状态判断改成恒真，这条立刻红 |
+| `TestService_SkillInjection_ReachesThePrompt` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.4.1：active 的 Skill 真的进了发给 Agent 的 `AgentTurn.Prompt`——不进的话，计数数的是一件没发生过的事 |
+| `TestService_SkillInjection_SilentWhenNothingActive` | `internal/app/work/memory_capture_test.go` | app | M10 U10.4.1：一个 active 的都没有时 prompt 里不挂空标题 |
 | `TestService_Injection_ActiveMemoryReachesThePrompt` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R1：active 记忆真的进了**发给 Agent 的那段 prompt**（判据落在 `AgentTurn.Prompt` 上，不是某个函数的返回值）——不进的话它还是每次从零开始，这一整步就白做了 |
 | `TestService_Injection_SkipsNonActiveMemories` | `internal/app/work/memory_capture_test.go` | app | ★★ M10 U10.3.1 R4：candidate 不注入——注入进去等于让 AI 照着一条**用户从没同意过**的前提干活，而他很难想到问题出在一条老记忆上 |
 | `TestService_Injection_CountsHitsPerTurn` | `internal/app/work/memory_capture_test.go` | app | M10 U10.3.1 R3：跑两轮命中计数是 2，且**由应用数不问 AI**——它自报的话会把「我读到了这条」说成「我用上了这条」 |

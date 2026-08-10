@@ -173,10 +173,32 @@ func (s *Service) withMemoryCapture(
 // ★ 与上面的「收下候选」是一件事的两头：那边把经验收进来，
 // 这边把已收下的带进下一轮。放同一个文件里，改一头时另一头就在眼前。
 
-// MemoryHits 记命中计数。
+// MemoryHits 记记忆的命中计数。
 type MemoryHits interface {
 	BumpHits(ctx context.Context, ids []string) error
 }
+
+// SkillSource 列出可注入的 Skill。
+type SkillSource interface {
+	ScanGlobal() ([]port.SkillEntry, error)
+}
+
+// SkillHits 记 Skill 的命中计数。
+type SkillHits interface {
+	BumpSkillHits(ctx context.Context, refs []string) error
+}
+
+// SetSkills 装上 Skill 的来源与计数。都可以为 nil，那时不注入 Skill。
+func (s *Service) SetSkills(src SkillSource, hits SkillHits) {
+	s.skills = src
+	s.skillHits = hits
+}
+
+// SkillRef 是一个 Skill 的身份。
+//
+// ★ 用 `<scope>:<dir>` 而不是 name：name 来自 frontmatter，
+// 用户改一次名计数就断了，而目录才是那个 Skill 的身份。
+func SkillRef(e port.SkillEntry) string { return e.Scope + ":" + e.Dir }
 
 // SetMemoryHits 装上命中计数。为 nil 时注入照跑但不计数。
 func (s *Service) SetMemoryHits(h MemoryHits) { s.hits = h }
@@ -191,6 +213,38 @@ type injection struct {
 	// 可能根本没收到那条——而用户正是靠这份清单判断
 	// 「它是不是带着我的规矩在干活」。
 	MemoryIDs []string
+	// SkillRefs 是这一轮真的注入了的 Skill。同上：应用记。
+	SkillRefs []string
+}
+
+// skillsToInject 取这一轮该带上的 Skill。
+//
+// ★★ **只取 active**：扫出来的一律是 draft（INV-SKL-1），
+// 那是「可以发布」不是「已经发布」。draft 也注入的话，
+// 用户往目录里丢一个半成品文件就等于让它进了每一轮的 prompt。
+func (s *Service) skillsToInject() ([]port.SkillEntry, string) {
+	if s.skills == nil {
+		return nil, ""
+	}
+	all, err := s.skills.ScanGlobal()
+	if err != nil {
+		// ★ 扫不动就不注入，**不拦这一轮**：用户要的是活干完，
+		// 而 Skill 是加分项不是前提。
+		return nil, ""
+	}
+	var picked []port.SkillEntry
+	var sb strings.Builder
+	for _, e := range all {
+		if e.Status != string(model.SkillActive) {
+			continue
+		}
+		picked = append(picked, e)
+		fmt.Fprintf(&sb, "- %s@%s：%s\n", e.Name, e.Version, e.Description)
+	}
+	if len(picked) == 0 {
+		return nil, ""
+	}
+	return picked, "\n\n这个项目可用的 Skill：\n" + sb.String()
 }
 
 // injectFor 取一个工作这一轮该带上的记忆。
@@ -219,14 +273,10 @@ func (s *Service) injectFor(ctx context.Context, workID string) injection {
 		}
 		picked = append(picked, list...)
 	}
-	if len(picked) == 0 {
-		// ★ 一条都没有时**什么都不发**：发一条「注入 0 条」的话，
-		// 时间线上会多出一行永远为空的噪音，而它什么也没告诉用户。
-		return injection{}
-	}
-
 	var sb strings.Builder
-	sb.WriteString("\n\n以下是这个项目已经确认过的经验，**照着它们做**：\n")
+	if len(picked) > 0 {
+		sb.WriteString("\n\n以下是这个项目已经确认过的经验，**照着它们做**：\n")
+	}
 	ids := make([]string, 0, len(picked))
 	for _, m := range picked {
 		title := s.memoryBodies.TitleOf(m.ID())
@@ -238,10 +288,19 @@ func (s *Service) injectFor(ctx context.Context, workID string) injection {
 		fmt.Fprintf(&sb, "- [%s] %s\n", m.ID(), title)
 		ids = append(ids, m.ID())
 	}
-	if len(ids) == 0 {
+	skills, skillText := s.skillsToInject()
+	refs := make([]string, 0, len(skills))
+	for _, e := range skills {
+		refs = append(refs, SkillRef(e))
+	}
+	if len(ids) == 0 && len(refs) == 0 {
 		return injection{}
 	}
-	return injection{Text: sb.String(), MemoryIDs: ids}
+	text := ""
+	if len(ids) > 0 {
+		text = sb.String()
+	}
+	return injection{Text: text + skillText, MemoryIDs: ids, SkillRefs: refs}
 }
 
 // applyInjection 把注入拼进 prompt，记下清单与命中计数。
@@ -250,19 +309,25 @@ func (s *Service) injectFor(ctx context.Context, workID string) injection {
 // 它自报的话，会把「我读到了这条」说成「我用上了这条」。
 func (s *Service) applyInjection(ctx context.Context, workID, prompt string) string {
 	inj := s.injectFor(ctx, workID)
-	if len(inj.MemoryIDs) == 0 {
+	if len(inj.MemoryIDs) == 0 && len(inj.SkillRefs) == 0 {
+		// ★ 一条都没有时**什么都不发**：发一条「注入 0 条」的话，
+		// 时间线上会多出一行永远为空的噪音，而它什么也没告诉用户。
 		return prompt
 	}
 
-	if s.hits != nil {
-		// 计数失败不该拦住这一轮：用户要的是活干完，不是一个准确的统计
+	// 计数失败不该拦住这一轮：用户要的是活干完，不是一个准确的统计
+	if s.hits != nil && len(inj.MemoryIDs) > 0 {
 		_ = s.hits.BumpHits(ctx, inj.MemoryIDs)
+	}
+	if s.skillHits != nil && len(inj.SkillRefs) > 0 {
+		_ = s.skillHits.BumpSkillHits(ctx, inj.SkillRefs)
 	}
 	// ★ 清单发进时间线（M7 完成标志第 3 条）：不发的话，
 	// 用户没法判断它是不是带着自己的规矩在干活。
 	s.emit(ctx, workID, "injection", map[string]any{
 		"memory_ids": inj.MemoryIDs,
-		"count":      len(inj.MemoryIDs),
+		"skill_refs": inj.SkillRefs,
+		"count":      len(inj.MemoryIDs) + len(inj.SkillRefs),
 	})
 	return prompt + inj.Text
 }
