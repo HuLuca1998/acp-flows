@@ -318,6 +318,8 @@
 | `TestResume_ValidatesCwdBeforeTalking` | `internal/acp/session/resume_test.go` | acp | 先校验 cwd 再说话——反过来的话 Agent 已经加载了会话而我们报了错，它挂在那儿占资源 |
 | `TestResume_EmptySessionIDOpensFresh` | `internal/acp/session/resume_test.go` | acp | 没有旧 ID 时直接开新的，不发一个注定失败的 load |
 | `TestResume_ErrorMessageIsReadable` | `internal/acp/session/resume_test.go` | acp | 降级原因里带上是哪条会话——排查时得看得出「哪条没恢复上」 |
+| `TestListResumable_CarriesTheUnitItStoppedOn` | `internal/app/checkpoint/service_test.go` | app | ★★ 恢复列表带上**停在哪个单元**——只有工作 id 的话用户看到「work-03 · work-05」两行，那两个词对他没有任何意义；他记得的是「我在做那个取消功能」。契约里 `unit_id` 早就有了而这条链路一直没填，属于「字段在契约里、真实路径上永远是空」这类最难发现的缺陷（`check-unfilled-fields.sh` 就是为它立的）。**验过负例**：删掉那行赋值立刻红 |
+| `TestListResumable_NoUnitYetStaysEmpty` | `internal/app/checkpoint/service_test.go` | app | 还没开始做单元时 UnitID **留空不编一个**——编出来的话用户点进去发现根本没有那个单元 |
 | `TestListResumable_R1_OnlyPausedWorks` | `internal/app/checkpoint/service_test.go` | app | M4 U4.1.2 R1：★ **只列 paused**（穷举全部状态核对）——把跑完的、失败的也列出来的话，用户对着一串条目不知道该点哪个 |
 | `TestListResumable_EmptyIsASlice` | `internal/app/checkpoint/service_test.go` | app | 空结果返回空切片而非 nil——api 层要序列化成 `[]`，前端对 null 调 `.map()` 会白屏 |
 | `TestListResumable_R1_CarriesPausedAt` | `internal/app/checkpoint/service_test.go` | app | 带上暂停时间——开着三四个工作时，用户靠它认出哪个是刚才那个 |

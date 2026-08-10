@@ -53,6 +53,10 @@ func handleListResumable(svc checkpointService) http.HandlerFunc {
 				// 检查点标识暂用工作标识——一个工作当前只有一个检查点。
 				// 契约里它是必填，留空的话前端拿到一个没法引用的条目。
 				CheckpointID: it.WorkID,
+				// ★ 停在哪个单元上。没开始做单元时为空——
+				// `omitempty` 会把它省掉，界面那一行就不显示，
+				// 而不是显示一个空的「单元：」。
+				UnitID: it.UnitID,
 			}
 			if !it.PausedAt.IsZero() {
 				row.PausedAt = it.PausedAt.UTC().Format(time.RFC3339)
