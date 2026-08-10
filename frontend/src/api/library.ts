@@ -1,0 +1,80 @@
+// 角色库、Skill 库、记忆库的接口。
+//
+// ★ 从 `system.ts` 拆出来：那个文件把整个后端的端点堆在一起，
+// 改一个域要在四百行里翻——而这三个库本来就各自演化。
+
+import type { Memory, MemoryStatus } from '@/models/memory'
+import type { Role } from '@/models/role'
+import type { Skill } from '@/models/skill'
+
+import { api, unwrap } from './client'
+
+/**
+ * 角色与 Runtime 绑定表。八个预置角色，**顺序就是设计稿的行序**。
+ *
+ * ★ 后端没装配时会返回 503 而不是空列表——预置角色是内置的，
+ * 空表只会让用户以为应用坏了。所以这里的失败**必须**显示出来。
+ */
+export async function listRoles(): Promise<Role[]> {
+  const body = unwrap(await api.GET('/roles'))
+  return body.roles
+}
+
+/**
+ * Skill 库。不传 scope 时是全局库（`~/.acpflows/skills`）。
+ *
+ * ★ 扫不动时后端返回错误而不是空列表——装作「一个都没有」的话，
+ * 用户以为自己的 skill 丢了，而实际是目录读不了。
+ */
+export async function listSkills(): Promise<Skill[]> {
+  const body = unwrap(await api.GET('/skills'))
+  return body.skills
+}
+
+/**
+ * 记忆库。不传 scope 时返回全部（含跨项目与各项目的）。
+ *
+ * ★ 查不动时后端返回错误而不是空列表——装作「一条都没有」的话，
+ * 用户以为 Duet 把记忆忘光了。
+ */
+export async function listMemories(params?: {
+  scope?: string
+  // ★ 用契约里的枚举而不是 string：写错一个状态名时编译器会红，
+  // 而用 string 的话只会在运行时静默筛出空列表。
+  status?: MemoryStatus
+}): Promise<Memory[]> {
+  const body = unwrap(await api.GET('/memories', { params: { query: params ?? {} } }))
+  return body.memories
+}
+
+/**
+ * 读一条记忆的正文。
+ *
+ * ★★ 正文在 **md 文件**里，不在数据库（INV-MEM-8）。审核候选时用户要读到
+ * 它才决定得了收不收——只给标题的话他在**盲选**，而收下之后这条会影响
+ * 后面每一轮。
+ */
+export async function getMemoryBody(id: string): Promise<{ title: string; text: string }> {
+  const body = unwrap(await api.GET('/memories/{id}/body', { params: { path: { id } } }))
+  return { title: body.title, text: body.text }
+}
+
+/**
+ * 审核一条候选记忆。
+ *
+ * ★★ 这是 `candidate → active` 的**唯一入口**（INV-MEM-2），
+ * 且 `actor` 必填——AI 没有任何路径能自己把候选变成生效。
+ */
+export async function reviewMemory(
+  id: string,
+  decision: 'confirm' | 'reject',
+  actor: string,
+): Promise<Memory> {
+  return unwrap(
+    await api.POST('/memories/{id}/review', {
+      params: { path: { id } },
+      body: { decision, actor },
+    }),
+  )
+}
+

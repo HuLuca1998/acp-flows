@@ -33,3 +33,15 @@ func (b memoryBodies) TitleOf(id string) string {
 	}
 	return body.Title
 }
+
+// ReadBody 读一条记忆的正文，供 API 用。
+//
+// ★★ 读不到时**报错**，不返回空正文：空正文看起来像「这条记忆没内容」，
+// 用户会照着这个印象直接把它收下——而真相是文件丢了。
+func (b memoryBodies) ReadBody(id string) (string, string, error) {
+	body, err := b.store.Read(id)
+	if err != nil {
+		return "", "", err
+	}
+	return body.Title, body.Text, nil
+}

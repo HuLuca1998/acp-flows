@@ -46,6 +46,13 @@ export type EventRenderer = {
   /** 状态取自哪个字段；后来的覆盖先前的。 */
   statusFrom?: string
   /**
+   * 这一条指向的那个东西的 id 取自哪个字段。
+   *
+   * ★ 有它的话这一段就是**可操作的**（能点开去审核、去作答）。
+   * 写在注册表里而不是在渲染层挖载荷——加一类可操作事件仍然只加一条记录。
+   */
+  refFrom?: readonly string[]
+  /**
    * 这一条排在哪一侧，缺省 `start`（左）。
    *
    * ★ 照设计稿：用户自己说的话右对齐、无头像无角色标签，
@@ -116,7 +123,14 @@ const RENDERERS = {
     detailFrom: ['to', 'reason'],
   },
   injection: { labelKey: 'timeline.event.injection', shape: 'line' },
-  memory_candidate: { labelKey: 'timeline.event.memoryCandidate', shape: 'card' },
+  memory_candidate: {
+    labelKey: 'timeline.event.memoryCandidate',
+    shape: 'card',
+    // ★★ 有 memory_id 才点得动。解析失败那种没有 id，会退成一条单行——
+    // 一个点不动的按钮比没有按钮更让人困惑。
+    refFrom: ['memory_id'],
+    detailFrom: ['title', 'error'],
+  },
   decision: { labelKey: 'timeline.event.decision', shape: 'card' },
   evidence: { labelKey: 'timeline.event.evidence', shape: 'card' },
   checkpoint: { labelKey: 'timeline.event.checkpoint', shape: 'line', detailFrom: ['reason'] },

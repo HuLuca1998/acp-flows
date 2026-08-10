@@ -12,7 +12,7 @@ import { MemoryPage } from './index'
 const listMemories = vi.fn()
 const reviewMemory = vi.fn()
 
-vi.mock('@/api/system', () => ({
+vi.mock('@/api/library', () => ({
   listMemories: (...a: unknown[]): unknown => listMemories(...a),
   reviewMemory: (...a: unknown[]): unknown => reviewMemory(...a),
 }))

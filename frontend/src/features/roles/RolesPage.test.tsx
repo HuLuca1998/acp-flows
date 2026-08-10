@@ -10,7 +10,7 @@ import { RolesPage } from './index'
 
 const listRoles = vi.fn()
 
-vi.mock('@/api/system', () => ({
+vi.mock('@/api/library', () => ({
   listRoles: (...a: unknown[]): unknown => listRoles(...a),
 }))
 

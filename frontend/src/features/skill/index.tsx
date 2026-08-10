@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listSkills } from '@/api/system'
+import { listSkills } from '@/api/library'
 import type { Skill } from '@/models/skill'
 
 import styles from './SkillPage.module.css'
