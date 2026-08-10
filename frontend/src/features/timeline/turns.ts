@@ -11,6 +11,13 @@ export type Segment = {
   /** 当前状态，取最后一次更新 */
   status: string;
   /**
+   * 这一段指向的那个东西的 id（记忆候选的 memory_id、决策的 decision_id……）。
+   *
+   * ★ 从注册表的 `refFrom` 取，**不在渲染层挖载荷**：那样每加一类
+   * 可操作的事件都要改一次渲染代码，而注册表的规矩是「加一类只加一条记录」。
+   */
+  refID: string;
+  /**
    * 摘要来自 detailFrom 的第几项，**越小越好**。
    *
    * ★ 归并时靠它挡住「降级覆盖」：tool_call 带 title、随后的
@@ -53,6 +60,9 @@ export type Segment = {
  * 十一个平级卡片摊在那儿的话，那是日志不是对话——
  * 用户要找的那句话被自己的工具输出淹掉了。
  */
+/** 一条记忆候选，比普通段多一个可审核的 id。 */
+export type CandidateSegment = Segment & { memoryID: string };
+
 export type Turn = {
   key: string;
   role: string;
@@ -66,6 +76,13 @@ export type Turn = {
   tools: Segment[];
   /** 状态变化这类单行。 */
   lines: Segment[];
+  /**
+   * 记忆候选——**要能点**的那种。
+   *
+   * ★★ 与 `tools` 分开：工具调用是给用户看的记录，候选是等他做决定的。
+   * 混在一起塞进那个折叠抽屉的话，需要他决定的东西默认是收起来的。
+   */
+  candidates: CandidateSegment[];
   /** 用户自己说的话单独成轮，右对齐。 */
   mine: boolean;
   /**
@@ -114,6 +131,7 @@ export function groupIntoTurns(segments: Segment[]): Turn[] {
         says: [],
         tools: [],
         lines: [],
+        candidates: [],
         mine,
         firstType: seg.type,
       };
@@ -121,7 +139,15 @@ export function groupIntoTurns(segments: Segment[]): Turn[] {
     }
 
     // 按形态归位：气泡是「说的话」，卡片是「干的活」，单行是状态
-    if (renderer.shape === "bubble") {
+    if (seg.type === "memory_candidate") {
+      // ★ 载荷里没有 memory_id 的（解析失败那种）**不做成卡片**：
+      // 点了也没有可审的东西，而一个点不动的按钮比没有按钮更让人困惑。
+      if (seg.refID !== "") {
+        turn.candidates.push({ ...seg, memoryID: seg.refID });
+      } else {
+        turn.lines.push(seg);
+      }
+    } else if (renderer.shape === "bubble") {
       turn.says.push(seg);
     } else if (renderer.shape === "card") {
       turn.tools.push(seg);
@@ -196,6 +222,7 @@ export function mergeEvents(
     const payload: Record<string, unknown> = e.payload ?? {};
     const text = textOf(e);
     const [detail, detailRank] = pickFirst(payload, renderer.detailFrom);
+    const [refID] = pickFirst(payload, renderer.refFrom);
     const status =
       renderer.statusFrom === undefined
         ? ""
@@ -254,6 +281,7 @@ export function mergeEvents(
       text,
       detail,
       detailRank,
+      refID,
       status,
       role: e.role ?? "",
       roleName: e.role_display_name ?? "",

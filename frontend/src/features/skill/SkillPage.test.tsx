@@ -7,7 +7,7 @@ import { SkillPage } from './index'
 
 const listSkills = vi.fn()
 
-vi.mock('@/api/system', () => ({
+vi.mock('@/api/library', () => ({
   listSkills: (...a: unknown[]): unknown => listSkills(...a),
 }))
 

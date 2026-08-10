@@ -59,6 +59,9 @@ type Config struct {
 	SkillHits SkillHitsReader
 	// Memories 是记忆用例。为 nil 时端点返回 memory_service_unavailable。
 	Memories memoryService
+	// MemoryBodies 读记忆正文（md 文件）。为 nil 时正文端点明确报错——
+	// **不是**返回空正文：空正文看起来像「这条记忆没内容」。
+	MemoryBodies memoryBodyReader
 }
 
 // ErrNoToken 表示配置里没有 token —— 那等于关掉鉴权。
@@ -103,6 +106,8 @@ func NewRouter(cfg Config) (http.Handler, error) {
 	// 且必须带 actor——AI 没有任何路径能自己把候选变成生效。
 	mux.HandleFunc("GET /v1/memories", handleListMemories(cfg.Memories))
 	mux.HandleFunc("POST /v1/memories/{id}/review", handleReviewMemory(cfg.Memories))
+	// ★★ 正文单独一个端点：用户要读到它才决定得了收不收这条记忆。
+	mux.HandleFunc("GET /v1/memories/{id}/body", handleGetMemoryBody(cfg.MemoryBodies))
 
 	// 项目：添加只登记路径，**往用户的项目目录里写零个字节**。
 	mux.HandleFunc("GET /v1/projects", handleListProjects(cfg.Projects))

@@ -712,6 +712,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/memories/{id}/body": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读一条记忆的正文
+         * @description ★★ 正文存在 **md 文件**里，不在数据库（INV-MEM-8）——用户要能用任何
+         *     编辑器打开它、改它、用 git 管它。
+         *
+         *     ★★ 但「不进数据库」不等于「API 不能给」：审核一条候选时用户要读到
+         *     正文才决定得了收不收，不给他就是在**盲选**。
+         *
+         *     ★ 单独一个端点而不是塞进列表：列表里逐条读文件是 N 次磁盘 IO，
+         *     而记忆页一屏能列几十条。
+         */
+        get: operations["getMemoryBody"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/memories/{id}/review": {
         parameters: {
             query?: never;
@@ -2424,6 +2451,49 @@ export interface operations {
                 };
             };
             default: components["responses"]["Problem"];
+        };
+    };
+    getMemoryBody: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 正文 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @description 取自 frontmatter 的 title */
+                        title: string;
+                        /**
+                         * @description 正文。★ frontmatter 解析失败时这里是**整个文件的原文**——
+                         *     少个引号就吞掉用户写的三百字，是最糟的处理方式。
+                         */
+                        text: string;
+                    };
+                };
+            };
+            /**
+             * @description md 文件不在。★★ **不返回空正文**：空正文看起来像「这条记忆没内容」，
+             *     用户会照着这个印象直接把它收下，而真相是文件丢了。
+             */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     reviewMemory: {

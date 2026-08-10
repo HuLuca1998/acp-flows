@@ -1,0 +1,109 @@
+/* 记忆候选卡片。照 design/ACP Duet 1a.dc.html 的候选条目。
+ * 颜色一律 var()，禁止写死 hex —— stylelint 会拦。 */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--s-raised);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+}
+
+/* 决定过的收敛成一行——留着但不再抢注意力。 */
+.card[data-decided] {
+  flex-direction: row;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: 6px var(--space-4);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+}
+
+.label {
+  flex: none;
+  color: var(--color-accent-400);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 类型显示英文原值（constraint / experience / fact），术语表硬要求。 */
+.kind {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.title {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ★★ 正文全文：他要读到它才决定得了收不收。 */
+.text {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-neutral-300);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* 正文丢了要看得出来，不能长得像「这条没内容」。 */
+.missing {
+  margin: 0;
+  color: var(--color-fail);
+  font-size: 11.5px;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ★★ 两个按钮同等分量，**都不预选中**。 */
+.accept,
+.reject {
+  padding: 5px 13px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-neutral-700);
+  color: var(--color-text);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.accept:hover {
+  box-shadow: inset 0 0 0 1px var(--color-accent-700);
+  color: var(--color-accent-300);
+}
+
+.reject:hover {
+  color: var(--color-neutral-400);
+}
+
+.accept:disabled,
+.reject:disabled {
+  color: var(--color-neutral-600);
+  cursor: default;
+}
+
+.verdict {
+  flex: none;
+  color: var(--color-neutral-600);
+  font-size: 11px;
+}

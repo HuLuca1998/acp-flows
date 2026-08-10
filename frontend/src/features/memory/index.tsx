@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listMemories, reviewMemory } from '@/api/system'
+import { listMemories, reviewMemory } from '@/api/library'
 import type { Memory, MemoryFilterTab } from '@/models/memory'
 import { matchesTab } from '@/models/memory'
 

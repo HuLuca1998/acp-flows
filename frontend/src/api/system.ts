@@ -1,14 +1,11 @@
 import type { Acceptance } from '@/models/acceptance'
 import type { Contract } from '@/models/contract'
 import type { Decision } from '@/models/decision'
-import type { Memory, MemoryStatus } from '@/models/memory'
 import type { Plan } from '@/models/plan'
 import type { ProjectPreview } from '@/models/preview'
 import type { Project } from '@/models/project'
 import type { Requirement } from '@/models/requirement'
-import type { Role } from '@/models/role'
 import type { Runtime } from '@/models/runtime'
-import type { Skill } from '@/models/skill'
 import type { UpdatePrepareResult, UpdateStatus } from '@/models/update'
 import type { Work } from '@/models/work'
 import type { WorkPreparation } from '@/models/workprep'
@@ -304,63 +301,6 @@ export async function cancelWork(workID: string): Promise<void> {
 }
 
 /**
- * 角色与 Runtime 绑定表。八个预置角色，**顺序就是设计稿的行序**。
- *
- * ★ 后端没装配时会返回 503 而不是空列表——预置角色是内置的，
- * 空表只会让用户以为应用坏了。所以这里的失败**必须**显示出来。
- */
-export async function listRoles(): Promise<Role[]> {
-  const body = unwrap(await api.GET('/roles'))
-  return body.roles
-}
-
-/**
- * Skill 库。不传 scope 时是全局库（`~/.acpflows/skills`）。
- *
- * ★ 扫不动时后端返回错误而不是空列表——装作「一个都没有」的话，
- * 用户以为自己的 skill 丢了，而实际是目录读不了。
- */
-export async function listSkills(): Promise<Skill[]> {
-  const body = unwrap(await api.GET('/skills'))
-  return body.skills
-}
-
-/**
- * 记忆库。不传 scope 时返回全部（含跨项目与各项目的）。
- *
- * ★ 查不动时后端返回错误而不是空列表——装作「一条都没有」的话，
- * 用户以为 Duet 把记忆忘光了。
- */
-export async function listMemories(params?: {
-  scope?: string
-  // ★ 用契约里的枚举而不是 string：写错一个状态名时编译器会红，
-  // 而用 string 的话只会在运行时静默筛出空列表。
-  status?: MemoryStatus
-}): Promise<Memory[]> {
-  const body = unwrap(await api.GET('/memories', { params: { query: params ?? {} } }))
-  return body.memories
-}
-
-/**
- * 审核一条候选记忆。
- *
- * ★★ 这是 `candidate → active` 的**唯一入口**（INV-MEM-2），
- * 且 `actor` 必填——AI 没有任何路径能自己把候选变成生效。
- */
-export async function reviewMemory(
-  id: string,
-  decision: 'confirm' | 'reject',
-  actor: string,
-): Promise<Memory> {
-  return unwrap(
-    await api.POST('/memories/{id}/review', {
-      params: { path: { id } },
-      body: { decision, actor },
-    }),
-  )
-}
-
-/**
  * 创建项目前的预演：**只看不动**。
  *
  * ★★ 用户交出来的是他自己的代码仓库——「先说再做」是这一步的全部意义。
@@ -389,3 +329,4 @@ export async function prepareWork(project: string): Promise<WorkPreparation> {
 export async function getWorkWorktree(id: string): Promise<WorktreeState> {
   return unwrap(await api.GET('/works/{id}/worktree', { params: { path: { id } } }))
 }
+

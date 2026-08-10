@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { MemoryCandidateCard } from "../memory/MemoryCandidateCard";
+
 import styles from "./Timeline.module.css";
 import { rendererFor, type TimelineEvent } from "./event-registry";
 import { groupIntoTurns, initialsOf, mergeEvents, type Turn } from "./turns";
@@ -157,6 +159,20 @@ function TurnBlock({ turn }: { turn: Turn }) {
             )}
           </div>
         )}
+
+        {/*
+          ★★ 记忆候选**能点**。后端把它发出来了、载荷里 id 与标题都全，
+          而界面上如果只是一行文字，用户看到的就是一条死记录——
+          「点『审核』→ 决定收不收」那一步永远走不到。
+        */}
+        {turn.candidates.map((s) => (
+          <MemoryCandidateCard
+            key={s.key}
+            memoryID={s.memoryID}
+            title={s.detail === "" ? s.text : s.detail}
+            kind={s.status}
+          />
+        ))}
 
         {turn.lines.map((s) => (
           <div

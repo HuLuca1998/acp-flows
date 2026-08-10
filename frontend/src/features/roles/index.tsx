@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listRoles } from '@/api/system'
+import { listRoles } from '@/api/library'
 import type { Role } from '@/models/role'
 
 import styles from './RolesPage.module.css'
