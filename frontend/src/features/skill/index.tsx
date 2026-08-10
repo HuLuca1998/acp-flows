@@ -2,13 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getSkillBody, listSkills } from '@/api/library'
+import { listProjects } from '@/api/system'
 import type { Skill } from '@/models/skill'
+import { Dropdown } from '@/ui/Dropdown'
 import { ListItem } from '@/ui/ListItem'
 import { Markdown } from '@/ui/Markdown'
 import { StatusText } from '@/ui/StatusText'
 import { Tag } from '@/ui/Tag'
 
 import styles from './SkillPage.module.css'
+
+/** 项目选择器需要的最小形状（来自 GET /v1/projects）。 */
+type ProjectOption = { id: string; name: string; path: string }
 
 /**
  * 状态 → 词条 key。★ 显式映射，理由同角色页的 PERMISSION_KEY。
@@ -36,8 +41,8 @@ type SkillBody = { dir: string; frontmatter: string; text: string }
  * 2026-08-10 用户裁定「与设计图纸完全偏离」之前这里只有左边那栏。
  * 详情的正文**从磁盘现读**（用户随时会用编辑器改它）。
  *
- * ★ M2 只有全局库（`~/.acpflows/skills`）。项目级的在创建项目时初始化（M3），
- * 那时才有项目——所以这一页现在不做项目选择器，**不放一个选了没反应的下拉**。
+ * ★ 页头有项目选择器（§7.6）：「全局」扫 `~/.acpflows/skills`，
+ * 选项目则扫那个项目的约定目录——选了就真的按项目拉取，不是装样子。
  */
 export function SkillPage() {
   const { t } = useTranslation()
@@ -47,18 +52,37 @@ export function SkillPage() {
   const [body, setBody] = useState<SkillBody | null>(null)
   const [bodyError, setBodyError] = useState('')
   const [mdMode, setMdMode] = useState<'rendered' | 'source'>('rendered')
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+  /** '' = 全局；否则是项目路径（记忆的 scope 用的也是路径）。 */
+  const [projectSel, setProjectSel] = useState('')
 
   useEffect(() => {
+    // 项目列表拉不到不拦这一页：选择器里只剩「全局」，Skill 库照常显示。
     void (async () => {
       try {
-        setSkills(await listSkills())
+        setProjects(await listProjects())
+      } catch {
+        setProjects([])
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    setSkills(null)
+    setSelected('')
+    setBody(null)
+    setBodyError('')
+    void (async () => {
+      try {
+        setSkills(projectSel ? await listSkills({ project: projectSel }) : await listSkills())
+        setError('')
       } catch (e) {
         // ★ 扫不动要**说出来**，不装作「一个都没有」——
         // 装作没有的话，用户以为自己的 skill 丢了，而实际是目录读不了。
         setError(e instanceof Error ? e.message : t('skill.failed'))
       }
     })()
-  }, [t])
+  }, [projectSel, t])
 
   useEffect(() => {
     if (!selected) {
@@ -89,16 +113,33 @@ export function SkillPage() {
     return <p className={styles.hint}>{t('skill.loading')}</p>
   }
 
+  const currentScopeLabel = projectSel
+    ? (projects.find((p) => p.path === projectSel)?.name ?? projectSel)
+    : t('skill.globalScope')
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
+        <p className={styles.eyebrow}>{t('skill.eyebrow')}</p>
         <h1 className={styles.title}>{t('skill.title')}</h1>
+      </header>
+
+      {/* 选择器行：§7.6 硬约束——页头标题行下方第一行，与记忆页同位。 */}
+      <div className={styles.toolbar}>
+        <Dropdown
+          label={t('skill.projectLabel')}
+          value={currentScopeLabel}
+          items={[
+            { value: '', label: t('skill.globalScope') },
+            ...projects.map((p) => ({ value: p.path, label: p.name })),
+          ]}
+          onSelect={setProjectSel}
+        />
         <p className={styles.subtitle}>
-          {t('skill.globalScope')}
           {source && <code className={styles.source}>{source}</code>}
           <span className={styles.count}>{t('skill.count', { count: skills.length })}</span>
         </p>
-      </header>
+      </div>
 
       {skills.length === 0 ? (
         <p className={styles.hint}>{t('skill.empty')}</p>

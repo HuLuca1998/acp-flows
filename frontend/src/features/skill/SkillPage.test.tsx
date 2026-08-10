@@ -14,6 +14,12 @@ vi.mock('@/api/library', () => ({
   getSkillBody: (...a: unknown[]): unknown => getSkillBody(...a),
 }))
 
+const listProjects = vi.fn()
+
+vi.mock('@/api/system', () => ({
+  listProjects: (...a: unknown[]): unknown => listProjects(...a),
+}))
+
 const realSkills = [
   {
     name: 'rust-test-first',
@@ -39,6 +45,9 @@ const realSkills = [
 ]
 
 beforeEach(() => {
+  listProjects.mockReset().mockResolvedValue([
+    { id: 'proj-01', name: 'acp-flows', path: '/Users/luca/work/acp-flows' },
+  ])
   listSkills.mockReset().mockResolvedValue(realSkills)
   getSkillBody.mockReset().mockResolvedValue({
     dir: 'rust-test-first',
@@ -228,5 +237,20 @@ describe('Skill 页 · 详情栏（U10.7.2）', () => {
     await screen.findByText('rust-test-first')
     const detail = screen.getByRole('region', { name: /详情/ })
     expect(within(detail).getByText(/选一条/)).toBeInTheDocument()
+  })
+
+  // ★ 项目选择器（设计稿页头，§7.6：标题行下方第一行）——
+  // 切到某个项目后**按项目拉取**，不是换个标签装装样子。
+  it('项目选择器切到项目后按项目拉取', async () => {
+    const user = userEvent.setup()
+    render(<SkillPage />)
+
+    await screen.findByText('rust-test-first')
+    await user.click(screen.getByRole('button', { name: /项目/ }))
+    await user.click(await screen.findByRole('option', { name: /acp-flows/ }))
+
+    await waitFor(() => {
+      expect(listSkills).toHaveBeenCalledWith({ project: '/Users/luca/work/acp-flows' })
+    })
   })
 })

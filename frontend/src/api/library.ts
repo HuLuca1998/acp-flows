@@ -28,8 +28,10 @@ export async function listRoles(): Promise<Role[]> {
  * ★ 扫不动时后端返回错误而不是空列表——装作「一个都没有」的话，
  * 用户以为自己的 skill 丢了，而实际是目录读不了。
  */
-export async function listSkills(): Promise<Skill[]> {
-  const body = unwrap(await api.GET('/skills'))
+export async function listSkills(params?: { project?: string }): Promise<Skill[]> {
+  // ★ 项目级要带 scope=project + 项目路径；全局一个参数都不带。
+  const query = params?.project ? { scope: 'project' as const, project: params.project } : {}
+  const body = unwrap(await api.GET('/skills', { params: { query } }))
   return body.skills
 }
 

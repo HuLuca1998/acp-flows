@@ -2450,6 +2450,11 @@ export interface operations {
             query?: {
                 /** @description 不传时返回全局库 */
                 scope?: "project" | "global";
+                /**
+                 * @description 项目路径（`GET /v1/projects` 的 `path`）。`scope=project` 时**必填**——
+                 *     不给的话不知道扫哪个项目，明确报错而不是返回一个永远的空列表。
+                 */
+                project?: string;
             };
             header?: never;
             path?: never;

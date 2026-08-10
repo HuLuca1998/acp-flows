@@ -1,10 +1,15 @@
-/* Skill 页。照设计稿 §十：条目 = 名字 + 版本 + 状态 + 校验原因。 */
+/* Skill 页。照设计稿 §十：条目 = 名字 + 版本 + 状态 + 校验原因。
+   ★ 页框照设计稿原值：flex 撑满 · min-height:0 · padding 22/28 · gap 14 ·
+   overflow:hidden——滚动发生在列内部（§8.2 规则⑥），页面不留大片空白。 */
 .page {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: calc(var(--space-3) + var(--space-2));
+  padding: var(--space-8) calc(var(--space-8) + var(--space-2));
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -13,11 +18,28 @@
   gap: 4px;
 }
 
+/* kicker：设计稿页头小标（10px 大写间隔字）。 */
+.eyebrow {
+  margin: 0;
+  color: var(--color-neutral-700);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
 .title {
   margin: 0;
   color: var(--color-neutral-100);
   font-size: 15px;
   font-weight: 600;
+}
+
+/* 选择器行：§7.6——页头标题行下方第一行，两页同位。 */
+.toolbar {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .subtitle {
@@ -56,15 +78,19 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-/* 两栏：左列表 + 右详情（设计稿 §十的主体，U10.7.2）。 */
+/* 两栏：左列表 + 右详情（设计稿 §十的主体，U10.7.2）。
+   两列各自内部滚动（§8.2 规则⑥），列高与页框同高。 */
 .columns {
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 
 .detail {
@@ -76,6 +102,8 @@
   background: var(--s-inset);
   box-shadow: inset 0 0 0 1px var(--color-neutral-900);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .detailHead {

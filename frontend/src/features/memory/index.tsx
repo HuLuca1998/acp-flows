@@ -2,14 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getMemoryBody, listMemories, reviewMemory } from '@/api/library'
+import { listProjects } from '@/api/system'
 import type { Memory, MemoryFilterTab } from '@/models/memory'
 import { matchesTab } from '@/models/memory'
+import { Dropdown } from '@/ui/Dropdown'
 import { ListItem } from '@/ui/ListItem'
 import { Markdown } from '@/ui/Markdown'
 import { StatusText } from '@/ui/StatusText'
 import { Tag } from '@/ui/Tag'
 
 import styles from './MemoryPage.module.css'
+
+/** 范围选择器需要的最小形状（来自 GET /v1/projects）。 */
+type ProjectOption = { id: string; name: string; path: string }
 
 /** 筛选档 → 词条 key。★ 显式映射，不动态拼 key。 */
 const TAB_KEY: Record<MemoryFilterTab, string> = {
@@ -60,17 +65,31 @@ export function MemoryPage() {
   const [body, setBody] = useState<MemoryBody | null>(null)
   const [bodyError, setBodyError] = useState('')
   const [mdMode, setMdMode] = useState<'rendered' | 'source'>('rendered')
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+  /** '' = 全部；`*` = 跨项目；否则是项目路径（记忆的 scope 存的就是路径）。 */
+  const [scopeSel, setScopeSel] = useState('')
+
+  useEffect(() => {
+    // 项目列表拉不到不拦这一页：选择器里只剩「全部 / 跨项目」。
+    void (async () => {
+      try {
+        setProjects(await listProjects())
+      } catch {
+        setProjects([])
+      }
+    })()
+  }, [])
 
   const load = useCallback(async () => {
     try {
-      setMemories(await listMemories())
+      setMemories(scopeSel ? await listMemories({ scope: scopeSel }) : await listMemories())
       setError('')
     } catch (e) {
       // ★ 查不动要**说出来**，不装作「一条都没有」——
       // 装作没有的话，用户以为 Duet 把记忆忘光了。
       setError(e instanceof Error ? e.message : t('memory.failed'))
     }
-  }, [t])
+  }, [scopeSel, t])
 
   useEffect(() => {
     void load()
@@ -141,6 +160,31 @@ export function MemoryPage() {
         <p className={styles.eyebrow}>{t('memory.eyebrow')}</p>
         <h1 className={styles.title}>{t('memory.title')}</h1>
       </header>
+
+      {/* 选择器行：§7.6 硬约束——页头标题行下方第一行，与 Skill 页同位。 */}
+      <div className={styles.toolbar}>
+        <Dropdown
+          label={t('memory.scopeLabel')}
+          value={
+            scopeSel === ''
+              ? t('memory.scope.all')
+              : scopeSel === '*'
+                ? t('memory.scope.cross')
+                : (projects.find((p) => p.path === scopeSel)?.name ?? scopeSel)
+          }
+          items={[
+            { value: '', label: t('memory.scope.all') },
+            { value: '*', label: t('memory.scope.cross') },
+            ...projects.map((p) => ({ value: p.path, label: p.name })),
+          ]}
+          onSelect={(v) => {
+            setScopeSel(v)
+            setSelected('')
+            setBody(null)
+            setBodyError('')
+          }}
+        />
+      </div>
 
       <div className={styles.tabs} role="tablist">
         {TABS.map((k) => (

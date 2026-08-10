@@ -38,6 +38,11 @@ EXEMPT = {
     # 路径: 理由
     "backend/internal/api/gen": "生成物，由 api/openapi.yaml 决定，人改不了",
     "frontend/src/api/gen": "同上",
+    # 设计系统原语库：frontend-guide.md §7 的组件清单写明**一文件一组件 +
+    # 同名 module.css 平铺在 src/ui/**，全表二十多个原语，做完必然超 15。
+    # 「新文件放哪」有明确答案（照 §7 的表），分子目录反而要发明
+    # Tag 算「标签类」还是「文本类」这种没有对错的分组。
+    "frontend/src/ui": "设计系统原语，§7 规定一文件一组件平铺；清单本身就有 20+ 个",
     # ★ 这一条是给检查自己开的豁免，所以理由要写得比别处更硬。
     #
     # scripts/check/ 下每个 check-*.sh 都是**一个独立的检查入口**，

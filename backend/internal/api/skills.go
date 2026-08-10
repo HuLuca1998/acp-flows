@@ -49,16 +49,22 @@ func handleListSkills(s port.SkillScanner, hits SkillHitsReader) http.HandlerFun
 			return
 		}
 
-		// ★ M2 只有全局库。项目级的在创建项目时初始化（M3），
-		// 那时才有项目——现在支持 scope=project 只会返回一个永远的空列表，
-		// 而用户会以为自己的项目 skill 没被认出来。
+		// 项目级：给项目路径就扫那个项目（约定目录见 fsstore/skill.Discover）。
+		// ★ `scope=project` 不给路径 → 明确报错——回一个永远的空列表的话，
+		// 用户以为自己的项目 skill 没被认出来。
+		var entries []port.SkillEntry
+		var err error
 		if scope := r.URL.Query().Get("scope"); scope == "project" {
-			writeProblem(w, http.StatusNotImplemented,
-				"project_skills_not_ready", "Project-level skills arrive with project creation")
-			return
+			projectPath := r.URL.Query().Get("project")
+			if projectPath == "" {
+				writeProblem(w, http.StatusBadRequest,
+					"project_path_required", "scope=project needs a project path")
+				return
+			}
+			entries, err = s.DiscoverInProject(projectPath)
+		} else {
+			entries, err = s.ScanGlobal()
 		}
-
-		entries, err := s.ScanGlobal()
 		if err != nil {
 			// ★ 扫不动要说出来，不装作「一个都没有」——
 			// 装作没有的话用户以为自己的 skill 丢了，而实际是目录读不了。

@@ -19,6 +19,12 @@ vi.mock('@/api/library', () => ({
   getMemoryBody: (...a: unknown[]): unknown => getMemoryBody(...a),
 }))
 
+const listProjects = vi.fn()
+
+vi.mock('@/api/system', () => ({
+  listProjects: (...a: unknown[]): unknown => listProjects(...a),
+}))
+
 const active = {
   id: 'mem-203',
   kind: 'constraint',
@@ -50,6 +56,9 @@ const retired = {
 }
 
 beforeEach(() => {
+  listProjects.mockReset().mockResolvedValue([
+    { id: 'proj-01', name: 'acp-flows', path: '/Users/luca/work/acp-flows' },
+  ])
   listMemories.mockReset().mockResolvedValue([active, candidate, retired])
   reviewMemory.mockReset().mockResolvedValue({ ...candidate, status: 'active', injectable: true })
   getMemoryBody.mockReset().mockResolvedValue({
@@ -243,5 +252,18 @@ describe('记忆页 · 详情栏（U10.7.1）', () => {
     await screen.findByText('mem-203')
     const detail = screen.getByRole('region', { name: /记忆详情/ })
     expect(within(detail).getByText(/选一条/)).toBeInTheDocument()
+  })
+
+  // ★ 范围选择器（设计稿页头，§7.6）——切到「跨项目」后**按范围拉取**。
+  it('范围选择器切到跨项目后按范围拉取', async () => {
+    render(<MemoryPage />)
+
+    await screen.findByText('mem-203')
+    await userEvent.click(screen.getByRole('button', { name: /范围/ }))
+    await userEvent.click(await screen.findByRole('option', { name: /跨项目/ }))
+
+    await waitFor(() => {
+      expect(listMemories).toHaveBeenCalledWith({ scope: '*' })
+    })
   })
 })

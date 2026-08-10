@@ -1,16 +1,29 @@
-/* 记忆页。照设计稿 §九：四档筛选 + 条目带类型与状态。 */
+/* 记忆页。照设计稿 §九：四档筛选 + 条目带类型与状态。
+   ★ 页框照设计稿原值：flex 撑满 · min-height:0 · padding 22/28 · gap 14 ·
+   overflow:hidden——滚动发生在列内部（§8.2 规则⑥），页面不留大片空白。 */
 .page {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
+  gap: calc(var(--space-3) + var(--space-2));
+  padding: var(--space-8) calc(var(--space-8) + var(--space-2));
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* 选择器行：§7.6——页头标题行下方第一行，两页同位。 */
+.toolbar {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .eyebrow {
@@ -98,13 +111,15 @@
   box-shadow: inset 0 0 0 1px var(--color-accent-500);
 }
 
-/* 两栏：左条目卡 + 右详情（设计稿 §九的主体，U10.7.1）。 */
+/* 两栏：左条目卡 + 右详情（设计稿 §九的主体，U10.7.1）。
+   两列各自内部滚动（§8.2 规则⑥），列高与页框同高。 */
 .columns {
   display: grid;
   grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
   gap: var(--space-4);
-  align-items: start;
+  flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 
 .detail {
@@ -116,6 +131,8 @@
   background: var(--s-inset);
   box-shadow: inset 0 0 0 1px var(--color-neutral-900);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .detailHead {
