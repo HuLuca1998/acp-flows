@@ -20,23 +20,6 @@ import (
 
 const idPrefix = "work"
 
-// View 是交给上层的工作视图。
-type View struct {
-	ID       string
-	State    constant.WorkState
-	Project  string
-	Worktree string
-	Prompt   string
-	// Title 是列表里显示的名字，取自用户提的那句需求。
-	Title string
-	// Branch 与 BaseCommit 是这个工作的 git 现场。
-	//
-	// ★ 右栏「领先几个 commit」与验收时的 diff 都要 BaseCommit 当起点，
-	// 不记的话「这个工作到底改了什么」没有答案。
-	Branch     string
-	BaseCommit string
-}
-
 // Service 是工作用例。
 type Service struct {
 	repo      port.WorkRepo
@@ -75,6 +58,9 @@ type Service struct {
 	// 都可以为 nil，那时不注入 Skill。
 	skills    SkillSource
 	skillHits SkillHits
+	// workspaceFiles 读 worktree 里的文件（引用注入，U10.7.3）。
+	// 为 nil 时带引用的消息明确报错，不静默丢弃。
+	workspaceFiles WorkspaceFiles
 
 	// cancelling 记着「哪些工作正在被用户主动停」。
 	// 后台那一轮据此区分「用户停的」与「AI 跑挂了」。

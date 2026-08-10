@@ -421,6 +421,13 @@ paths:
                 text:
                   type: string
                   description: 用户说的那句话，**原样**转发给 Agent 并进时间线
+                refs:
+                  type: array
+                  items: { type: string }
+                  description: |
+                    引用的文件（相对 worktree 的路径）。内容会拼进这一轮的
+                    prompt；**正文不进事件载荷**，时间线上只留路径。
+                    读不到任何一个 → 整句拒绝（400），不静默丢弃。
       responses:
         '202':
           description: 收到了，正在跑

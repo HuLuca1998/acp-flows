@@ -354,12 +354,16 @@ M10 第 5 条（注入行里看得到刚收的记忆）。
 
 ### ◐ U10.7.3 · 输入框的引用与附件
 
-> ★ 还没开工，先立住：对照表「引用」那行的欠账指到这里。
+> **引用部分 2026-08-10 已做**：R1/R2/R3/R4 全部有测试且先红过
+> （`TestSay_R1Ref_*` 等三条 + ChatPage 两条）。读文件走
+> `fsstore/workspace`（app 层不做 IO），路径逃逸在实现层拒。
+> **仍欠**：① 真机操作走查（归 `U10.6.1`）② 附件 ③ `11/13` 计数——
+> 分母怎么算没有裁定，动它之前先记 open-questions。
 
 | | |
 |---|---|
 | `goal` | 输入框那一行带「附件 · 引用 · 上下文计数」，引用的文件**真的进下一轮 prompt** |
-| `allowed_changes` | `frontend/src/features/conversation/**` · `backend/internal/app/work/**` · `api/openapi.yaml` |
+| `allowed_changes` | `frontend/src/features/chat/**` · `frontend/src/api/**` · `frontend/src/ui/**` · `frontend/src/i18n/**` · `backend/internal/app/**` · `backend/internal/fsstore/**` · `backend/internal/api/**` · `backend/cmd/duetd/**`（装配）· `api/openapi.yaml` |
 | `forbidden_changes` | 引用只显示不注入（界面说谎）；文件正文塞进事件载荷 |
 | `stop_conditions` | 上下文计数（`11/13`）的分母怎么算没有裁定 —— 记 open-questions 再做 |
 

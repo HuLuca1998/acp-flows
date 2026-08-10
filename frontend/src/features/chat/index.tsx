@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { listProjects, listWorks, sayInWork, startWork } from '@/api/system'
 import type { Project } from '@/models/project'
 import type { Work } from '@/models/work'
+import { RefChip } from '@/ui/RefChip'
 
 import { DecisionDock } from '../decision/DecisionDock'
 import { PermissionDock } from '../permission/PermissionDock'
@@ -71,6 +72,10 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
   const [prompt, setPrompt] = useState('')
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+  /** 引用的文件（相对 worktree 的路径），随下一句一起发（U10.7.3）。 */
+  const [refs, setRefs] = useState<string[]>([])
+  const [refOpen, setRefOpen] = useState(false)
+  const [refDraft, setRefDraft] = useState('')
 
   // ★ 把当前工作报给外面（右栏要用）。放在 effect 里而不是每次 setCurrent
   // 时手动调——手动调的话，漏掉任何一条赋值路径都会让右栏停在旧工作上。
@@ -144,6 +149,7 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
     if (text === '') {
       return
     }
+    const sentRefs = refs
 
     // ★★ **已经有工作就接着说，不新建。**
     //
@@ -156,8 +162,12 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
       setStarting(true)
       setErrorCode(null)
       try {
-        await sayInWork(workID, text)
+        // ★ 引用跟着这一句走（U10.7.3）。空的时候不带参数——
+        // 后端只在有引用时才去读文件。
+        await (sentRefs.length > 0 ? sayInWork(workID, text, sentRefs) : sayInWork(workID, text))
         setPrompt('')
+        // ★ 发完清空 chips：上一句的引用不该悄悄跟着下一句。
+        setRefs([])
       } catch (err) {
         setErrorCode(errorCodeOf(err))
       } finally {
@@ -189,7 +199,7 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
     } finally {
       setStarting(false)
     }
-  }, [prompt, projects, pickedProject, baseRef, current])
+  }, [prompt, refs, projects, pickedProject, baseRef, current])
 
   return (
     <div className={styles.page}>
@@ -240,26 +250,78 @@ export function ChatPage({ intent, intentSeq, onWorkChange }: ChatPageProps) {
     // 还是会另起一个工作——后者会新开一个 worktree。
     const continuing = current !== null && (current.id ?? '') !== ''
 
+    const addRef = () => {
+      const path = refDraft.trim()
+      if (path !== '' && !refs.includes(path)) {
+        setRefs([...refs, path])
+      }
+      setRefDraft('')
+    }
+
     return (
-      <form
-        className={styles.composer}
-        onSubmit={(e) => {
-          e.preventDefault()
-          void send()
-        }}
-      >
-        <input
-          type="text"
-          className={styles.input}
-          value={prompt}
-          placeholder={t(continuing ? 'chat.sayMore' : 'chat.placeholder')}
-          aria-label={t(continuing ? 'chat.sayMoreLabel' : 'chat.inputLabel')}
-          onChange={(e) => setPrompt(e.target.value)}
-        />
-        <button type="submit" className={styles.submit} disabled={starting}>
-          {t(submitKey(continuing, starting))}
-        </button>
-      </form>
+      <div className={styles.composerArea}>
+        {/*
+          引用行（U10.7.3）：设计稿输入框那一行的 `⌗ 引用`。
+          ★ 只在「接着说」时给——新工作还没有 worktree，引用没有解析根。
+          chips 上的文件**真的**随下一句进 prompt，不是装饰（后端注入）。
+        */}
+        {continuing && (
+          <div className={styles.refRow}>
+            <button
+              type="button"
+              className={styles.refToggle}
+              onClick={() => setRefOpen((o) => !o)}
+            >
+              {t('chat.addRef')}
+            </button>
+            {refOpen && (
+              <input
+                type="text"
+                className={styles.refInput}
+                value={refDraft}
+                placeholder={t('chat.refPlaceholder')}
+                aria-label={t('chat.refPathLabel')}
+                onChange={(e) => setRefDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addRef()
+                  }
+                }}
+              />
+            )}
+            {refs.map((path) => (
+              <RefChip
+                key={path}
+                icon="ph-file"
+                label={path}
+                removeLabel={t('chat.removeRef', { path })}
+                onRemove={() => setRefs(refs.filter((r) => r !== path))}
+              />
+            ))}
+          </div>
+        )}
+
+        <form
+          className={styles.composer}
+          onSubmit={(e) => {
+            e.preventDefault()
+            void send()
+          }}
+        >
+          <input
+            type="text"
+            className={styles.input}
+            value={prompt}
+            placeholder={t(continuing ? 'chat.sayMore' : 'chat.placeholder')}
+            aria-label={t(continuing ? 'chat.sayMoreLabel' : 'chat.inputLabel')}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <button type="submit" className={styles.submit} disabled={starting}>
+            {t(submitKey(continuing, starting))}
+          </button>
+        </form>
+      </div>
     )
   }
 }

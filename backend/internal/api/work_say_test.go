@@ -30,7 +30,7 @@ type sayCall struct {
 	text   string
 }
 
-func (s *sayStub) Say(_ context.Context, workID, text string) error {
+func (s *sayStub) Say(_ context.Context, workID, text string, _ ...string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.calls = append(s.calls, sayCall{workID: workID, text: text})

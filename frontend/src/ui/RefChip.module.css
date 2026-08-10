@@ -1,0 +1,40 @@
+/* 引用芯片：§7.3。11px 等宽，3px 9px，raised 底 + neutral-800 描边。 */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-md);
+  background: var(--s-raised);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-800);
+  font-size: 11px;
+}
+
+.chip i {
+  font-size: 12px;
+  color: var(--color-neutral-500);
+}
+
+.label {
+  font-family: var(--font-mono);
+  color: var(--color-neutral-300);
+}
+
+.remove {
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-neutral-700);
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.remove:hover {
+  color: var(--color-neutral-400);
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 1px;
+}

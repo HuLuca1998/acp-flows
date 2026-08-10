@@ -11,6 +11,9 @@ import (
 // sayRequest 是 POST /v1/works/{id}/messages 的请求体。
 type sayRequest struct {
 	Text string `json:"text"`
+	// Refs 是引用的文件（相对 worktree 的路径）。内容拼进这一轮 prompt，
+	// 时间线上只留路径（正文不进事件载荷）。
+	Refs []string `json:"refs,omitempty"`
 }
 
 // handleSayInWork 处理 POST /v1/works/{id}/messages。
@@ -44,7 +47,7 @@ func handleSayInWork(svc workService) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.Say(r.Context(), workID, req.Text); err != nil {
+		if err := svc.Say(r.Context(), workID, req.Text, req.Refs...); err != nil {
 			writeSayProblem(w, err)
 			return
 		}

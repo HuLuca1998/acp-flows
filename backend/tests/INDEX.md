@@ -723,6 +723,9 @@
 | `TestSay_R4_TerminalWorkRefusesAndSaysWhy` | `internal/app/work/say_test.go` | app | ★★ R4：终态工作拒收，且给出机器可读的 `work_not_accepting_messages`。静默收下的话用户对着一个永远不动的时间线干等，以为 AI 在想事情 |
 | `TestSay_R4_RefusedMeansNothingHappened` | `internal/app/work/say_test.go` | app | ★ 被拒之后**一轮没跑、时间线上也不留那句话**——留下的话会有一句「用户说了什么」而永远没有下文 |
 | `TestSay_RefusesBeforeTheWorktreeIsReady` | `internal/app/work/say_test.go` | app | ★ 工作区还没切好时拒绝：用空 cwd 跑一轮的话，Agent 会在 **duetd 自己的当前目录**里干活 |
+| `TestSay_R1Ref_InjectsReferencedFileIntoPrompt` | `internal/app/work/say_test.go` | app | M10 U10.7.3 R1：引用文件的**内容与路径**真的进这一轮的 prompt（真 worktree 真文件）——「只显示不注入」是 forbidden 第一条 |
+| `TestSay_R3Ref_UnreadableRejectsWholeMessage` | `internal/app/work/say_test.go` | app | ★★ U10.7.3 R3：任何一个引用读不到 → **整句拒绝**（错误带路径），user_message 不发、轮不跑——静默丢弃的话用户以为 AI 看过那个文件了 |
+| `TestSay_RefRejectsEscapingPaths` | `internal/app/work/say_test.go` | app | 引用路径不许逃出 worktree：绝对路径 / `..` / 空串一律拒（一个 `..` 就能把家目录任何文件塞进 prompt 发给模型） |
 | `TestSay_RejectsBlank` | `internal/app/work/say_test.go` | app | 空话不发——发出去的话 Agent 会为一句空白跑一整轮 |
 | `TestSay_UnknownWorkIsNotFound` | `internal/app/work/say_test.go` | app | 工作不存在时能判定成 `ErrNotFound`（上层据此回 404） |
 | `TestSay_WithoutRunnerDoesNotPanic` | `internal/app/work/say_test.go` | app | 没装配 runner 时不崩（只跑 API 冒烟的场景） |

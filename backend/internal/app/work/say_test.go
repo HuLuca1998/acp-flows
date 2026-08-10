@@ -3,12 +3,16 @@ package work_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/port"
 	"github.com/HuLuca1998/acp-flows/backend/internal/app/work"
 	"github.com/HuLuca1998/acp-flows/backend/internal/constant"
 	"github.com/HuLuca1998/acp-flows/backend/internal/domain/model"
+	workspacestore "github.com/HuLuca1998/acp-flows/backend/internal/fsstore/workspace"
 	"github.com/HuLuca1998/acp-flows/backend/tests/testutil"
 )
 
@@ -229,3 +233,102 @@ func TestSay_WithoutRunnerDoesNotPanic(t *testing.T) {
 }
 
 var _ port.AgentRunner = (*fakeRunner)(nil)
+
+// ── U10.7.3 · 引用文件 ──────────────────────────────────────
+//
+// ★★ 引用只显示不注入（界面说谎）是 forbidden_changes 的第一条——
+// 这一族守的就是「chips 上那个文件真的进了 prompt」。
+
+// R1 · 引用的文件内容真的进这一轮的 prompt（路径也在，AI 才知道它是哪个文件）。
+func TestSay_R1Ref_InjectsReferencedFileIntoPrompt(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	runner := &fakeRunner{}
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner)
+	svc.SetWorkspaceFiles(workspacestore.Store{})
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "先把取消的现状摸清楚", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	noteRel := filepath.Join("docs", "cancel-notes.md")
+	noteAbs := filepath.Join(view.Worktree, noteRel)
+	if err := os.MkdirAll(filepath.Dir(noteAbs), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := "两段式取消：先协议 cancel，再等 stopReason 落盘。"
+	if err := os.WriteFile(noteAbs, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.Say(ctx, view.ID, "照这份笔记核对实现", noteRel); err != nil {
+		t.Fatalf("带引用说一句: %v", err)
+	}
+
+	waitFor(t, "第二轮没跑起来", func() bool { return len(runner.snapshot()) == 2 })
+	prompt := runner.snapshot()[1].Prompt
+	if !strings.Contains(prompt, content) {
+		t.Fatalf("引用文件的内容没进 prompt——界面上的 chip 在说谎。prompt=%q", prompt)
+	}
+	if !strings.Contains(prompt, noteRel) {
+		t.Errorf("prompt 里没带路径，AI 不知道这段内容来自哪个文件：%q", prompt)
+	}
+}
+
+// R3 · 读不到 → 整句拒绝（错误带路径），user_message 都不发、也不跑轮。
+//
+// 静默丢弃的话，用户以为 AI 看过那个文件了，而它根本没看到。
+func TestSay_R3Ref_UnreadableRejectsWholeMessage(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	runner := &fakeRunner{}
+	bus := &recordingBus{}
+	svc := newServiceWithRunner(t, &memWorks{}, bus, runner)
+	svc.SetWorkspaceFiles(workspacestore.Store{})
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "第一句", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+	before := len(bus.snapshot())
+
+	err = svc.Say(ctx, view.ID, "看看这个", filepath.Join("docs", "no-such.md"))
+	if err == nil {
+		t.Fatal("引用文件读不到却收下了消息")
+	}
+	if !strings.Contains(err.Error(), filepath.Join("docs", "no-such.md")) {
+		t.Errorf("错误里没带路径，用户不知道哪个引用坏了：%v", err)
+	}
+	if n := len(runner.snapshot()); n != 1 {
+		t.Errorf("跑了 %d 轮——引用坏了还是跑了", n)
+	}
+	if n := len(bus.snapshot()); n != before {
+		t.Errorf("多了 %d 条事件——user_message 发出去了，时间线上会留一句永远没下文的话",
+			n-before)
+	}
+}
+
+// 引用路径不许逃出 worktree：绝对路径与 `..` 一律拒。
+func TestSay_RefRejectsEscapingPaths(t *testing.T) {
+	project := testutil.NewGitRepo(t)
+	runner := &fakeRunner{}
+	svc := newServiceWithRunner(t, &memWorks{}, &recordingBus{}, runner)
+	svc.SetWorkspaceFiles(workspacestore.Store{})
+	ctx := context.Background()
+
+	view, err := svc.Start(ctx, project, "第一句", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, "第一轮没跑起来", func() bool { return len(runner.snapshot()) == 1 })
+
+	for _, ref := range []string{"../outside.md", "/etc/hosts", ""} {
+		if err := svc.Say(ctx, view.ID, "看看这个", ref); err == nil {
+			t.Errorf("引用 %q 应被拒绝", ref)
+		}
+	}
+	if n := len(runner.snapshot()); n != 1 {
+		t.Errorf("逃逸引用还是跑了 %d 轮", n)
+	}
+}
